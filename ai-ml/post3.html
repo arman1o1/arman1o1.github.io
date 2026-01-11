@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup for MCP (Model Context Protocol)</title>
+    <meta name="description"
+        content="A comprehensive guide to setting up the Model Context Protocol (MCP) for Claude and other LLMs." />
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/styles.css">
+    <script src="../assets/theme.js"></script>
+
+    <!-- Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</head>
+
+<body>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link active">AI/ML</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post">
+                <div class="tags">
+                    <span class="tag">MCP</span>
+                    <span class="tag">Tutorial</span>
+                </div>
+                <h1>Setup for MCP (Model Context Protocol)</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-01-11">Jan 11, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 10 min read</span>
+                </div>
+
+                <hr>
+
+                <h2>📚 Table of Contents</h2>
+                <ol>
+                    <li><a href="#what-is-mcp">What is MCP?</a></li>
+                    <li><a href="#prerequisites">Prerequisites</a></li>
+                    <li><a href="#system-requirements">System Requirements</a></li>
+                    <li><a href="#installation-options">Installation Options</a></li>
+                    <li><a href="#environment-setup-with-uv-recommended">Environment Setup with uv (Recommended)</a>
+                    </li>
+                    <li><a href="#environment-setup-with-pip-alternative">Environment Setup with pip (Alternative)</a>
+                    </li>
+                    <li><a href="#claude-desktop-integration">Claude Desktop Integration</a></li>
+                    <li><a href="#your-first-mcp-server">Your First MCP Server</a></li>
+                    <li><a href="#testing-your-setup">Testing Your Setup</a></li>
+                    <li><a href="#troubleshooting">Troubleshooting</a></li>
+                    <li><a href="#key-takeaways">Key Takeaways</a></li>
+                    <li><a href="#additional-resources">Additional Resources</a></li>
+                </ol>
+
+                <hr>
+
+                <h2 id="what-is-mcp">What is MCP?</h2>
+                <p>The <strong>Model Context Protocol (MCP)</strong> is an open standard developed by Anthropic that
+                    enables Large Language Models (LLMs) to interact seamlessly with external tools, data sources, and
+                    applications. Think of it as a <strong>universal adapter</strong> that connects AI assistants like
+                    Claude to the outside world.</p>
+
+                <h3>Core MCP Concepts</h3>
+                <p>MCP provides three main primitives:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Primitive</th>
+                            <th>Description</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>🔧 Tools</strong></td>
+                            <td>Functions that LLMs can call (with user approval)</td>
+                            <td>Fetch weather data, query databases</td>
+                        </tr>
+                        <tr>
+                            <td><strong>📁 Resources</strong></td>
+                            <td>File-like data that clients can read</td>
+                            <td>API responses, file contents</td>
+                        </tr>
+                        <tr>
+                            <td><strong>📝 Prompts</strong></td>
+                            <td>Pre-written templates for specific tasks</td>
+                            <td>Code review template, analysis prompt</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>How MCP Works</h3>
+                <pre><code class="language-plaintext">┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│                 │       │                 │       │                 │
+│   LLM Client    │◄─────►│   MCP Server    │◄─────►│  External API   │
+│  (e.g., Claude) │  MCP  │  (Your Code)    │ HTTP  │  (Weather, DB)  │
+│                 │       │                 │       │                 │
+└─────────────────┘       └─────────────────┘       └─────────────────┘</code></pre>
+
+                <hr>
+
+                <h2 id="prerequisites">Prerequisites</h2>
+                <p>Before setting up MCP, ensure you have the following:</p>
+
+                <h3>Required Knowledge</h3>
+                <ul>
+                    <li>✅ Basic Python programming</li>
+                    <li>✅ Understanding of command line/terminal usage</li>
+                    <li>✅ Familiarity with virtual environments</li>
+                    <li>✅ Basic understanding of LLMs (like Claude)</li>
+                </ul>
+
+                <h3>Required Software</h3>
+                <ul>
+                    <li>✅ <strong>Python 3.10+</strong> installed on your system</li>
+                    <li>✅ A code editor (VS Code recommended)</li>
+                    <li>✅ <strong>Claude Desktop</strong> (for testing with Claude) - <a
+                            href="https://claude.ai/download" target="_blank">Download here</a></li>
+                </ul>
+
+                <hr>
+
+                <h2 id="system-requirements">System Requirements</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Minimum Requirement</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Python</strong></td>
+                            <td>3.10 or higher</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MCP SDK</strong></td>
+                            <td>1.2.0 or higher</td>
+                        </tr>
+                        <tr>
+                            <td><strong>OS</strong></td>
+                            <td>Windows, macOS, or Linux</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RAM</strong></td>
+                            <td>4GB (8GB recommended)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Check Your Python Version</h3>
+                <pre><code class="language-bash">python --version
+# Should output: Python 3.10.x or higher</code></pre>
+                <p>If you need to install Python, visit <a href="https://www.python.org/downloads/"
+                        target="_blank">python.org</a></p>
+
+                <hr>
+
+                <h2 id="installation-options">Installation Options</h2>
+                <p>MCP provides two main installation methods:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Best For</th>
+                            <th>Package Manager</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>uv</strong> (Recommended)</td>
+                            <td>New projects, faster installs</td>
+                            <td><code>uv add "mcp[cli]"</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>pip</strong></td>
+                            <td>Existing projects</td>
+                            <td><code>pip install mcp</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <hr>
+
+                <h2 id="environment-setup-with-uv-recommended">Environment Setup with uv (Recommended)</h2>
+                <p><code>uv</code> is a fast Python package installer and resolver, recommended by the official MCP
+                    documentation.</p>
+
+                <h3>Step 1: Install uv</h3>
+                <p><strong>On macOS/Linux:</strong></p>
+                <pre><code class="language-bash">curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+
+                <p><strong>On Windows (PowerShell):</strong></p>
+                <pre><code class="language-powershell">powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></pre>
+
+                <h3>Step 2: Create a New MCP Project</h3>
+                <pre><code class="language-bash"># Create a new directory for your project
+uv init my-mcp-server
+cd my-mcp-server
+
+# Create and activate virtual environment
+uv venv
+
+# On macOS/Linux:
+source .venv/bin/activate
+
+# On Windows:
+.venv\Scripts\activate</code></pre>
+
+                <h3>Step 3: Install MCP Dependencies</h3>
+                <pre><code class="language-bash"># Install MCP with CLI tools and HTTP client
+uv add "mcp[cli]" httpx
+
+# Verify installation
+# On Linux
+uv pip list | grep mcp
+
+# On Windows
+uv pip list | Select-String mcp</code></pre>
+
+                <h3>Project Structure After Setup</h3>
+                <pre><code class="language-plaintext">my-mcp-server/
+├── .venv/                  # Virtual environment
+├── .python-version         # Python version file
+├── hello.py                # Sample file (created by uv init)
+├── pyproject.toml          # Project configuration
+├── README.md               # Project readme (created by uv init)
+├── uv.lock                 # Dependency lock file
+└── server.py               # Your MCP server (create this)</code></pre>
+
+                <hr>
+
+                <h2 id="environment-setup-with-pip-alternative">Environment Setup with pip (Alternative)</h2>
+                <p>If you prefer using traditional pip and venv:</p>
+
+                <h3>Step 1: Create Virtual Environment</h3>
+                <pre><code class="language-bash"># Create project directory
+mkdir my-mcp-server
+cd my-mcp-server
+
+# Create virtual environment(if not created by uv)
+python -m venv .venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+
+# On Windows:
+.venv\Scripts\activate</code></pre>
+
+                <h3>Step 2: Install MCP Package</h3>
+                <pre><code class="language-bash"># Install MCP
+pip install mcp
+
+# Install additional dependencies for HTTP requests
+pip install httpx
+
+# Verify installation
+pip show mcp</code></pre>
+
+                <blockquote>
+                    <p><strong>📦 Package Info:</strong> The MCP package is available on <a
+                            href="https://pypi.org/project/mcp/" target="_blank">PyPI</a> as <code>mcp</code>.</p>
+                </blockquote>
+
+                <hr>
+
+                <h2 id="claude-desktop-integration">Claude Desktop Integration</h2>
+                <p>To use your MCP server with Claude Desktop, you need to configure the
+                    <code>claude_desktop_config.json</code> file.
+                </p>
+
+                <h3>Step 1: Locate the Config File</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operating System</th>
+                            <th>Config File Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>macOS</strong></td>
+                            <td><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Windows</strong></td>
+                            <td><code>%APPDATA%\Claude\claude_desktop_config.json</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Linux</strong></td>
+                            <td><code>~/.config/claude/claude_desktop_config.json</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Step 2: Create/Edit the Config File</h3>
+                <p>Open the config file with your favorite editor:</p>
+
+                <p><strong>macOS (with VS Code):</strong></p>
+                <pre><code class="language-bash">code ~/Library/Application\ Support/Claude/claude_desktop_config.json</code></pre>
+
+                <p><strong>Windows (PowerShell):</strong></p>
+                <pre><code class="language-powershell">code "$env:APPDATA\Claude\claude_desktop_config.json"</code></pre>
+
+                <h3>Step 3: Configure Your MCP Server</h3>
+                <p>Add your server configuration:</p>
+                <pre><code class="language-json">{
+  "mcpServers": {
+    "my-server": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:/path/to/your/my-mcp-server",
+        "run",
+        "server.py"
+      ]
+    }
+  }
+}</code></pre>
+
+                <blockquote>
+                    <p>⚠️ <strong>Important Notes:</strong></p>
+                    <ul>
+                        <li>Use <strong>absolute paths</strong> for the directory</li>
+                        <li>On Windows, use forward slashes (<code>/</code>) or escaped backslashes (<code>\\</code>)
+                        </li>
+                        <li>The <code>command</code> should be the full path to <code>uv</code> if not in PATH</li>
+                    </ul>
+                </blockquote>
+
+                <h3>Getting the Correct Paths</h3>
+                <pre><code class="language-bash"># Find uv location
+# On macOS/Linux:
+which uv
+
+# On Windows:
+where uv
+
+# Get current directory path (for --directory argument)
+# On macOS/Linux:
+pwd
+
+# On Windows:
+cd</code></pre>
+
+                <hr>
+
+                <h2 id="your-first-mcp-server">Your First MCP Server</h2>
+                <p>Let's create a simple MCP server that provides a greeting tool.</p>
+
+                <h3>Create <code>server.py</code></h3>
+                <pre><code class="language-python">"""
+My First MCP Server
+A simple server that demonstrates MCP tool creation.
+"""
+
+from mcp.server.fastmcp import FastMCP
+
+# Initialize the FastMCP server with a name
+mcp = FastMCP("greeting-server")
+
+
+@mcp.tool()
+def greet(name: str) -> str:
+    """
+    Generate a friendly greeting.
+    
+    Args:
+        name: The name of the person to greet
+    
+    Returns:
+        A personalized greeting message
+    """
+    return f"Hello, {name}! Welcome to the world of MCP! 🎉"
+
+
+@mcp.tool()
+def add_numbers(a: float, b: float) -> float:
+    """
+    Add two numbers together.
+    
+    Args:
+        a: First number
+        b: Second number
+    
+    Returns:
+        The sum of the two numbers
+    """
+    return a + b
+
+
+@mcp.tool()
+def get_current_time() -> str:
+    """
+    Get the current date and time.
+    
+    Returns:
+        Current date and time as a formatted string
+    """
+    from datetime import datetime
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def main():
+    """Run the MCP server with stdio transport."""
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+                <h3>Key Components Explained</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>FastMCP("name")</code></td>
+                            <td>Initialize server with a unique name</td>
+                        </tr>
+                        <tr>
+                            <td><code>@mcp.tool()</code></td>
+                            <td>Decorator to register a function as an MCP tool</td>
+                        </tr>
+                        <tr>
+                            <td><code>docstring</code></td>
+                            <td>Describes the tool for the LLM</td>
+                        </tr>
+                        <tr>
+                            <td><code>type hints</code></td>
+                            <td>Define input/output types for validation</td>
+                        </tr>
+                        <tr>
+                            <td><code>mcp.run(transport="stdio")</code></td>
+                            <td>Start server with stdio communication</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <hr>
+
+                <h2 id="testing-your-setup">Testing Your Setup</h2>
+                <h3>Method 1: Run Directly (You need a client to communicate with it)</h3>
+                <pre><code class="language-bash"># With uv:
+uv run server.py
+
+# With pip:
+python server.py</code></pre>
+
+                <h3>Method 2: Test with Claude Desktop</h3>
+                <ol>
+                    <li><strong>Restart Claude Desktop</strong> after configuring
+                        <code>claude_desktop_config.json</code>
+                    </li>
+                    <li>Look for the <strong>Connectors</strong> in the Claude interface</li>
+                    <li>Your server should appear in the list of connected servers or else config it manually inside
+                        Manage Connectors.</li>
+                    <li>Try asking Claude: <em>"Can you greet me using the greeting tool?"</em></li>
+                </ol>
+
+                <hr>
+
+                <h2 id="troubleshooting">Troubleshooting</h2>
+                <h3>Common Issues and Solutions</h3>
+
+                <h4>❌ Python Version Too Old</h4>
+                <pre><code class="language-plaintext">Error: Python 3.10+ is required</code></pre>
+                <p><strong>Solution:</strong> Install Python 3.10 or higher from <a
+                        href="https://www.python.org/downloads/" target="_blank">python.org</a></p>
+
+                <h4>❌ MCP Package Not Found</h4>
+                <pre><code class="language-python">ModuleNotFoundError: No module named 'mcp'</code></pre>
+                <p><strong>Solution:</strong> Ensure you've installed MCP in your virtual environment:</p>
+                <pre><code class="language-bash">pip install mcp
+# or
+uv add mcp</code></pre>
+
+                <h4>❌ Claude Desktop Not Detecting Server</h4>
+                <p><strong>Solutions:</strong></p>
+                <ol>
+                    <li>Restart Claude Desktop completely</li>
+                    <li>Verify the config file is valid JSON (use a JSON validator)</li>
+                    <li>Check that paths are absolute and correct</li>
+                    <li>Ensure the server file exists at the specified location</li>
+                </ol>
+
+                <h4>❌ Logging Issues with stdio Transport</h4>
+                <blockquote>
+                    <p><strong>Important:</strong> When using <code>stdio</code> transport, avoid <code>print()</code>
+                        statements!</p>
+                </blockquote>
+                <p><strong>Why?</strong> MCP uses stdout for communication. Regular print statements interfere with the
+                    protocol.</p>
+
+                <pre><code class="language-python"># ❌ Bad - Don't do this!
+print("Processing request...")
+
+# ✅ Good - Use logging instead
+import logging
+logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+logger = logging.getLogger(__name__)
+logger.info("Processing request...")</code></pre>
+
+                <h4>❌ Windows Path Issues</h4>
+                <p>If your paths contain backslashes, escape them properly:</p>
+                <pre><code class="language-json">{
+  "mcpServers": {
+    "my-server": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:\\Users\\username\\projects\\my-mcp-server",
+        "run",
+        "server.py"
+      ]
+    }
+  }
+}</code></pre>
+
+                <p>Or use forward slashes (works on Windows too):</p>
+                <pre><code class="language-json">"C:/Users/username/projects/my-mcp-server"</code></pre>
+
+                <hr>
+
+                <h2 id="key-takeaways">Key Takeaways</h2>
+                <ul>
+                    <li><strong>What is MCP?</strong> Open standard for connecting LLMs to external tools and data</li>
+                    <li><strong>Core Primitives</strong> Tools, Resources, and Prompts</li>
+                    <li><strong>Python Requirement</strong> Python 3.10+ required</li>
+                    <li><strong>Recommended Setup</strong> Use <code>uv</code> for faster, modern package management
+                    </li>
+                    <li><strong>Server Creation</strong> Use <code>FastMCP</code> class and <code>@mcp.tool()</code>
+                        decorator</li>
+                    <li><strong>Transport</strong> Use <code>stdio</code> for Claude Desktop integration</li>
+                    <li><strong>Logging</strong> Never use <code>print()</code> with stdio; use <code>logging</code> to
+                        stderr</li>
+                </ul>
+
+                <hr>
+
+                <h2 id="additional-resources">Additional Resources</h2>
+                <h3>Official Documentation</h3>
+                <ul>
+                    <li>📖 <a href="https://modelcontextprotocol.io/" target="_blank">MCP Official Documentation</a>
+                    </li>
+                    <li>🐙 <a href="https://github.com/modelcontextprotocol" target="_blank">MCP GitHub Repository</a>
+                    </li>
+                    <li>🐍 <a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank">Python SDK on
+                            GitHub</a></li>
+                    <li>📦 <a href="https://pypi.org/project/mcp/" target="_blank">MCP Package on PyPI</a></li>
+                </ul>
+
+                <h3>Quick Links</h3>
+                <ul>
+                    <li>🔧 <a href="https://modelcontextprotocol.io/quickstart/server" target="_blank">Building MCP
+                            Servers</a></li>
+                    <li>💻 <a href="https://modelcontextprotocol.io/docs/develop/build-client" target="_blank">Building
+                            MCP Clients</a></li>
+                    <li>🔍 <a href="https://modelcontextprotocol.io/docs/tools/inspector" target="_blank">MCP Inspector
+                            Guide</a></li>
+                </ul>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
+                class="icon github">
+                <svg width="26" height="26" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 
+            0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 
+            1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 
+            0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 
+            0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 
+            1.36.09 2 .27 1.53-1.04 2.2-.82 
+            2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 
+            1.27.82 2.15 0 3.07-1.87 3.75-3.65 
+            3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 
+            2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+</body>
+
+</html>

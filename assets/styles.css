@@ -226,12 +226,49 @@ html.dark body .social-icons a:hover {
   color: #73b9ff;
 }
 
-/* NEW: Post date styling */
-.post-date {
+/* Tags */
+.tags {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background: #eee;
+  color: #555;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+body.dark .tag {
+  background: #1f2229;
+  color: #aaa;
+}
+
+/* Post Meta (Date + Read Time) */
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   color: #888;
   font-size: 0.9rem;
-  margin-top: -10px;
+  margin-top: -5px;
   margin-bottom: 10px;
+}
+
+body.dark .post-meta {
+  color: #bbb;
+}
+
+/* NEW: Post date styling */
+.post-date {
+  /* removed margin styles as they are handled by .post-meta now */
+  margin: 0;
 }
 
 html.dark body .post-date {
@@ -262,5 +299,88 @@ html.dark body .post-date {
 }
 
 body.dark .image-caption {
+  color: #aaa;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  padding: 12px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background-color: #f4f4f4;
+  font-weight: 600;
+}
+
+/* Dark mode tables */
+html.dark body th,
+html.dark body td {
+  border-color: #444;
+}
+
+html.dark body th {
+  background-color: #1f2229;
+  color: #e6eef8;
+}
+
+
+/* Explore Categories (Home Page) */
+.section-links {
+  margin-top: 50px;
+  border-top: 1px solid #ddd;
+  padding-top: 30px;
+}
+
+html.dark body .section-links {
+  border-color: #444;
+}
+
+.section-links h2 {
+  margin-bottom: 20px;
+}
+
+.explore-list {
+  list-style: none;
+  padding: 0;
+}
+
+.explore-list li {
+  margin-bottom: 20px;
+}
+
+.explore-link {
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #4da3ff;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.explore-link:hover {
+  text-decoration: underline;
+}
+
+html.dark body .explore-link {
+  color: #73b9ff;
+}
+
+.explore-desc {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+html.dark body .explore-desc {
   color: #aaa;
 }
