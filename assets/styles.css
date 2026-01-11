@@ -4,11 +4,21 @@ body {
   padding: 0;
   background: #fafafa;
   color: #222;
+  background-image: url('../images/bg-light.png');
+  background-size: cover;
+  background-position: left center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 body.dark {
   background: #0b0c0f;
   color: #e6eef8;
+  background-image: url('../images/bg-dark.png');
+  background-size: cover;
+  background-position: left center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 /* Centered Header */
