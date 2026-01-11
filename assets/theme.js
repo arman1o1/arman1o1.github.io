@@ -4,20 +4,8 @@
   const savedTheme = localStorage.getItem(KEY);
   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-  // Logic: If saved is 'dark', OR if no saved and system is dark, OR if no saved and no system pref (default)
-  // Actually, user wants "ensure by default the dark mode toggle should be on"
-  // So if localStorage is null, we force dark.
-
-  let isDark = true; // Default to true
-
-  if (savedTheme === 'light') {
-    isDark = false;
-  } else if (savedTheme === 'dark') {
-    isDark = true;
-  } else {
-    // No saved preference, use dark by default (ignoring system pref if we want to FORCE default dark)
-    isDark = true;
-  }
+  // Default to dark mode unless user explicitly saved 'light'
+  const isDark = savedTheme !== 'light';
 
   // Apply class to html element (available immediately in head)
   if (isDark) {

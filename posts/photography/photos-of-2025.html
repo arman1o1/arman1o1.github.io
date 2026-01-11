@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Movies | arman1o1 blog</title>
-    <meta name="description" content="Movie reviews and cinema discussion." />
+    <title>Photos of 2025 | arman1o1 blog</title>
+    <meta name="description" content="A collection of photographs from 2025." />
 
     <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,22 +17,71 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
         rel="stylesheet">
 
-    <link rel="stylesheet" href="../assets/styles.css">
-    <script src="../assets/theme.js"></script>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script src="../../assets/theme.js"></script>
+    <style>
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .gallery-item {
+            background: #eee;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 0.9rem;
+            border: 1px solid #ddd;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        html.dark body .gallery-item {
+            background: #1f2229;
+            border-color: #444;
+            color: #aaa;
+        }
+
+        .photo-count {
+            color: #888;
+            font-size: 0.95rem;
+            margin-top: -10px;
+        }
+
+        html.dark body .photo-count {
+            color: #aaa;
+        }
+    </style>
 </head>
 
 <body>
 
     <header class="site-header">
         <div class="header-inner">
-            <a href="../index.html" class="brand">arman1o1 blog</a>
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
 
             <nav class="nav-links">
-                <a href="../index.html" class="nav-link">Home</a>
+                <a href="../../index.html" class="nav-link">Home</a>
                 <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
-                <a href="index.html" class="nav-link active">Movies</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="index.html" class="nav-link active">Photography</a>
                 <a href="../life/index.html" class="nav-link">Life</a>
-                <a href="../photography/index.html" class="nav-link">Photography</a>
                 <a href="../about/index.html" class="nav-link">About</a>
             </nav>
 
@@ -47,23 +96,21 @@
 
     <main id="main-content">
         <div class="container">
-            <h1>Movies & Cinema</h1>
-            <br>
-
-            <article class="post-preview">
+            <article class="post">
                 <div class="tags">
-                    <span class="tag">Movies</span>
-                    <span class="tag">Review</span>
+                    <span class="tag">Photography</span>
+                    <span class="tag">2025</span>
                 </div>
-                <h2><a href="post1.html">Stalker(1979): Movie Review</a></h2>
-                <div class="post-meta">
-                    <span class="post-date"><time datetime="2025-11-18">Nov 18, 2025</time></span>
-                    <span>•</span>
-                    <span class="read-time">5 min read</span>
-                </div>
-                <p>A movie review of Stalker(1979) by Andrei Tarkovsky.</p>
-            </article>
+                <h1>Photos of 2025</h1>
+                <p class="photo-count">📷 1 photo</p>
 
+                <p>A visual journey through the moments in 2025.</p>
+
+                <div class="gallery-grid">
+                    <div class="gallery-item"><img src="2025/earth-from-space.png"
+                            alt="Earth from space with spacecraft"></div>
+                </div>
+            </article>
         </div>
     </main>
 

@@ -97,7 +97,6 @@ html.dark body {
   right: 28px;
   top: 50%;
   transform: translateY(-50%);
-  transform: translateY(-50%);
 }
 
 /* Navigation */
@@ -245,7 +244,7 @@ html.dark body .social-icons a:hover {
   letter-spacing: 0.5px;
 }
 
-body.dark .tag {
+html.dark body .tag {
   background: #1f2229;
   color: #aaa;
 }
@@ -261,7 +260,7 @@ body.dark .tag {
   margin-bottom: 10px;
 }
 
-body.dark .post-meta {
+html.dark body .post-meta {
   color: #bbb;
 }
 
@@ -298,7 +297,7 @@ html.dark body .post-date {
   color: #666;
 }
 
-body.dark .image-caption {
+html.dark body .image-caption {
   color: #aaa;
 }
 
