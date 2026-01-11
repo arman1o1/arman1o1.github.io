@@ -1,39 +1,42 @@
-
-(function(){
-  const cb = document.getElementById('theme-toggle-checkbox');
-  const body = document.body;
+(function () {
+  // Apply theme immediately to html tag to prevent flash
   const KEY = 'theme-preference';
+  const saved = localStorage.getItem(KEY);
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-  function setMode(m){
-    if(m === 'dark'){
-      body.classList.add('dark');
-      if(cb) cb.checked = true;
-    } else {
-      body.classList.remove('dark');
-      if(cb) cb.checked = false;
-    }
+  // Determine mode
+  const isDark = saved === 'dark' || (!saved && prefersDark);
+
+  // Apply class to html element (available immediately in head)
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
   }
 
-  // initialize after DOM loaded if checkbox not yet present
-  function init(){
-    const saved = localStorage.getItem(KEY);
-    if(saved){
-      setMode(saved);
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setMode(prefersDark ? 'dark' : 'light');
-    }
+  // Setup toggle after DOM load
+  function setup() {
+    const cb = document.getElementById('theme-toggle-checkbox');
+    if (!cb) return;
 
-    if(cb){
-      cb.addEventListener('change', function(){
-        const next = cb.checked ? 'dark' : 'light';
-        setMode(next);
-        localStorage.setItem(KEY, next);
-      });
-    }
+    // Sync checkbox state
+    cb.checked = isDark;
+
+    // Listen for changes
+    cb.addEventListener('change', function () {
+      if (cb.checked) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem(KEY, 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem(KEY, 'light');
+      }
+    });
   }
 
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  } else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
 })();

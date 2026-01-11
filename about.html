@@ -4,10 +4,18 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Page not found - arman1o1 blog" />
+    <meta name="description"
+        content="About arman1o1 - sharing experiences with Machine Learning, AI, Movies, and Life." />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="About | arman1o1 blog" />
+    <meta property="og:description" content="Learn more about arman1o1 and this blog." />
+    <meta property="og:url" content="https://arman1o1.github.io/about.html" />
+
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
-    <title>404 - Page Not Found | arman1o1 blog</title>
+    <title>About | arman1o1 blog</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,47 +26,6 @@
 
     <link rel="stylesheet" href="assets/styles.css">
     <script src="assets/theme.js"></script>
-    <style>
-        .error-container {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .error-code {
-            font-size: 6rem;
-            font-weight: bold;
-            color: #4da3ff;
-            margin: 0;
-        }
-
-        .error-message {
-            font-size: 1.5rem;
-            margin: 20px 0;
-        }
-
-        .error-description {
-            color: #666;
-            margin-bottom: 30px;
-        }
-
-        body.dark .error-description {
-            color: #aaa;
-        }
-
-        .back-home {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #4da3ff;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: background 0.3s ease;
-        }
-
-        .back-home:hover {
-            background: #73b9ff;
-        }
-    </style>
 </head>
 
 <body>
@@ -69,7 +36,7 @@
 
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="about.html" class="nav-link">About</a>
+                <a href="about.html" class="nav-link active">About</a>
             </nav>
 
             <div class="header-toggle">
@@ -82,13 +49,42 @@
     </header>
 
     <main id="main-content">
-        <div class="container error-container">
-            <p class="error-code">404</p>
-            <h1 class="error-message">Page Not Found</h1>
-            <p class="error-description">
-                Oops! The page you're looking for doesn't exist or has been moved.
-            </p>
-            <a href="/" class="back-home">← Back to Home</a>
+        <div class="container">
+            <article class="post">
+                <h1>About Me</h1>
+
+                <p>
+                    Hi there! 👋 I'm <strong>arman</strong>, and welcome to my corner of the internet.
+                </p>
+
+                <p>
+                    This blog is a space where I share my thoughts and experiences on topics that fascinate me:
+                </p>
+
+                <ul>
+                    <li><strong>Machine Learning & AI</strong> — Exploring the frontiers of artificial intelligence</li>
+                    <li><strong>Movies & Cinema</strong> — Diving deep into films that make us think</li>
+                    <li><strong>Life & Philosophy</strong> — Reflections on existence, dreams, and consciousness</li>
+                </ul>
+
+                <p>
+                    I believe in the power of curiosity and the joy of learning. Whether it's understanding how neural
+                    networks dream
+                    or pondering the philosophical depths of a Tarkovsky film, I find beauty in the intersection of
+                    technology and humanity.
+                </p>
+
+                <h2>Connect</h2>
+                <p>
+                    Feel free to check out my projects on <a href="https://github.com/arman1o1" target="_blank"
+                        rel="noopener noreferrer">GitHub</a>
+                    or reach out if you'd like to discuss any of the topics I write about.
+                </p>
+
+                <p>
+                    Thanks for stopping by! 🎬🤖✨
+                </p>
+            </article>
         </div>
     </main>
 
