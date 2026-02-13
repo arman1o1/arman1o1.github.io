@@ -22,7 +22,7 @@
     // Sync checkbox state
     cb.checked = isDark;
 
-    // Listen for changes
+    // Listen for theme changes
     cb.addEventListener('change', function () {
       if (cb.checked) {
         document.documentElement.classList.add('dark');
@@ -32,6 +32,23 @@
         localStorage.setItem(KEY, 'light');
       }
     });
+
+    // Auto-hiding header logic
+    let lastScrollY = window.scrollY;
+    const header = document.querySelector('.site-header');
+
+    if (header) {
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > lastScrollY && window.scrollY > 100) {
+          // Scrolling down
+          header.classList.add('header-hidden');
+        } else {
+          // Scrolling up
+          header.classList.remove('header-hidden');
+        }
+        lastScrollY = window.scrollY;
+      }, { passive: true });
+    }
   }
 
   if (document.readyState === 'loading') {

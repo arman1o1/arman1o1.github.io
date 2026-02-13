@@ -22,42 +22,54 @@
     <style>
         .error-container {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
         }
 
         .error-code {
-            font-size: 6rem;
-            font-weight: bold;
-            color: #4da3ff;
+            font-size: 8rem;
+            font-weight: 800;
+            color: var(--link-color);
             margin: 0;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--link-color), var(--link-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .error-message {
-            font-size: 1.5rem;
-            margin: 20px 0;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 20px 0 10px;
         }
 
         .error-description {
-            color: #666;
-            margin-bottom: 30px;
-        }
-
-        body.dark .error-description {
-            color: #aaa;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+            max-width: 400px;
         }
 
         .back-home {
             display: inline-block;
-            padding: 12px 24px;
-            background: #4da3ff;
+            padding: 14px 32px;
+            background: var(--link-color);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
-            transition: background 0.3s ease;
+            border-radius: 99px;
+            font-weight: 600;
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(77, 163, 255, 0.3);
         }
 
         .back-home:hover {
-            background: #73b9ff;
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(77, 163, 255, 0.4);
         }
     </style>
 </head>
