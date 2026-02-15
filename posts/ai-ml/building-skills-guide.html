@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Building Skills That Actually Work (Claude → Codex) | arman1o1 blog</title>
+    <meta name="description"
+        content="A practical guide to building, testing, and distributing AI skills: from Claude to Codex." />
+    <link rel="icon" type="image/png" href="../../favicon.png">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script src="../../assets/theme.js"></script>
+
+    <!-- Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+    <!-- Mermaid.js -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</head>
+
+<body>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link active">AI/ML</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post">
+                <div class="tags">
+                    <span class="tag">Agent</span>
+                    <span class="tag">Skills</span>
+                    <span class="tag">Tutorial</span>
+                </div>
+                <h1>Building Skills That Actually Work (Claude → Codex)</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-02-15">Feb 15, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+                <p><em>Based on <a
+                            href="https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf?hsLang=en"
+                            target="_blank" rel="noopener noreferrer"><strong>The
+                                Complete Guide to Building Skills for Claude</strong></a> (includes
+                        <strong>January 2026</strong> distribution notes).</em></p>
+
+                <p>If you keep finding yourself typing the same “here’s how I like this done” instructions over and
+                    over, you’re exactly who skills are for.</p>
+
+                <p>A <strong>skill</strong> is basically a small, packaged playbook: a folder of instructions (and
+                    optional helper scripts/docs) that teaches an AI how to run a specific workflow consistently.
+                    Instead of re-explaining your process every chat, you teach it once and reuse it forever.</p>
+
+                <p>This guide walks through the full lifecycle:</p>
+                <ul>
+                    <li>How skills are structured (and why the structure matters)</li>
+                    <li>How to design skills around real use cases</li>
+                    <li>The non-negotiable technical rules (so the platform actually accepts your skill)</li>
+                    <li>How to test and iterate without guessing</li>
+                    <li>How to distribute a skill to other people</li>
+                    <li>Patterns that show up in “good” skills (plus common failure modes)</li>
+                </ul>
+
+                <p>You’ll also get a practical translation at the end: <strong>how these same ideas map to Codex skills
+                        on your machine</strong>.</p>
+
+                <hr>
+
+                <h2>Table of contents</h2>
+                <ul>
+                    <li><a href="#quick-start-build-your-first-skill-in-30-minutes">Quick start: build your first skill
+                            in ~30 minutes</a></li>
+                    <li><a href="#fundamentals">Fundamentals</a></li>
+                    <li><a href="#planning-and-design">Planning and design</a></li>
+                    <li><a href="#technical-requirements-non-negotiables">Technical requirements (non-negotiables)</a>
+                    </li>
+                    <li><a href="#writing-skillmd-instructions-make-it-executable">Writing SKILL.md instructions (make
+                            it executable)</a></li>
+                    <li><a href="#testing-and-iteration">Testing and iteration</a></li>
+                    <li><a href="#distribution-and-sharing">Distribution and sharing</a></li>
+                    <li><a href="#patterns-and-troubleshooting">Patterns and troubleshooting</a></li>
+                    <li><a href="#appendix-a-quick-checklist">Appendix A: Quick checklist</a></li>
+                    <li><a href="#appendix-b-yaml-frontmatter-reference">Appendix B: YAML frontmatter reference</a></li>
+                    <li><a href="#appendix-c-where-to-find-full-examples">Appendix C: Where to find full examples</a>
+                    </li>
+                    <li><a href="#how-this-maps-to-codex-skills-practical-translation">How this maps to Codex skills
+                            (practical translation)</a></li>
+                </ul>
+
+                <hr>
+
+                <h2 id="quick-start-build-your-first-skill-in-30-minutes">Quick start: build your first skill in ~30
+                    minutes</h2>
+                <p>If you want the “skip the theory, ship something” path, do this:</p>
+                <ol>
+                    <li>Pick <strong>one</strong> repeatable workflow you do a lot (not three, not ten).</li>
+                    <li>Write 2–3 concrete <strong>use cases</strong> (example user asks + what “done” looks like).</li>
+                    <li>Draft frontmatter that’s ruthlessly specific about <strong>when to use</strong> the skill.</li>
+                    <li>Write SKILL.md instructions as a <strong>step-by-step checklist</strong> (with validation
+                        gates).</li>
+                    <li>Add 6–12 test prompts:
+                        <ul>
+                            <li>obvious triggers</li>
+                            <li>paraphrases</li>
+                            <li>“should NOT trigger” decoys</li>
+                        </ul>
+                    </li>
+                    <li>Run the tests, then tighten:
+                        <ul>
+                            <li>undertriggering → make the description more specific and add trigger phrases</li>
+                            <li>overtriggering → add negative triggers and narrow scope</li>
+                            <li>execution issues → tighten steps, add validation, add troubleshooting</li>
+                        </ul>
+                    </li>
+                </ol>
+                <p>That’s it. You can always expand later.</p>
+
+                <hr>
+
+                <h2 id="fundamentals">Fundamentals</h2>
+
+                <h3 id="what-a-skill-is-and-whats-inside">What a skill is (and what’s inside)</h3>
+                <p>At minimum, a skill is a folder with one required file:</p>
+                <ul>
+                    <li><code>SKILL.md</code> (required): Markdown instructions with YAML frontmatter at the top</li>
+                </ul>
+
+                <p>Optionally, you can include:</p>
+                <ul>
+                    <li><code>scripts/</code>: code that makes parts of the workflow deterministic (validation,
+                        formatting, conversions)</li>
+                    <li><code>references/</code>: docs the model can consult when needed (API guides, error codes,
+                        examples)</li>
+                    <li><code>assets/</code>: templates and reusable artifacts (report skeletons, brand style guides,
+                        prompt templates)</li>
+                </ul>
+
+                <p>Why this matters: skills are easiest to maintain when you separate <strong>the “how”</strong> (steps
+                    in <code>SKILL.md</code>) from <strong>the “details”</strong> (docs in <code>references/</code>) and
+                    <strong>the “must be correct” parts</strong> (scripts in <code>scripts/</code>).
+                </p>
+
+                <p>Practical tip: if you ever catch yourself writing a 400-line “rules” section, that’s usually a sign
+                    you need either (a) a reference file, or (b) a script.</p>
+
+                <h3 id="core-design-principle-1-progressive-disclosure">Core design principle #1: Progressive disclosure
+                </h3>
+                <p>The skill system is designed to avoid shoving everything into context all the time. It’s a layered
+                    approach:</p>
+                <ol>
+                    <li><strong>Frontmatter (always visible):</strong> tiny metadata that helps the model decide
+                        <em>when</em> to load the skill.
+                    </li>
+                    <li><strong>The SKILL.md body (loaded when relevant):</strong> the full workflow instructions.</li>
+                    <li><strong>Linked/bundled files (loaded only if needed):</strong> deep docs, templates, examples,
+                        scripts.</li>
+                </ol>
+
+                <p>Why this matters: most skills fail because they do too much too early. Keeping “heavy” content out of
+                    the always-loaded layer makes everything faster and more reliable.</p>
+
+                <p>Practical tip: treat frontmatter like a router. It shouldn’t teach the workflow; it should only say
+                    “use this when the user wants X and says Y.”</p>
+
+                <h3 id="core-design-principle-2-composability">Core design principle #2: Composability</h3>
+                <p>Models can load multiple skills at once. Your skill should behave nicely with neighbors.</p>
+
+                <p>Why this matters: in the real world, people enable lots of skills. If your skill assumes it owns the
+                    whole conversation (“always do X, never do Y”), you’ll get conflicts and weird behavior.</p>
+
+                <p>Practical tip: write your instructions so they still make sense if another skill is active (for
+                    example, a “docx” skill or a “spreadsheet” skill). Use clear scope statements like “This skill is
+                    only for…” and “If the user asks for…, hand off to…”.</p>
+
+                <h3 id="core-design-principle-3-portability">Core design principle #3: Portability</h3>
+                <p>Skills are meant to work across different surfaces (chat UI, coding environments, API-driven agents)
+                    <strong>as long as the environment supports the dependencies</strong> your skill needs.
+                </p>
+
+                <p>Why this matters: if your skill requires a system binary or an API key, portability isn’t automatic.
+                    You have to declare it (and design fallbacks).</p>
+
+                <p>Practical tip: add a short “Requirements” section in <code>SKILL.md</code> when scripts are involved:
+                </p>
+                <ul>
+                    <li>what’s required</li>
+                    <li>how to install it</li>
+                    <li>what the fallback behavior should be if it’s missing</li>
+                </ul>
+
+                <h3 id="skills-mcp-the-tools-vs-recipes-idea">Skills + MCP (the “tools vs recipes” idea)</h3>
+                <p>If MCP is how an agent gets access to tools and live data, skills are the “how to use those tools
+                    well” layer.</p>
+
+                <p>One way to think about it:</p>
+                <ul>
+                    <li>MCP gives the agent a workshop full of tools.</li>
+                    <li>Skills are the build manual: order of operations, defaults, validations, and best practices.
+                    </li>
+                </ul>
+
+                <p>Why this matters for connector builders: without skills, users may connect your tools and still not
+                    know what to do. Skills turn tool access into repeatable outcomes.</p>
+
+                <h3 id="deep-cut-why-frontmatter-quality-dominates">Deep cut: why frontmatter quality dominates</h3>
+                <p>Most “my skill doesn’t work” issues aren’t about the instructions. They’re about the <em>skill not
+                        loading at the right time</em>.</p>
+
+                <p>Frontmatter is always present in the system prompt. That means:</p>
+                <ul>
+                    <li>It has outsized influence on whether your skill activates.</li>
+                    <li>Small wording changes can dramatically change triggering behavior.</li>
+                </ul>
+
+                <p>If you only have time to perfect one thing, perfect the <code>description</code>.</p>
+
+                <hr>
+
+                <h2 id="planning-and-design">Planning and design</h2>
+
+                <h3 id="start-with-use-cases-not-filenames">Start with use cases (not filenames)</h3>
+                <p>Before you write anything, define 2–3 concrete use cases. Your goal is to answer: “What does the user
+                    want to accomplish, and what steps reliably get them there?”</p>
+
+                <p>Use this template:</p>
+                <p>
+                    <strong>Use Case:</strong> (short name)<br>
+                    <strong>Trigger:</strong> what the user might say (phrases, nouns, file types)<br>
+                    <strong>Steps:</strong> 3–8 steps in order (include any tools)<br>
+                    <strong>Result:</strong> what “done” looks like
+                </p>
+
+                <p>Example (MCP-flavored):</p>
+                <p>
+                    <strong>Use Case:</strong> Sprint planning<br>
+                    <strong>Trigger:</strong> “plan this sprint”, “create sprint tasks”, “prioritize tickets”<br>
+                    <strong>Steps:</strong><br>
+                    1. Pull current project state (tool call)<br>
+                    2. Estimate capacity/velocity (logic)<br>
+                    3. Propose priorities (output)<br>
+                    4. Create tasks with labels/estimates (tool calls)<br>
+                    <strong>Result:</strong> a sprint plan with tasks created and linked
+                </p>
+
+                <p>Why this matters: if you can’t write the steps, you can’t write the skill. Skills are just
+                    “repeatable steps, packaged.”</p>
+
+                <h3 id="the-3-common-use-case-categories">The 3 common use case categories</h3>
+                <p>From the patterns in <a
+                        href="https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf?hsLang=en">the
+                        PDF</a>, most skills fall into one of these:</p>
+
+                <ol>
+                    <li><strong>Document & asset creation</strong><br>
+                        Use when you want consistent output quality (docs, designs, code artifacts).<br>
+                        Key techniques: style guides, templates, quality checklists.</li>
+
+                    <li><strong>Workflow automation</strong><br>
+                        Use when a multi-step process benefits from one consistent method every time.<br>
+                        Key techniques: step ordering, validation gates, iterative loops.</li>
+
+                    <li><strong>MCP enhancement</strong><br>
+                        Use when tools exist, but users need a “best practices workflow” layered on top.<br>
+                        Key techniques: coordinating tool calls, passing data between steps, robust error handling.</li>
+                </ol>
+
+                <h3 id="define-success-criteria-so-you-can-iterate-sanely">Define success criteria (so you can iterate
+                    sanely)</h3>
+                <p>You want both quantitative and qualitative targets. Think “benchmarks,” not perfect scientific
+                    metrics.</p>
+
+                <p>Quantitative examples:</p>
+                <ul>
+                    <li><strong>Trigger accuracy:</strong> does it load for ~90% of relevant prompts in your test set?
+                    </li>
+                    <li><strong>Tool-call efficiency:</strong> does it use fewer tool calls/tokens than a baseline?</li>
+                    <li><strong>Reliability:</strong> does the workflow run without failed tool calls in typical runs?
+                    </li>
+                </ul>
+
+                <p>Qualitative examples:</p>
+                <ul>
+                    <li><strong>Low steering:</strong> users don’t have to keep asking “what next?”</li>
+                    <li><strong>Low correction:</strong> fewer “no, do it this way” interventions</li>
+                    <li><strong>Consistency:</strong> similar results across repeated runs and across users</li>
+                </ul>
+
+                <p>How to measure triggering quickly:</p>
+                <ul>
+                    <li>Write 10–20 prompts that should trigger.</li>
+                    <li>Write 10 decoys that shouldn’t.</li>
+                    <li>Track activation behavior and adjust the description.</li>
+                </ul>
+
+                <hr>
+
+                <h2 id="technical-requirements-non-negotiables">Technical requirements (non-negotiables)</h2>
+
+                <h3 id="file-structure">File structure</h3>
+                <p>Use a simple structure like this:</p>
+                <pre><code class="language-text">your-skill-name/
+├── SKILL.md                 # required
+├── scripts/                 # optional
+│   ├── process_data.py
+│   └── validate.sh
+├── references/              # optional
+│   ├── api-guide.md
+│   └── examples/
+└── assets/                  # optional
+    └── report-template.md</code></pre>
+
+                <h3 id="critical-rules">Critical rules</h3>
+                <p>These are the “don’t fight the system” rules:</p>
+                <ul>
+                    <li><code>SKILL.md</code> must be named <strong>exactly</strong> <code>SKILL.md</code>
+                        (case-sensitive).</li>
+                    <li>Skill folder name should be <strong>kebab-case</strong>:
+                        <ul>
+                            <li>✅ <code>notion-project-setup</code></li>
+                            <li>❌ <code>Notion Project Setup</code></li>
+                            <li>❌ <code>notion_project_setup</code></li>
+                            <li>❌ <code>NotionProjectSetup</code></li>
+                        </ul>
+                    </li>
+                    <li>Don’t put a <code>README.md</code> inside the skill folder.
+                        <ul>
+                            <li>Put human-facing docs in the <strong>repo-level</strong> README, not in the skill
+                                folder.</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h3 id="yaml-frontmatter-the-most-important-part">YAML frontmatter: the most important part</h3>
+                <p>Frontmatter is how the model decides whether the skill is relevant.</p>
+
+                <p>Minimal required format:</p>
+                <pre><code class="language-yaml">---
+name: your-skill-name
+description: What it does. Use when the user asks for X, says Y, or uploads Z.
+---</code></pre>
+
+                <p>Field rules to follow:</p>
+
+                <p><code>name</code> (required):</p>
+                <ul>
+                    <li>kebab-case only</li>
+                    <li>no spaces, no capitals</li>
+                    <li>should match the folder name</li>
+                </ul>
+
+                <p><code>description</code> (required):</p>
+                <ul>
+                    <li>must include <strong>what the skill does</strong> and <strong>when to use it</strong></li>
+                    <li>must include realistic trigger phrases users might say</li>
+                    <li>keep it under the platform limit (the guide calls out 1024 characters)</li>
+                    <li>mention file types if that’s part of the trigger (for example: “when user uploads a .fig file”)
+                    </li>
+                </ul>
+
+                <p>Optional fields you’ll commonly see:</p>
+                <ul>
+                    <li><code>license</code>: if you’re open-sourcing the skill</li>
+                    <li><code>compatibility</code>: environment expectations (product/surface, required packages,
+                        network needs)</li>
+                    <li><code>metadata</code>: any custom fields (author, version, associated MCP server, etc.)</li>
+                    <li><code>allowed-tools</code>: a tool access allowlist (when supported) to limit what the skill can
+                        invoke</li>
+                </ul>
+
+                <h3 id="frontmatter-security-restrictions-take-these-seriously">Frontmatter security restrictions (take
+                    these seriously)</h3>
+                <p>Because frontmatter is loaded into the system prompt:</p>
+                <ul>
+                    <li>Don’t include <code>&lt;</code> or <code>&gt;</code> in frontmatter.</li>
+                    <li>The guide's quick checklist also recommends avoiding <code>&lt;</code> and <code>&gt;</code>
+                        anywhere in the skill (safest default).</li>
+                    <li>Don’t include “claude” or “anthropic” in the skill <code>name</code> (reserved, per the guide).
+                    </li>
+                </ul>
+
+                <h3 id="frontmatter-patterns-how-to-actually-get-triggering-right">Frontmatter patterns (how to actually
+                    get triggering right)</h3>
+
+                <p><strong>Bad descriptions</strong> (too vague):</p>
+                <pre><code class="language-yaml">description: Helps with projects.</code></pre>
+
+                <p><strong>Better descriptions</strong> (specific “what” + specific “when”):</p>
+                <pre><code class="language-yaml">description: Creates sprint plans from a backlog and team capacity. Use when the user says "plan a sprint", "prioritize tickets", or asks to "create sprint tasks".</code></pre>
+
+                <p><strong>Add negative triggers</strong> when you overtrigger:</p>
+                <pre><code class="language-yaml">description: Performs advanced CSV analysis (regression, clustering, hypothesis tests). Do NOT use for simple "open this CSV" or basic charting.</code></pre>
+
+                <p>Why this works: you’re shaping a decision boundary. The model needs both positive and negative
+                    examples to route correctly.</p>
+
+                <hr>
+
+                <h2 id="writing-skillmd-instructions-make-it-executable">Writing SKILL.md instructions (make it
+                    executable)</h2>
+
+                <h3 id="recommended-structure">Recommended structure</h3>
+                <p>This structure is simple, predictable, and easy to test:</p>
+
+                <ol>
+                    <li><strong>Goal / scope</strong></li>
+                    <li><strong>Instructions</strong> (step-by-step)</li>
+                    <li><strong>Examples</strong> (common user requests)</li>
+                    <li><strong>Troubleshooting</strong> (error → cause → fix)</li>
+                    <li><strong>References</strong> (what files to consult and when)</li>
+                </ol>
+
+                <p>Here’s a starter template you can adapt:</p>
+                <pre><code class="language-markdown">---
+name: your-skill-name
+description: ...
+---
+
+# Your Skill Name
+
+## Scope
+- What this skill is for
+- What it is NOT for
+
+## Instructions
+### Step 1: ...
+### Step 2: ...
+### Step 3: ...
+
+## Examples
+### Example: ...
+User says: "..."
+Actions:
+1. ...
+2. ...
+Result: ...
+
+## Troubleshooting
+### Error: "..."
+Cause: ...
+Fix:
+1. ...
+2. ...
+
+## References
+- If you need pagination patterns, read `references/pagination.md`</code></pre>
+
+                <h3 id="best-practices-that-make-skills-stick">Best practices that make skills “stick”</h3>
+
+                <p><strong>Be specific and actionable</strong></p>
+                <ul>
+                    <li>Good: “Run <code>scripts/validate.py --input {file}</code>; if it fails, fix missing columns and
+                        retry.”</li>
+                    <li>Weak: “Validate the data.”</li>
+                </ul>
+
+                <p><strong>Add validation gates</strong><br>
+                    If a step can go wrong, say what “good” looks like before moving on:</p>
+                <ul>
+                    <li>“Before creating tickets, confirm the project name is non-empty and the user chose a label set.”
+                    </li>
+                </ul>
+
+                <p><strong>Reference bundled resources by name</strong><br>
+                    Make it easy to find the right doc:</p>
+                <ul>
+                    <li>“Before writing API queries, check <code>references/api-errors.md</code> for rate limits and
+                        retry rules.”</li>
+                </ul>
+
+                <p><strong>Keep SKILL.md focused</strong><br>
+                    Put deep documentation in <code>references/</code> and link to it. This keeps the core flow readable
+                    and keeps the model from drowning in details.</p>
+
+                <h3 id="deep-cut-when-to-write-scripts-and-when-not-to">Deep cut: when to write scripts (and when not
+                    to)</h3>
+                <p>Language instructions are flexible. Scripts are deterministic.</p>
+
+                <p>Use a script when:</p>
+                <ul>
+                    <li>you must validate a file format correctly (CSV headers, JSON schema, date formats)</li>
+                    <li>you want a repeatable quality check (lint a document, verify required sections)</li>
+                    <li>you want to transform data (extract, normalize, summarize) reliably</li>
+                </ul>
+
+                <p>Don’t write a script when:</p>
+                <ul>
+                    <li>the user’s intent needs negotiation (“what do you mean by ‘clean up’?”)</li>
+                    <li>the workflow is mostly judgment and writing, not verification</li>
+                </ul>
+
+                <p>Good skills often blend both: instructions for the human-ish parts, scripts for the brittle parts.
+                </p>
+
+                <hr>
+
+                <h2 id="testing-and-iteration">Testing and iteration</h2>
+
+                <p>Skills can be tested at different levels depending on how much you care about correctness and how
+                    many users will rely on it.</p>
+
+                <h3 id="level-1-manual-tests-fastest">Level 1: manual tests (fastest)</h3>
+                <p>Run prompts in the target environment and observe:</p>
+                <ul>
+                    <li>did the skill load?</li>
+                    <li>did it follow the steps?</li>
+                    <li>did it ask sensible clarifying questions?</li>
+                </ul>
+
+                <h3 id="level-2-scripted-tests-repeatability">Level 2: scripted tests (repeatability)</h3>
+                <p>In a coding environment, you can keep a “test prompts” file and run the same set after every change.
+                </p>
+
+                <h3 id="level-3-programmatic-eval-suites-scale">Level 3: programmatic eval suites (Scale)</h3>
+                <p>If you’re using an API-driven agent setup, build a test harness:</p>
+                <ul>
+                    <li>fixed test set</li>
+                    <li>expected outputs (or scoring rubric)</li>
+                    <li>automatic reporting over time</li>
+                </ul>
+
+                <h3 id="using-a-skill-creator-helper-optional">Using a “skill-creator” helper (optional)</h3>
+                <p><a
+                        href="https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf?hsLang=en">The
+                        PDF</a> calls out a <code>skill-creator</code> skill that can help you draft and refine skills
+                    faster:</p>
+                <ul>
+                    <li>generate a first draft from a plain-English description</li>
+                    <li>suggest trigger phrases and a sane structure</li>
+                    <li>review an existing skill for common problems (vague description, missing triggers, messy
+                        structure)</li>
+                </ul>
+
+                <p>The important constraint: it helps you <em>design</em>, but it won’t magically produce quantitative
+                    eval results for you. You still need your own test prompts (and, for serious deployments, an eval
+                    harness).</p>
+
+                <h3 id="recommended-coverage-the-3-part-suite">Recommended coverage: the 3-part suite</h3>
+
+                <p>1) <strong>Triggering tests</strong></p>
+                <ul>
+                    <li>Should trigger:
+                        <ul>
+                            <li>obvious asks (“set up a new workspace”, “plan a sprint”, “generate a report”)</li>
+                            <li>paraphrases (“kick off sprint planning”, “turn this backlog into tasks”)</li>
+                        </ul>
+                    </li>
+                    <li>Should NOT trigger:
+                        <ul>
+                            <li>unrelated questions (weather, generic coding help, random Q&A)</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p>2) <strong>Functional tests</strong><br>
+                    Pick a concrete scenario and check:</p>
+                <ul>
+                    <li>output structure is correct</li>
+                    <li>tool calls succeed (if applicable)</li>
+                    <li>error handling actually helps (not just “try again”)</li>
+                    <li>edge cases don’t explode</li>
+                </ul>
+
+                <p>Example functional test:<br>
+                    <strong>Test:</strong> create a project with 5 tasks<br>
+                    <strong>Given:</strong> project name + 5 task descriptions<br>
+                    <strong>Then:</strong> project exists, tasks exist, tasks are linked, and no tool errors occurred
+                </p>
+
+                <p>3) <strong>Performance comparison</strong><br>
+                    Compare to baseline (no skill):</p>
+                <ul>
+                    <li>fewer back-and-forth messages</li>
+                    <li>fewer failed tool calls</li>
+                    <li>fewer tokens consumed</li>
+                    <li>fewer user corrections</li>
+                </ul>
+
+                <h3 id="how-to-iterate-without-losing-your-mind">How to iterate without losing your mind</h3>
+                <p>The guide's best advice here is simple: <strong>start with one hard task</strong> and iterate
+                    until it
+                    works. Then generalize.</p>
+
+                <p>Common failure signals and what to do:</p>
+
+                <p><strong>Undertriggering</strong> (skill doesn’t load when it should)</p>
+                <ul>
+                    <li>Fix: expand the description with more real trigger phrases and domain terms.</li>
+                </ul>
+
+                <p><strong>Overtriggering</strong> (skill loads for unrelated things)</p>
+                <ul>
+                    <li>Fix: narrow the description, add “Do NOT use when…” clauses, clarify scope.</li>
+                </ul>
+
+                <p><strong>Execution issues</strong> (skill loads but behaves badly)</p>
+                <ul>
+                    <li>Fix: tighten step order, add validation gates, add troubleshooting, replace fuzzy rules with
+                        scripts where appropriate.</li>
+                </ul>
+
+                <hr>
+
+                <h2 id="distribution-and-sharing">Distribution and sharing</h2>
+
+                <h3 id="current-distribution-model-january-2026">Current distribution model (January 2026)</h3>
+                <p>As of <strong>January 2026</strong>, the guide describes a user flow roughly like:</p>
+                <ul>
+                    <li>download the skill folder</li>
+                    <li>zip it if required by the UI</li>
+                    <li>upload it in the product settings (or drop it into the local skills directory in a coding
+                        environment)</li>
+                </ul>
+
+                <p>For org-level rollouts, it calls out admin-managed deployment shipped <strong>December 18,
+                        2025</strong> (workspace-wide distribution with centralized management and automatic updates).
+                </p>
+
+                <h3 id="skills-as-an-open-standard">Skills as an open standard</h3>
+                <p>The guide frames “Agent Skills” as an open, portable standard: write once, reuse across platforms
+                    (with
+                    the usual caveat that dependencies and tool availability still matter).</p>
+
+                <h3 id="using-skills-via-api-when-its-worth-it">Using skills via API (when it’s worth it)</h3>
+                <p>If you’re building a product or pipeline around skills:</p>
+                <ul>
+                    <li>API usage gives you versioning and programmatic control.</li>
+                    <li>The guide notes that API-based skills require a secure code execution environment (it mentions
+                        a
+                        code execution tool beta).</li>
+                </ul>
+
+                <p>Key capabilities the guide calls out:</p>
+                <ul>
+                    <li>A <code>/v1/skills</code> endpoint for listing and managing skills</li>
+                    <li>Adding skills to API requests via a <code>container.skills</code> parameter</li>
+                    <li>Version control/management via a console</li>
+                    <li>Compatibility with an agent SDK</li>
+                </ul>
+
+                <p>When to use skills via API vs UI surfaces (from the guide's framing):</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Use case</th>
+                            <th>Best surface</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>End users interacting with skills directly</td>
+                            <td>Claude.ai / Claude Code</td>
+                        </tr>
+                        <tr>
+                            <td>Manual testing and iteration during development</td>
+                            <td>Claude.ai / Claude Code</td>
+                        </tr>
+                        <tr>
+                            <td>Individual, ad-hoc workflows</td>
+                            <td>Claude.ai / Claude Code</td>
+                        </tr>
+                        <tr>
+                            <td>Applications using skills programmatically</td>
+                            <td>API</td>
+                        </tr>
+                        <tr>
+                            <td>Production deployments at scale</td>
+                            <td>API</td>
+                        </tr>
+                        <tr>
+                            <td>Automated pipelines and agent systems</td>
+                            <td>API</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="recommended-rollout-approach-practical-not-fancy">Recommended rollout approach (practical, not
+                    fancy)</h3>
+                <ol>
+                    <li>Host the skill on GitHub (public if open source).</li>
+                    <li>Put a repo-level README for humans:
+                        <ul>
+                            <li>what outcomes the skill enables</li>
+                            <li>installation steps</li>
+                            <li>screenshots / examples</li>
+                        </ul>
+                    </li>
+                    <li>Link the skill from your MCP docs (if you ship an MCP server).</li>
+                    <li>Provide a quick install + test guide.</li>
+                </ol>
+
+                <p>Positioning tip: sell <strong>outcomes</strong>, not internal mechanics.</p>
+                <ul>
+                    <li>Better: “Creates a full sprint plan in minutes.”</li>
+                    <li>Worse: “Contains YAML and calls tools.”</li>
+                </ul>
+
+                <hr>
+
+                <h2 id="patterns-and-troubleshooting">Patterns and troubleshooting</h2>
+
+                <h3 id="problem-first-vs-tool-first-the-store-analogy">Problem-first vs tool-first (the “store” analogy)
+                </h3>
+                <p>One framing that helps: some users show up with a goal (“help me set up a workspace”), others show up
+                    with tool access (“I connected Notion; now what?”).</p>
+
+                <ul>
+                    <li><strong>Problem-first skills</strong>: user describes the outcome; the skill chooses and
+                        sequences tools.</li>
+                    <li><strong>Tool-first skills</strong>: user already has tool access; the skill teaches best
+                        practices and patterns.</li>
+                </ul>
+
+                <p>Knowing which one you’re building keeps your instructions clean.</p>
+
+                <h3 id="pattern-1-sequential-workflow-orchestration">Pattern 1: Sequential workflow orchestration</h3>
+                <p>Use when: the process must happen in a strict order.</p>
+
+                <p>Template:</p>
+                <pre><code class="language-markdown">## Workflow: Onboard a new customer
+### Step 1: Create account
+- Call tool: `create_customer`
+- Validate: email present, company present
+
+### Step 2: Set up payment
+- Call tool: `setup_payment_method`
+- Wait for: verification
+
+### Step 3: Create subscription
+- Call tool: `create_subscription`
+- Needs: customer_id from Step 1
+
+### Step 4: Send welcome email
+- Call tool: `send_email` using `assets/welcome_email.md`</code></pre>
+
+                <p>What makes it work:</p>
+                <ul>
+                    <li>explicit ordering</li>
+                    <li>dependencies spelled out</li>
+                    <li>validation at each step</li>
+                    <li>rollback guidance when things fail</li>
+                </ul>
+
+                <h3 id="pattern-2-multi-mcp-coordination">Pattern 2: Multi-MCP coordination</h3>
+                <p>Use when: one outcome requires multiple services.</p>
+
+                <p>Template idea:</p>
+                <ul>
+                    <li>Phase 1: export from Design tool</li>
+                    <li>Phase 2: store assets in Drive</li>
+                    <li>Phase 3: create tickets in Issue tracker</li>
+                    <li>Phase 4: notify in Chat tool</li>
+                </ul>
+
+                <p>What makes it work:</p>
+                <ul>
+                    <li>clear phase boundaries</li>
+                    <li>passing outputs forward (links, IDs)</li>
+                    <li>centralized error handling</li>
+                </ul>
+
+                <h3 id="pattern-3-iterative-refinement-loops">Pattern 3: Iterative refinement loops</h3>
+                <p>Use when: quality improves with “generate → check → fix → repeat.”</p>
+
+                <p>Template:</p>
+                <pre><code class="language-markdown">## Iterative report generation
+1. Draft report
+2. Run `scripts/check_report.py`
+3. Fix issues found
+4. Repeat until checks pass
+5. Finalize formatting and save</code></pre>
+
+                <p>What makes it work:</p>
+                <ul>
+                    <li>explicit “quality bar”</li>
+                    <li>deterministic checks where possible</li>
+                    <li>a clear stop condition</li>
+                </ul>
+
+                <h3 id="pattern-4-context-aware-tool-selection">Pattern 4: Context-aware tool selection</h3>
+                <p>Use when: same goal, different best tool depending on file type/size/context.</p>
+
+                <p>Example decision criteria:</p>
+                <ul>
+                    <li>large binaries → cloud storage</li>
+                    <li>collaborative docs → docs system</li>
+                    <li>code → git hosting</li>
+                    <li>temporary → local</li>
+                </ul>
+
+                <p>What makes it work:</p>
+                <ul>
+                    <li>explicit decision rules</li>
+                    <li>fallbacks</li>
+                    <li>transparency: explain why you chose what you chose</li>
+                </ul>
+
+                <h3 id="pattern-5-domain-specific-intelligence">Pattern 5: Domain-specific intelligence</h3>
+                <p>Use when: your value is expertise, not just tool access.</p>
+
+                <p>Example: compliance, security checks, policy rules, data governance.</p>
+
+                <p>What makes it work:</p>
+                <ul>
+                    <li>“rules before action”</li>
+                    <li>audit trail / logging guidance</li>
+                    <li>clear escalation path when rules fail</li>
+                </ul>
+
+                <h3 id="troubleshooting-common-failure-modes">Troubleshooting (common failure modes)</h3>
+
+                <p><strong>Skill won’t upload</strong></p>
+                <ul>
+                    <li>Error like “SKILL.md not found” → file name is wrong. It must be exactly <code>SKILL.md</code>.
+                    </li>
+                    <li>“Invalid frontmatter” → YAML syntax issue. Always keep the <code>---</code> delimiters.</li>
+                    <li>“Invalid skill name” → use kebab-case, no spaces/caps.</li>
+                </ul>
+
+                <p><strong>Skill doesn’t trigger</strong></p>
+                <ul>
+                    <li>Your description is too generic.</li>
+                    <li>You didn’t include realistic trigger phrases.</li>
+                    <li>You didn’t mention key domain terms or file types.</li>
+                </ul>
+
+                <p>Debug trick: ask the model “When would you use this skill?” If it can’t clearly answer from the
+                    description, your router is broken.</p>
+
+                <p><strong>Skill triggers too often</strong></p>
+                <ul>
+                    <li>Add negative triggers (“Do NOT use when…”).</li>
+                    <li>Narrow the scope (be explicit about the one thing you handle).</li>
+                </ul>
+
+                <p><strong>MCP calls fail</strong><br>
+                    Checklist:</p>
+                <ol>
+                    <li>Confirm the server/connector is actually connected.</li>
+                    <li>Confirm auth is valid and has required permissions.</li>
+                    <li>Call a tool directly without the skill (to isolate the problem).</li>
+                    <li>Check tool names and casing match the integration docs.</li>
+                </ol>
+
+                <p><strong>Instructions aren’t followed</strong><br>
+                    Common causes:</p>
+                <ul>
+                    <li>too verbose (important bits get lost)</li>
+                    <li>critical rules buried (move them up and repeat them)</li>
+                    <li>ambiguous language (“validate properly” means nothing)</li>
+                </ul>
+
+                <p>If something must be enforced, write it like a pre-flight checklist:</p>
+                <ul>
+                    <li>“Before calling <code>create_project</code>, verify A, B, C. If any fail, ask the user to fix
+                        inputs.”</li>
+                </ul>
+
+                <p><strong>Model “laziness” / rushing</strong><br>
+                    Sometimes you need explicit priorities:</p>
+                <ul>
+                    <li>“Take your time.”</li>
+                    <li>“Don’t skip validation.”</li>
+                    <li>“Quality matters more than speed.”</li>
+                </ul>
+
+                <p>(In practice, putting this in the <em>user prompt</em> often helps more than burying it deep in the
+                    skill file.)</p>
+
+                <p><strong>Large context issues</strong><br>
+                    If responses get slow or quality degrades:</p>
+                <ul>
+                    <li>move deep docs into <code>references/</code></li>
+                    <li>link to them instead of pasting everything into SKILL.md</li>
+                    <li>keep SKILL.md reasonably sized (the guide suggests staying under ~5,000 words)</li>
+                    <li>reduce how many skills are enabled at once (the guide flags that once you’re in the ~20–50+
+                        range,
+                        it’s worth switching to selective enablement)</li>
+                </ul>
+
+                <hr>
+
+                <h2 id="appendix-a-quick-checklist">Appendix A: Quick checklist</h2>
+                <p>Use this as a pre-flight before you share a skill.</p>
+
+                <h3 id="before-you-start">Before you start</h3>
+                <ul>
+                    <li><input type="checkbox" disabled> I identified 2–3 concrete use cases.</li>
+                    <li><input type="checkbox" disabled> I know which tools are involved (built-in and/or MCP).</li>
+                    <li><input type="checkbox" disabled> I reviewed similar example skills.</li>
+                    <li><input type="checkbox" disabled> I planned a folder structure (<code>scripts/</code>,
+                        <code>references/</code>, <code>assets/</code> as needed).
+                    </li>
+                </ul>
+
+                <h3 id="during-development">During development</h3>
+                <ul>
+                    <li><input type="checkbox" disabled> Folder name is kebab-case.</li>
+                    <li><input type="checkbox" disabled> <code>SKILL.md</code> exists and is spelled exactly.</li>
+                    <li><input type="checkbox" disabled> Frontmatter uses <code>---</code> delimiters.</li>
+                    <li><input type="checkbox" disabled> <code>name</code> is kebab-case (no spaces/caps).</li>
+                    <li><input type="checkbox" disabled> <code>description</code> includes what + when + trigger
+                        phrases.</li>
+                    <li><input type="checkbox" disabled> No XML angle brackets (<code>&lt;</code> or <code>&gt;</code>)
+                        anywhere in the skill.</li>
+                    <li><input type="checkbox" disabled> Instructions are step-by-step and actionable.</li>
+                    <li><input type="checkbox" disabled> Error handling / troubleshooting exists.</li>
+                    <li><input type="checkbox" disabled> Examples exist (at least 2).</li>
+                    <li><input type="checkbox" disabled> References are linked clearly (not pasted inline forever).</li>
+                </ul>
+
+                <h3 id="before-upload-release">Before upload / release</h3>
+                <ul>
+                    <li><input type="checkbox" disabled> I tested “obvious trigger” prompts.</li>
+                    <li><input type="checkbox" disabled> I tested paraphrases.</li>
+                    <li><input type="checkbox" disabled> I tested decoys (“should NOT trigger”).</li>
+                    <li><input type="checkbox" disabled> Functional scenario tests pass.</li>
+                    <li><input type="checkbox" disabled> Tool integration works (if applicable).</li>
+                    <li><input type="checkbox" disabled> If needed, I zipped the folder correctly.</li>
+                </ul>
+
+                <h3 id="after-release">After release</h3>
+                <ul>
+                    <li><input type="checkbox" disabled> I tested in real conversations.</li>
+                    <li><input type="checkbox" disabled> I watched for under/over-triggering.</li>
+                    <li><input type="checkbox" disabled> I collected feedback.</li>
+                    <li><input type="checkbox" disabled> I iterated on description and instructions.</li>
+                    <li><input type="checkbox" disabled> I bumped a version field in metadata (if I’m tracking
+                        versions).</li>
+                </ul>
+
+                <h2 id="appendix-b-yaml-frontmatter-reference">Appendix B: YAML frontmatter reference</h2>
+
+                <h3 id="required-minimal-frontmatter">Required minimal frontmatter</h3>
+                <pre><code class="language-yaml">---
+name: skill-name-in-kebab-case
+description: What it does and when to use it. Include realistic trigger phrases.
+---</code></pre>
+
+                <h3 id="full-example-with-common-optional-fields">Full example (with common optional fields)</h3>
+                <pre><code class="language-yaml">---
+name: projecthub-sprint-planning
+description: Plans a sprint end-to-end (prioritization, task creation, labels, estimates). Use when the user says "plan a sprint", "create sprint tasks", or "prioritize backlog". Do NOT use for general project chat.
+license: MIT
+compatibility: Requires network access and the ProjectHub MCP server connected; intended for Claude.ai and local coding environments.
+allowed-tools: "Bash(python:*) WebFetch"
+metadata:
+  author: ExampleCo
+  version: 1.0.0
+  mcp-server: projecthub
+  category: productivity
+  tags: [project-management, automation]
+---</code></pre>
+
+                <p>Security notes recap:</p>
+                <ul>
+                    <li>Avoid <code>&lt;</code> and <code>&gt;</code> in frontmatter.</li>
+                    <li>Don’t try to smuggle instructions into metadata. Keep it clean and descriptive.</li>
+                </ul>
+
+                <h2 id="appendix-c-where-to-find-full-examples">Appendix C: Where to find full examples</h2>
+                <p><a
+                        href="https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf?hsLang=en">The
+                        PDF</a> points to official docs and public example repositories. The highlights:</p>
+
+                <p>Official docs and guides (names as referenced in the guide):</p>
+                <ul>
+                    <li>Best Practices Guide</li>
+                    <li>Skills Documentation</li>
+                    <li>API Reference</li>
+                    <li>MCP Documentation</li>
+                </ul>
+
+                <p>Example skills:</p>
+                <ul>
+                    <li>GitHub repository:
+                        <pre><code class="language-text">anthropics/skills</code></pre> (the guide also references
+                        <pre><code class="language-text">anthropics/skills/issues</code></pre> for bug reports)
+                    </li>
+                    <li>Document skill examples (PDF, DOCX, PPTX, XLSX creation)</li>
+                    <li>Partner skills directories (skills from popular integrations like issue trackers, design tools,
+                        monitoring tools, etc.)</li>
+                </ul>
+
+                <p>If you’re stuck, the fastest path is usually:</p>
+                <ol>
+                    <li>Find the closest example skill.</li>
+                    <li>Copy the structure.</li>
+                    <li>Swap in your domain rules and triggers.</li>
+                </ol>
+
+                <hr>
+
+                <h2 id="how-this-maps-to-codex-skills-practical-translation">How this maps to Codex skills (practical
+                    translation)</h2>
+
+                <p>Everything above is the <em>conceptual</em> model. Here’s how it typically lands in Codex.</p>
+
+                <h3 id="where-codex-skills-live">Where Codex skills live</h3>
+                <p>Codex skills are usually stored in your user profile under:</p>
+                <pre><code class="language-text">C:\Users\{username}\.codex\skills\{skill-name}\SKILL.md</code></pre>
+
+                <p>For example, if you installed a skill named <code>pdf</code>, it would live at:</p>
+                <pre><code class="language-text">C:\Users\{username}\.codex\skills\pdf\SKILL.md</code></pre>
+
+                <p>A high-quality skill demonstrates “progressive disclosure”:</p>
+                <ul>
+                    <li>A short frontmatter <code>name</code> and <code>description</code> that clearly says when to use
+                        it.</li>
+                    <li>A body that gives a concrete workflow (dependencies, conventions, quality expectations).</li>
+                </ul>
+
+                <h3 id="codex-frontmatter-same-idea-similar-pattern">Codex frontmatter: same idea, similar pattern</h3>
+                <p>Codex follows the same basic routing concept:</p>
+                <ul>
+                    <li><strong>Frontmatter is the router</strong> (when to load)</li>
+                    <li><strong>Body is the playbook</strong> (how to do the work)</li>
+                    <li><strong>Linked files are depth</strong> (references/templates/scripts)</li>
+                </ul>
+
+                <p>Note: the exact validation rules and supported fields are platform-specific, but the “small router +
+                    bigger playbook” architecture carries over cleanly.</p>
+
+                <p>Minimal Codex skill frontmatter (example):</p>
+                <pre><code class="language-yaml">---
+name: csv-audit
+description: Audits CSV files for schema issues and generates a short data-quality report. Use when the user uploads a .csv or asks to "validate a CSV", "check required columns", or "find data issues". Do NOT use for basic charting.
+---</code></pre>
+
+                <h3 id="a-quick-claude-skill-codex-skill-adaptation-checklist">A quick “Claude-skill → Codex-skill”
+                    adaptation checklist</h3>
+                <ul>
+                    <li>Tighten <code>description</code> until it’s a good router (what + when + realistic phrases).
+                    </li>
+                    <li>Add negative triggers if you see overtriggering.</li>
+                    <li>Keep SKILL.md steps modular and easy to follow.</li>
+                    <li>Add validation gates and troubleshooting for predictable failure points.</li>
+                    <li>Push bulky docs into <code>references/</code> and link them (don’t bloat the main file).</li>
+                    <li>When correctness matters, prefer scripts for validation over “English-only” rules.</li>
+                </ul>
+
+                <h3 id="one-last-practical-tip">One last practical tip</h3>
+                <p>If you’re building multiple skills, keep a shared “test prompt bank” per skill:</p>
+                <ul>
+                    <li>10 prompts that should trigger</li>
+                    <li>10 that shouldn’t</li>
+                    <li>3–5 functional scenarios</li>
+                </ul>
+
+                <p>It turns iteration from vibes into a loop you can actually control.</p>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
+                class="icon github">
+                <svg width="26" height="26" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 
+            0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 
+            1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 
+            0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 
+            0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 
+            1.36.09 2 .27 1.53-1.04 2.2-.82 
+            2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 
+            1.27.82 2.15 0 3.07-1.87 3.75-3.65 
+            3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 
+            2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+</body>
+
+</html>
