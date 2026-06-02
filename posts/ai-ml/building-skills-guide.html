@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>From Prompts to Playbooks: Distilling Anthropic’s Guide to Agent Skills | arman1o1 blog</title>
+    <meta name="description"
+        content="A high-density guide to building portable, production-ready AI playbooks: progressive disclosure, YAML routing, validation boundaries, and evaluation suites." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script src="../../assets/theme.js"></script>
+
+    <!-- Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+    <!-- Mermaid.js -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Skills</span>
+                    <span class="tag">Engineering</span>
+                </div>
+                <h1>From Prompts to Playbooks: Distilling Anthropic’s Guide to Agent Skills</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-02-15">Feb 15, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 7 min read</span>
+                </div>
+
+                <hr>
+
+                <p>Yesterday, I crawled through Anthropic's new guide on building Agent Skills. It is a brilliant blueprint, but let's be honest - at dozens of pages of PDF, it is packed with enterprise fluff. Most of us just want to know how to build skills that actually execute without choking.</p>
+
+                <p>Having built several skills for Claude and local IDE agents like Codex, I wanted to distill the absolute essentials. This is the practical handbook: the architectural principles, the routing mechanics, and the verification patterns you actually need to build portable, production-ready AI playbooks.</p>
+
+                <hr>
+
+                <h2>The Core Mental Model: Progressive Disclosure</h2>
+                <p>The standard way people build AI workflows is by writing massive system prompts. They pack rules, error codes, guidelines, and formatting templates into a single block of text. This is a terrible design. It bloats the context window, kills latency, and makes the model erratic.</p>
+
+                <p>Anthropic's skill architecture solves this using <strong>progressive disclosure</strong>. Instead of dumping everything into context on day one, you separate the information into three distinct, layered boundaries:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layer</th>
+                            <th>Components Included</th>
+                            <th>When It Loads</th>
+                            <th>Primary Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>1. Metadata (Router)</strong></td>
+                            <td>YAML frontmatter (name, description)</td>
+                            <td>Always active</td>
+                            <td>Decides <em>if</em> the skill is needed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>2. Playbook (Instructions)</strong></td>
+                            <td><code>SKILL.md</code> core body</td>
+                            <td>Loaded on demand</td>
+                            <td>Guides the model's step-by-step logic</td>
+                        </tr>
+                        <tr>
+                            <td><strong>3. Depth (References & Scripts)</strong></td>
+                            <td><code>references/</code>, <code>scripts/</code>, <code>assets/</code></td>
+                            <td>Accessed only if needed</td>
+                            <td>Provides granular context or deterministic checks</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>By splitting your skill this way, the agent stays lightweight. It only carries the heavy context (like brand style guides or complex API tables) when it is actively working on a task that requires them.</p>
+
+                <hr>
+
+                <h2>The Router: Crafting Bulletproof Frontmatter</h2>
+                <p>Most "my skill won't trigger" bugs are actually routing failures. Frontmatter acts as your skill's entry point. If it is too generic, the agent will ignore it. If it is too broad, it will hijack unrelated queries.</p>
+
+                <p>A production-ready skill router needs to clearly define its decision boundaries using three elements:</p>
+                <ol>
+                    <li><strong>Specific Action Verb:</strong> What concrete action does the skill perform? (e.g., "Generates a sprint plan" rather than "Helps with sprints").</li>
+                    <li><strong>Positive Triggers:</strong> Explicit user phrases, terminology, or file formats that should activate the skill.</li>
+                    <li><strong>Negative Triggers:</strong> Concrete scenarios where the skill must <em>not</em> load. This shapes the decision boundary and prevents overtriggering.</li>
+                </ol>
+
+                <pre><code class="language-yaml">---
+name: notion-sprint-planner
+description: Plans active developer sprints using backlog tickets and capacity files. Use when the user says "plan a sprint", "kickoff next sprint", or uploads a sprint-backlog.csv. Do NOT use for general chat about Notion or basic task updates.
+---</code></pre>
+
+                <p><strong>Security Tip:</strong> Because frontmatter is loaded directly into the primary system prompt, never include angle brackets (<code>&lt;</code> or <code>&gt;</code>) in your YAML block. They cause parser confusion and open the door to prompt injection vulnerabilities. Keep your frontmatter metadata clean and strictly alphanumeric.</p>
+
+                <hr>
+
+                <h2>Playbooks vs. Scripts: The Validation Boundary</h2>
+                <p>One of the hardest lessons in AI engineering is finding the boundary between natural language instructions and code. If you try to enforce strict compliance patterns using only English instructions (e.g., <em>"Ensure the output JSON never contains missing fields"</em>), the model will eventually slip.</p>
+
+                <p>We solve this by separating responsibilities. Use language for reasoning and adaptability, but use code for validation and deterministic processing.</p>
+
+                <div class="mermaid">
+                    flowchart LR
+                    L["Language Playbook (SKILL.md)"] -->|"Reasoning & Logic"| M["Model Loop"]
+                    M -->|"Brittle Verification"| S["Deterministic Scripts (validate.py)"]
+                    S -->|"Error Feedback"| M
+                </div>
+
+                <p>Instead of burying a 200-line formatting ruleset in your playbook, write a validation script. The playbook simply directs the model to execute the script and self-correct based on the output:</p>
+                
+                <pre><code class="language-text">Instructions:
+1. Generate the initial report payload.
+2. Execute the validation script: scripts/validate_report.py --input report.json
+3. If the script outputs any error details:
+   - Read the error trace.
+   - Refactor the payload to address the specific failure.
+   - Re-run steps 2 and 3 until the validation passes.</code></pre>
+
+                <p>This "generate-check-fix" loop is incredibly robust. It turns brittle natural language guidelines into stable, deterministic software constraints.</p>
+
+                <hr>
+
+                <h2>The 3-Part Eval Suite</h2>
+                <p>You cannot build operational skills based on vibes. If you edit a skill's description to fix one overtriggering issue, you will likely break three other workflows. You need a simple, repeatable testing loop.</p>
+                
+                <p>A minimal, highly effective eval suite consists of three parts:</p>
+
+                <ul>
+                    <li><strong>Triggering Tests:</strong> A bank of 10-20 user queries. Include obvious hits ("kickoff sprint"), paraphrases ("let's plan"), and decoy triggers ("how do I use Notion?") to ensure the router works correctly.</li>
+                    <li><strong>Functional Scenario Tests:</strong> Mocked inputs designed to run the skill end-to-end. Verify that the agent calls the correct sequence of tools and successfully hits the script validation gates.</li>
+                    <li><strong>Performance Comparison:</strong> Compare your runs against a baseline system without the skill. Specifically track three metrics: message turns, failed tool calls, and token consumption (fewer turns and zero failures is the target).</li>
+                </ul>
+
+                <p>Keep these test cases stored alongside your skill. Every time you tighten your playbook instructions, run the test set to ensure you did not introduce regression.</p>
+
+                <hr>
+
+                <h2>Going Local: IDEs and Desktop Agent Apps</h2>
+                <p>While Anthropic’s guide is built around Claude’s cloud ecosystem, the exact same architectural principles apply on your local machine. Today, almost every major AI lab and IDE environment supports local agentic apps (like Claude Desktop, Cursor, Copilot, or Codex) with their own ways of packaging custom instructions.</p>
+
+                <p>Depending on your tooling, the folder structures differ slightly, but the routing concept remains identical:</p>
+                <ul>
+                    <li><strong>IDE Configurations:</strong> Environments like Cursor use files like <code>.cursorrules</code>, while Copilot relies on <code>.github/copilot-instructions.md</code> to act as the primary workspace playbook.</li>
+                    <li><strong>Local Agent Folders:</strong> Local developer environments like Codex look for structured skill directories in your user profile (e.g., <code>~/.codex/skills/git-helper/SKILL.md</code>).</li>
+                    <li><strong>Desktop Run Loops:</strong> Local runtimes (like Claude Desktop) parse configured MCP servers to import tools and descriptions dynamically.</li>
+                </ul>
+
+                <p>The transition is straightforward: create your workspace-local playbook, define a clean description to act as the router, and write clear, actionable steps for local execution (like linking to local scripts for brittle validations). Whether you are deployed in the cloud or executing inside your local editor, treating your prompts as structured, portable playbooks is the only way to build agentic systems that scale.</p>
+
+                <hr>
+
+                <h3>References</h3>
+                <ul>
+                    <li>Official Skill Framework: <a href="https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf?hsLang=en" target="_blank" rel="noopener noreferrer">The Complete Guide to Building Skills (PDF)</a></li>
+                    <li>Agent Architecture Patterns: <a href="building-agents.html">Beyond Chatbots: Hard-Won Realities from OpenAI's Agent Guide</a></li>
+                </ul>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+</body>
+
+</html>

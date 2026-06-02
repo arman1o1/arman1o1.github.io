@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Circle outline only -->
+  <circle cx="256" cy="256" r="210" stroke="#76a5ff" stroke-width="24" />
+  <!-- Centered serif '1' -->
+  <text x="256" y="338" font-family="'Playfair Display', Georgia, 'Times New Roman', serif" font-size="260" font-weight="700" fill="#76a5ff" text-anchor="middle">1</text>
+</svg>

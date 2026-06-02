@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Building a Custom MCP Server: The Port & Process Manager | arman1o1 blog</title>
+    <meta name="description"
+        content="A hands-on tutorial for building a robust, cross-platform Port and Process Manager MCP server using FastMCP and psutil." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script src="../../assets/theme.js"></script>
+
+    <!-- Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post">
+                <div class="tags">
+                    <span class="tag">MCP</span>
+                    <span class="tag">Python</span>
+                    <span class="tag">Tutorial</span>
+                </div>
+                <h1>Building a Custom MCP Server: The Port & Process Manager</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-05-01">May 1, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 6 min read</span>
+                </div>
+
+                <hr>
+
+                <p>We've all been there: you run <code>npm run dev</code> or <code>docker-compose up</code>, only to get slammed with a cryptic error: <code>EADDRINUSE: address already in use :::3000</code>. Now you have to open a terminal, remember the system-specific incantation (<code>lsof -i :3000</code> or <code>netstat -ano</code>), grab a PID, and manually run a kill command.</p>
+
+                <p>What if your LLM copilot could handle that for you? Since Claude, Codex, Cursor, Antigravity, and a growing number of modern developer tools and AI agents support the Model Context Protocol (MCP), we can equip them with tools to inspect open ports and clean up ghost processes directly from chat. This tutorial details how to build a robust, cross-platform Port & Process Manager server using Python's <code>FastMCP</code> and <code>psutil</code>.</p>
+
+                <h2>Why Not Just Run Shell Commands?</h2>
+                <p>You could theoretically write a basic bash or powershell terminal tool and let the model execute raw commands. However, that approach is highly fragile. Parsing stdout from shell commands like <code>lsof</code> is error-prone, handles cross-platform discrepancies terribly, and introduces command injection vectors. By writing a dedicated python service wrapper utilizing Python's system utilities library <code>psutil</code>, we get clean data structures, structured logs, and cross-platform compatibility out of the box.</p>
+
+                <hr>
+
+                <h2>1. Setup the Project</h2>
+                <p>Using <code>uv</code>, setup the project environment and add the necessary dependencies. We need <code>mcp[cli]</code> for protocol communication and <code>psutil</code> to handle the heavy OS-level process matching.</p>
+                <pre><code class="language-bash"># Initialize a new python project
+uv init port-manager-mcp
+cd port-manager-mcp
+
+# Add dependencies
+uv add "mcp[cli]" psutil</code></pre>
+
+                <hr>
+
+                <h2>2. Code the Server (<code>server.py</code>)</h2>
+                <p>We'll construct our server in a single <code>server.py</code> file. Our server exposes two tools (to search by port and terminate by PID) and one dynamic resource (to fetch the active connections table).</p>
+                
+                <p>Here is the full implementation:</p>
+
+                <pre><code class="language-python">import logging
+import sys
+import psutil
+from mcp.server.fastmcp import FastMCP
+
+# 1. Initialize the MCP Server
+mcp = FastMCP("Port-Manager")
+
+# Configure logging to write exclusively to stderr. 
+# Writing to stdout will corrupt the protocol channel.
+logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+logger = logging.getLogger(__name__)
+
+# Helper to retrieve active network connections with non-privileged fallback
+def get_connections():
+    try:
+        return psutil.net_connections(kind='inet')
+    except psutil.AccessDenied:
+        # Fallback for macOS and non-root users: iterate over own processes
+        connections = []
+        for proc in psutil.process_iter(['pid']):
+            try:
+                connections.extend(proc.net_connections(kind='inet'))
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                continue
+        return connections
+
+# 2. Register Tool: Find process occupying a specific port
+@mcp.tool()
+def find_process_by_port(port: int) -> str:
+    """Find which process is listening on a specific network port.
+    
+    Args:
+        port: The local port number (e.g. 3000, 8080, 5432) to inspect.
+    """
+    logger.info(f"Scanning connections for port {port}...")
+    try:
+        connections = get_connections()
+        for conn in connections:
+            # We look for connections that match our port and are in LISTEN state
+            if conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
+                pid = conn.pid
+                if pid is None:
+                    continue
+                
+                # Fetch details of the process, handling permission errors gracefully
+                try:
+                    proc = psutil.Process(pid)
+                    name = proc.name()
+                    status = proc.status()
+                    cmdline = " ".join(proc.cmdline())
+                    cpu = f"{proc.cpu_percent(interval=0.1)}%"
+                    mem = f"{proc.memory_info().rss / (1024 * 1024):.2f} MB"
+                except psutil.AccessDenied:
+                    name = "Access Denied"
+                    status = "Unknown"
+                    cmdline = "Access Denied"
+                    cpu = "Access Denied"
+                    mem = "Access Denied"
+                except psutil.NoSuchProcess:
+                    continue
+                
+                return (
+                    f"Found active process listening on port {port}:\n"
+                    f"- PID: {pid}\n"
+                    f"- Name: {name}\n"
+                    f"- Status: {status}\n"
+                    f"- Command: {cmdline}\n"
+                    f"- CPU %: {cpu}\n"
+                    f"- Memory (RSS): {mem}"
+                )
+        return f"No process found listening on port {port}."
+    except Exception as e:
+        logger.error(f"Error checking port {port}: {str(e)}")
+        return f"Error scanning port {port}: {str(e)}"
+
+# 3. Register Tool: Terminate process by PID
+@mcp.tool()
+def kill_process(pid: int, force: bool = True) -> str:
+    """Forcefully or gracefully terminate a process by its Process ID (PID).
+    
+    Args:
+        pid: The Process ID of the process to kill.
+        force: True to kill instantly (SIGKILL/TerminateProcess), False to request exit (SIGTERM).
+    """
+    logger.info(f"Attempting to terminate PID {pid} (force={force})...")
+    try:
+        proc = psutil.Process(pid)
+        name = proc.name()
+        
+        # Kill the process
+        if force:
+            proc.kill()
+            action = "forcefully killed"
+        else:
+            proc.terminate()
+            action = "terminated"
+            
+        return f"Successfully {action} process '{name}' (PID: {pid})."
+    except psutil.NoSuchProcess:
+        return f"Error: No process with PID {pid} exists."
+    except psutil.AccessDenied:
+        return f"Error: Access denied. Insufficient permissions to terminate PID {pid}."
+    except Exception as e:
+        logger.error(f"Error terminating PID {pid}: {str(e)}")
+        return f"Error: Failed to terminate PID {pid}: {str(e)}"
+
+# 4. Register Resource: Stream list of active listening ports
+@mcp.resource("ports://active")
+def list_active_ports() -> str:
+    """Return a plain text list of all active listening ports on the host system."""
+    logger.info("Generating list of active listening ports...")
+    try:
+        connections = get_connections()
+        lines = [f"{'PORT':&lt;8} {'PID':&lt;8} {'PROCESS NAME':&lt;20}"]
+        lines.append("-" * 40)
+        
+        for conn in connections:
+            if conn.status == psutil.CONN_LISTEN:
+                pid = conn.pid
+                port = conn.laddr.port
+                name = "Unknown"
+                if pid is not None:
+                    try:
+                        name = psutil.Process(pid).name()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                pid_str = str(pid) if pid is not None else ""
+                lines.append(f"{port:&lt;8} {pid_str:&lt;8} {name:&lt;20}")
+                
+        return "\n".join(lines)
+    except Exception as e:
+        logger.error(f"Error listing active ports: {str(e)}")
+        return f"Failed to retrieve active port lists: {str(e)}"
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")</code></pre>
+
+                <hr>
+
+                <h2>The macOS &amp; Windows Permissions Nuance</h2>
+                <p>Because network table queries and process termination are sensitive system operations, you may run into permission barriers depending on your platform:</p>
+                <ul>
+                    <li><strong>macOS:</strong> By default, <code>psutil.net_connections()</code> raises <code>psutil.AccessDenied</code> on macOS unless run with root privileges (due to OS-level kernel restrictions). To handle this gracefully, the server code falls back to iterating over user-owned processes using <code>psutil.process_iter()</code>, which successfully retrieves connections for local development processes you own. If you need to monitor or manage ports owned by other users or the system, you must run the server with root privileges (e.g., using <code>sudo</code>).</li>
+                    <li><strong>Windows:</strong> Standard user accounts can scan active ports, but you may receive <code>psutil.AccessDenied</code> errors if you attempt to inspect or terminate system-owned processes (e.g. processes run by <code>SYSTEM</code>). Running your IDE or terminal as Administrator resolves this.</li>
+                </ul>
+
+                <hr>
+
+                <h2>3. Connect to Your LLM Client / Editor</h2>
+                <p>Register the server using the standard configuration format. Whether you're using Cursor (project-scoped or global), Claude Desktop, Codex, Antigravity, Windsurf, or extensions like Cline, the server definition uses the exact same JSON structure.</p>
+                
+                <p>For a project-scoped setup in Cursor, create a <code>.cursor/mcp.json</code> file at the root of your workspace (or add the entry to your global Claude Desktop/Windsurf config):</p>
+                <pre><code class="language-json">{
+  "mcpServers": {
+    "port-manager": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/absolute/path/to/port-manager-mcp",
+        "run",
+        "server.py"
+      ]
+    }
+  }
+}</code></pre>
+                
+                <p>Make sure to replace <code>/absolute/path/to/port-manager-mcp</code> with the literal absolute path of the directory you initialized in Step 1.</p>
+
+                <hr>
+
+                <h2>Testing the Integration</h2>
+                <p>Once connected, test the capability directly in Composer or Chat. Try starting a test HTTP server on port 8000 using python:</p>
+                <pre><code class="language-bash">python -m http.server 8000</code></pre>
+                
+                <p>Now ask your assistant:</p>
+                <blockquote>
+                    <em>"What is listening on port 8000?"</em>
+                </blockquote>
+                <p>The model will run <code>find_process_by_port(port=8000)</code> and correctly return the python process details. Then request:</p>
+                <blockquote>
+                    <em>"Free up port 8000 so I can run my server."</em>
+                </blockquote>
+                <p>The assistant will trigger <code>kill_process(pid=...)</code> using the PID resolved in the previous step. The port is immediately freed without you typing a single shell command.</p>
+
+                <p>This implementation handles standard cross-platform details, isolates process execution from shell injection risks, and serves as a solid foundation for adding further container control or local server management capabilities.</p>
+
+                <h3>References</h3>
+                <ul>
+                    <li><a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener noreferrer">Model Context Protocol Homepage</a></li>
+                    <li><a href="https://psutil.readthedocs.io/" target="_blank" rel="noopener noreferrer">psutil documentation</a></li>
+                    <li><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noopener noreferrer">FastMCP Python SDK GitHub</a></li>
+                </ul>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+</body>
+
+</html>

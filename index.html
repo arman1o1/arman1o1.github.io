@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>arman1o1 blog</title>
+  <meta name="description" content="A personal blog exploring AI/ML, movies, photography, and life." />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="arman1o1 blog" />
+  <meta property="og:description" content="A personal blog exploring AI/ML, movies, photography, and life." />
+  <meta property="og:image" content="https://arman1o1.github.io/images/og-image.png" />
+  <meta property="og:type" content="website" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/styles.css">
+  <script src="assets/theme.js"></script>
+</head>
+
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to content</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand">arman1o1 blog</a>
+
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link active">Home</a>
+        <a href="posts/ai-ml/index.html" class="nav-link">AI/ML</a>
+        <a href="posts/movies/index.html" class="nav-link">Movies</a>
+        <a href="posts/photography/index.html" class="nav-link">Photography</a>
+        <a href="posts/life/index.html" class="nav-link">Life</a>
+        <a href="about/index.html" class="nav-link">About</a>
+      </nav>
+
+      <div class="header-toggle">
+        <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+          <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+          <span class="slider" aria-hidden="true"></span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <!-- Hero Section -->
+    <section class="hero animate-in">
+      <div class="hero-decoration" aria-hidden="true"></div>
+      <h1>
+        Welcome to the<br>
+        <span class="gradient-text">arman1o1 blog</span>
+      </h1>
+      <p class="hero-tagline">
+        Where technical elegance meets creative depth.
+      </p>
+    </section>
+
+    <div class="container">
+
+      <!-- Explore Domains -->
+      <section class="section-domains animate-in animate-in-delay-2">
+        <h2>Explore Domains</h2>
+        <ul class="domain-grid">
+
+          <!-- AI/ML -->
+          <li class="domain-card reveal" onclick="location.href='posts/ai-ml/index.html'">
+            <div class="domain-card-top">
+              <span class="domain-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              </span>
+              <span class="domain-badge">Tech</span>
+            </div>
+            <a href="posts/ai-ml/index.html" class="domain-title">AI/ML</a>
+            <p class="domain-desc">Deep learning, architectures, and the future of code.</p>
+          </li>
+
+          <!-- Movies -->
+          <li class="domain-card reveal" onclick="location.href='posts/movies/index.html'">
+            <div class="domain-card-top">
+              <span class="domain-icon">
+                <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5"/></svg>
+              </span>
+              <span class="domain-badge">Art</span>
+            </div>
+            <a href="posts/movies/index.html" class="domain-title">Movies</a>
+            <p class="domain-desc">Cinematic analysis, reviews, and visual narratives.</p>
+          </li>
+
+          <!-- Photography -->
+          <li class="domain-card reveal" onclick="location.href='posts/photography/index.html'">
+            <div class="domain-card-top">
+              <span class="domain-icon">
+                <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </span>
+              <span class="domain-badge">Visual</span>
+            </div>
+            <a href="posts/photography/index.html" class="domain-title">Photography</a>
+            <p class="domain-desc">Capturing light, geometry, and fleeting moments.</p>
+          </li>
+
+          <!-- Life & Philosophy -->
+          <li class="domain-card reveal" onclick="location.href='posts/life/index.html'">
+            <div class="domain-card-top">
+              <span class="domain-icon">
+                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              </span>
+              <span class="domain-badge">Thought</span>
+            </div>
+            <a href="posts/life/index.html" class="domain-title">Life & Philosophy</a>
+            <p class="domain-desc">Reflections on existence, meaning, and the human condition in a digital age.</p>
+          </li>
+
+          <!-- About -->
+          <li class="domain-card reveal" onclick="location.href='about/index.html'">
+            <div class="domain-card-top">
+              <span class="domain-icon">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <span class="domain-badge">Author</span>
+            </div>
+            <a href="about/index.html" class="domain-title">About</a>
+            <p class="domain-desc">The architect behind the architecture.</p>
+          </li>
+
+        </ul>
+      </section>
+
+      <!-- Latest Thoughts -->
+      <section class="section-latest animate-in animate-in-delay-3">
+        <div class="section-latest-header">
+          <h2>Latest Thoughts</h2>
+          <a href="posts/archives.html" class="view-all-link">View all archives →</a>
+        </div>
+
+        <a href="posts/ai-ml/building-a-custom-skill.html" class="thought-card reveal">
+          <div class="thought-thumb">
+            <img src="images/thumb_ai_ml.png" alt="AI agent custom skills visualization" loading="lazy">
+          </div>
+          <div class="thought-body">
+            <div class="thought-meta">
+              <span class="thought-date">May 2, 2026</span>
+              <span class="thought-tag">AI/ML</span>
+            </div>
+            <div class="thought-title">Building a Custom Agent Skill: The Semantic Git-Commit Assistant</div>
+            <p class="thought-excerpt">A hands-on tutorial for building a three-layered local agent skill following progressive disclosure design guidelines to enable clean self-correction loops.</p>
+            <span class="thought-read-time">7 min read</span>
+          </div>
+        </a>
+
+        <a href="posts/ai-ml/building-a-mcp.html" class="thought-card reveal">
+          <div class="thought-thumb">
+            <img src="images/thumb_mcp.png" alt="MCP custom server visualization" loading="lazy">
+          </div>
+          <div class="thought-body">
+            <div class="thought-meta">
+              <span class="thought-date">May 1, 2026</span>
+              <span class="thought-tag">AI/ML</span>
+            </div>
+            <div class="thought-title">Building a Custom MCP Server: The Port & Process Manager</div>
+            <p class="thought-excerpt">A hands-on tutorial for building a robust, cross-platform Port and Process Manager MCP server using FastMCP and psutil to reclaim ghost ports.</p>
+            <span class="thought-read-time">6 min read</span>
+          </div>
+        </a>
+
+        <a href="posts/ai-ml/building-skills-guide.html" class="thought-card reveal">
+          <div class="thought-thumb">
+            <img src="images/thumb_ai_ml.png" alt="AI neural network visualization" loading="lazy">
+          </div>
+          <div class="thought-body">
+            <div class="thought-meta">
+              <span class="thought-date">Feb 15, 2026</span>
+              <span class="thought-tag">AI/ML</span>
+            </div>
+            <div class="thought-title">From Prompts to Playbooks: Distilling Anthropic’s Guide to Agent Skills</div>
+            <p class="thought-excerpt">A high-density guide to building portable, production-ready AI playbooks: progressive disclosure, YAML routing, validation boundaries, and evaluation suites.</p>
+            <span class="thought-read-time">7 min read</span>
+          </div>
+        </a>
+
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="social-icons">
+      <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 
+            0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 
+            1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 
+            0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 
+            0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 
+            1.36.09 2 .27 1.53-1.04 2.2-.82 
+            2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 
+            1.27.82 2.15 0 3.07-1.87 3.75-3.65 
+            3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 
+            2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+      </a>
+      <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="2" y="4" width="20" height="16" rx="2"/>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        </svg>
+      </a>
+    </div>
+  </footer>
+
+</body>
+
+</html>
