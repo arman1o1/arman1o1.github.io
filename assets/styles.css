@@ -562,7 +562,9 @@ html.dark .post code {
 }
 
 .post-image,
-.post-image-centered {
+.post-image-centered,
+.post-video,
+.post-video-centered {
   max-width: 100%;
   border-radius: var(--radius-md);
   margin: 32px 0;
@@ -570,7 +572,8 @@ html.dark .post code {
   box-shadow: var(--shadow-md);
 }
 
-.post-image-centered {
+.post-image-centered,
+.post-video-centered {
   width: 500px;
   margin-left: auto;
   margin-right: auto;
