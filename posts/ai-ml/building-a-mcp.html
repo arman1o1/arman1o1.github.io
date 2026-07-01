@@ -116,7 +116,7 @@ def get_connections():
         connections = []
         for proc in psutil.process_iter(['pid']):
             try:
-                connections.extend(proc.net_connections(kind='inet'))
+                connections.extend(proc.connections(kind='inet'))
             except (psutil.AccessDenied, psutil.NoSuchProcess):
                 continue
         return connections
