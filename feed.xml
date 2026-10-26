@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>arman1o1 blog</title>
+  <link href="https://arman1o1.github.io/"/>
+  <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
+  <id>https://arman1o1.github.io/</id>
+  <updated>2026-07-01T00:00:00Z</updated>
+  <author><name>arman1o1</name></author>
+  <entry>
+    <title>Into Inception, Again, Again and Again</title>
+    <link href="https://arman1o1.github.io/posts/movies/into-inception-again-again-and-again.html"/>
+    <id>https://arman1o1.github.io/posts/movies/into-inception-again-again-and-again.html</id>
+    <updated>2026-07-01T00:00:00Z</updated>
+    <summary>A rewatch review of Inception (2010) — returning to Nolan's dream heist again and again, and what each descent reveals.</summary>
+  </entry>
+  <entry>
+    <title>Snowpiercer (2013) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/snowpiercer-2013-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/snowpiercer-2013-movie-review.html</id>
+    <updated>2026-06-21T00:00:00Z</updated>
+    <summary>A review of Bong Joon-ho's Snowpiercer (2013) — class warfare fought car by car, gritty practical action, and one of the bleakest endings in sci-fi.</summary>
+  </entry>
+  <entry>
+    <title>Testing Gemini Omni: Making a Still Bird Fly</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/testing-gemini-omni.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/testing-gemini-omni.html</id>
+    <updated>2026-06-10T00:00:00Z</updated>
+    <summary>An in-depth look at Gemini Omni's video generation capabilities, testing its understanding of physics, motion, and temporal consistency.</summary>
+  </entry>
+  <entry>
+    <title>No Other Choice (2025) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/no-other-choice-2025-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/no-other-choice-2025-movie-review.html</id>
+    <updated>2026-06-10T00:00:00Z</updated>
+    <summary>A review of No Other Choice (2025) by Park Chan-wook — my third film from the director, and thoughts on where it stands.</summary>
+  </entry>
+  <entry>
+    <title>Project Hail Mary (2026) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/project-hail-mary-2026-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/project-hail-mary-2026-movie-review.html</id>
+    <updated>2026-05-15T00:00:00Z</updated>
+    <summary>A review of Project Hail Mary (2026), directed by Phil Lord and Christopher Miller and starring Ryan Gosling — first impressions of the sci-fi adaptation.</summary>
+  </entry>
+  <entry>
+    <title>Building a Custom Agent Skill: The Semantic Git-Commit Assistant</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-a-custom-skill.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-a-custom-skill.html</id>
+    <updated>2026-05-02T00:00:00Z</updated>
+    <summary>A hands-on tutorial for building a three-layered local agent skill following progressive disclosure design guidelines.</summary>
+  </entry>
+  <entry>
+    <title>Building a Custom MCP Server: The Port &amp; Process Manager</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-a-mcp.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-a-mcp.html</id>
+    <updated>2026-05-01T00:00:00Z</updated>
+    <summary>A hands-on tutorial for building a robust, cross-platform Port and Process Manager MCP server using FastMCP and psutil.</summary>
+  </entry>
+  <entry>
+    <title>Paprika (2006) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/paprika-2006-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/paprika-2006-movie-review.html</id>
+    <updated>2026-04-05T00:00:00Z</updated>
+    <summary>A review of Satoshi Kon's Paprika (2006) — a first encounter with Kon's dream-bending animation, and it left me spellbound.</summary>
+  </entry>
+  <entry>
+    <title>From Prompts to Playbooks: Distilling Anthropic’s Guide to Agent Skills</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-skills-guide.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-skills-guide.html</id>
+    <updated>2026-02-15T00:00:00Z</updated>
+    <summary>A high-density guide to building portable, production-ready AI playbooks: progressive disclosure, YAML routing, validation boundaries, and evaluation suites.</summary>
+  </entry>
+  <entry>
+    <title>Beyond Chatbots: Hard-Won Realities from OpenAI's Agent Guide</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-agents.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-agents.html</id>
+    <updated>2026-02-14T00:00:00Z</updated>
+    <summary>A high-density distillation of OpenAI's practical guide to agents: core mental models, production-grade tool design, and guardrail realities.</summary>
+  </entry>
+  <entry>
+    <title>The Future of Video: AI, Anime, and the New Cinema</title>
+    <link href="https://arman1o1.github.io/posts/photography/future-of-video-creation.html"/>
+    <id>https://arman1o1.github.io/posts/photography/future-of-video-creation.html</id>
+    <updated>2026-02-13T00:00:00Z</updated>
+    <summary>Exploring how AI video generation will revolutionize cinema, drawing parallels to the anime industry's shift to digital.</summary>
+  </entry>
+  <entry>
+    <title>The "Human" Element in a Generative World</title>
+    <link href="https://arman1o1.github.io/posts/photography/the-human-element.html"/>
+    <id>https://arman1o1.github.io/posts/photography/the-human-element.html</id>
+    <updated>2026-02-12T00:00:00Z</updated>
+    <summary>A personal essay on why taking photos manually still matters when AI can generate perfection.</summary>
+  </entry>
+  <entry>
+    <title>Inception (2010) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/inception-2010-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/inception-2010-movie-review.html</id>
+    <updated>2026-01-15T00:00:00Z</updated>
+    <summary>A review of Christopher Nolan's Inception (2010) — practical effects over CGI, dream logic, and why it rewards a rewatch every year.</summary>
+  </entry>
+  <entry>
+    <title>Setup for MCP (Model Context Protocol)</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/setup-for-mcp.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/setup-for-mcp.html</id>
+    <updated>2026-01-11T00:00:00Z</updated>
+    <summary>A comprehensive guide to setting up the Model Context Protocol (MCP) for Claude and other LLMs.</summary>
+  </entry>
+  <entry>
+    <title>The Thinking Game (2024) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/the-thinking-game-2024-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/the-thinking-game-2024-movie-review.html</id>
+    <updated>2026-01-07T00:00:00Z</updated>
+    <summary>A review of The Thinking Game (2024), Greg Kohs's DeepMind documentary — a follow-up to his AlphaGo (2017) and a look at the pursuit of AGI.</summary>
+  </entry>
+  <entry>
+    <title>Photos of 2025</title>
+    <link href="https://arman1o1.github.io/posts/photography/photos-of-2025.html"/>
+    <id>https://arman1o1.github.io/posts/photography/photos-of-2025.html</id>
+    <updated>2025-12-31T00:00:00Z</updated>
+    <summary>A collection of photographs from 2025.</summary>
+  </entry>
+  <entry>
+    <title>The Unreasonable Realness of Dreams</title>
+    <link href="https://arman1o1.github.io/posts/life/the-unreasonable-realness-of-dreams.html"/>
+    <id>https://arman1o1.github.io/posts/life/the-unreasonable-realness-of-dreams.html</id>
+    <updated>2025-11-20T00:00:00Z</updated>
+    <summary>A reflection on dreams, consciousness, and the mysteries of the mind</summary>
+  </entry>
+  <entry>
+    <title>Stalker (1979) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/stalker-1979-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/stalker-1979-movie-review.html</id>
+    <updated>2025-11-18T00:00:00Z</updated>
+    <summary>A review of Stalker (1979), my second Tarkovsky after Mirror (1975) — slow cinema, the Zone, and what lingers after.</summary>
+  </entry>
+</feed>

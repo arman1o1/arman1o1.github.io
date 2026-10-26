@@ -8,22 +8,27 @@
   <meta name="description" content="A personal blog exploring AI/ML, movies, photography, and life." />
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="canonical" href="https://arman1o1.github.io/">
+  <meta name="theme-color" content="#0c0d12">
+  <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="arman1o1 blog" />
-  <meta property="og:description" content="A personal blog exploring AI/ML, movies, photography, and life." />
-  <meta property="og:image" content="https://arman1o1.github.io/images/og-image.png" />
-  <meta property="og:type" content="website" />
+  <!-- Open Graph / Twitter -->
+  <meta property="og:site_name" content="arman1o1 blog">
+  <meta property="og:title" content="arman1o1 blog">
+  <meta property="og:description" content="A personal blog exploring AI/ML, movies, photography, and life.">
+  <meta property="og:url" content="https://arman1o1.github.io/">
+  <meta property="og:image" content="https://arman1o1.github.io/images/og-image.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
-    rel="stylesheet">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "name": "arman1o1 blog", "url": "https://arman1o1.github.io/"}, {"@type": "Blog", "name": "arman1o1 blog", "url": "https://arman1o1.github.io/", "description": "A personal blog exploring AI/ML, movies, photography, and life.", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}}]}</script>
 
+
+  <link rel="preload" href="assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/styles.css">
-  <script src="assets/theme.js"></script>
+  <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+  <script src="assets/theme.js" defer></script>
 </head>
 
 <body>
@@ -71,7 +76,7 @@
         <ul class="domain-grid">
 
           <!-- AI/ML -->
-          <li class="domain-card reveal" onclick="location.href='posts/ai-ml/index.html'">
+          <li class="domain-card reveal">
             <div class="domain-card-top">
               <span class="domain-icon">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -83,7 +88,7 @@
           </li>
 
           <!-- Movies -->
-          <li class="domain-card reveal" onclick="location.href='posts/movies/index.html'">
+          <li class="domain-card reveal">
             <div class="domain-card-top">
               <span class="domain-icon">
                 <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5"/></svg>
@@ -95,7 +100,7 @@
           </li>
 
           <!-- Photography -->
-          <li class="domain-card reveal" onclick="location.href='posts/photography/index.html'">
+          <li class="domain-card reveal">
             <div class="domain-card-top">
               <span class="domain-icon">
                 <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -107,7 +112,7 @@
           </li>
 
           <!-- Life & Philosophy -->
-          <li class="domain-card reveal" onclick="location.href='posts/life/index.html'">
+          <li class="domain-card reveal">
             <div class="domain-card-top">
               <span class="domain-icon">
                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -119,7 +124,7 @@
           </li>
 
           <!-- About -->
-          <li class="domain-card reveal" onclick="location.href='about/index.html'">
+          <li class="domain-card reveal">
             <div class="domain-card-top">
               <span class="domain-icon">
                 <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -142,14 +147,14 @@
 
         <a href="posts/movies/into-inception-again-again-and-again.html" class="thought-card reveal">
           <div class="thought-thumb">
-            <img src="images/inception_rewatch.png" alt="AI Image for Inception (2010)" loading="lazy">
+            <img src="images/inception_rewatch-320.webp" srcset="images/inception_rewatch-320.webp 320w, images/inception_rewatch.webp 1000w" sizes="(max-width: 768px) 100vw, 160px" width="320" height="320" alt="AI-generated poster art for Inception (2010)" loading="lazy">
           </div>
           <div class="thought-body">
             <div class="thought-meta">
               <span class="thought-date">July 1, 2026</span>
               <span class="thought-tag">Movies</span>
             </div>
-            <div class="thought-title">Into Inception, Again, Again and Again</div>
+            <h3 class="thought-title">Into Inception, Again, Again and Again</h3>
             <p class="thought-excerpt">A rewatch review of Inception (2010) by Christopher Nolan.</p>
             <span class="thought-read-time">2 min read</span>
           </div>
@@ -157,14 +162,14 @@
 
         <a href="posts/movies/snowpiercer-2013-movie-review.html" class="thought-card reveal">
           <div class="thought-thumb">
-            <img src="images/snowpiercer_2013.png" alt="Snowpiercer 2013 film still" loading="lazy">
+            <img src="images/snowpiercer_2013-320.webp" srcset="images/snowpiercer_2013-320.webp 320w, images/snowpiercer_2013.webp 1000w" sizes="(max-width: 768px) 100vw, 160px" width="320" height="320" alt="AI-generated poster art for Snowpiercer (2013)" loading="lazy">
           </div>
           <div class="thought-body">
             <div class="thought-meta">
               <span class="thought-date">June 21, 2026</span>
               <span class="thought-tag">Movies</span>
             </div>
-            <div class="thought-title">Snowpiercer (2013): Movie Review</div>
+            <h3 class="thought-title">Snowpiercer (2013): Movie Review</h3>
             <p class="thought-excerpt">A movie review of Snowpiercer (2013) by Bong Joon-ho.</p>
             <span class="thought-read-time">3 min read</span>
           </div>
@@ -172,14 +177,14 @@
 
         <a href="posts/ai-ml/testing-gemini-omni.html" class="thought-card reveal">
           <div class="thought-thumb">
-            <img src="images/thumb_ai_ml.png" alt="Gemini Omni video generation testing" loading="lazy">
+            <img src="images/thumb_ai_ml-320.webp" srcset="images/thumb_ai_ml-320.webp 320w, images/thumb_ai_ml.webp 480w" sizes="(max-width: 768px) 100vw, 160px" width="320" height="320" alt="Gemini Omni video generation testing" loading="lazy">
           </div>
           <div class="thought-body">
             <div class="thought-meta">
               <span class="thought-date">June 10, 2026</span>
               <span class="thought-tag">AI/ML</span>
             </div>
-            <div class="thought-title">Testing Gemini Omni: Making a Still Bird Fly</div>
+            <h3 class="thought-title">Testing Gemini Omni: Making a Still Bird Fly</h3>
             <p class="thought-excerpt">A first look at Gemini Omni's image-to-video generation capabilities, evaluating biomechanical motion realism and temporal consistency.</p>
             <span class="thought-read-time">4 min read</span>
           </div>
@@ -187,14 +192,14 @@
 
         <a href="posts/movies/no-other-choice-2025-movie-review.html" class="thought-card reveal">
           <div class="thought-thumb">
-            <img src="images/no_other_choice.svg" alt="No Other Choice 2025 film still" loading="lazy">
+            <img src="images/no_other_choice.svg" alt="Illustrated poster art for No Other Choice (2025)" loading="lazy">
           </div>
           <div class="thought-body">
             <div class="thought-meta">
               <span class="thought-date">June 10, 2026</span>
               <span class="thought-tag">Movies</span>
             </div>
-            <div class="thought-title">No Other Choice (2025): Movie Review</div>
+            <h3 class="thought-title">No Other Choice (2025): Movie Review</h3>
             <p class="thought-excerpt">A movie review of No Other Choice (2025) by Park Chan-wook.</p>
             <span class="thought-read-time">3 min read</span>
           </div>

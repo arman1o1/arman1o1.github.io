@@ -2,6 +2,48 @@
    DESIGN SYSTEM — Material You 3.0 / Stitch-inspired
    ============================================================ */
 
+/* --- Self-hosted Fonts (latin subset, woff2 only) --- */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('fonts/inter-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('fonts/inter-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('fonts/inter-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('fonts/inter-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('fonts/playfair-display-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
 /* --- Design Tokens --- */
 :root {
   /* Surfaces */
@@ -78,6 +120,15 @@ html.dark {
 
   --tag-bg: rgba(123, 147, 248, 0.1);
   --tag-text: var(--accent-light);
+}
+
+/* Suppress ALL transitions during programmatic theme swap.
+   (Toggled by theme.js; a bare style.transition on <html> would
+   not stop descendants from animating their own transitions.) */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
 }
 
 /* --- Reset & Base --- */
@@ -609,11 +660,12 @@ html.dark .post code {
   letter-spacing: -0.02em;
 }
 
+/* 5-card layout: first 3 in a row, last 2 spanning half each */
 .domain-grid {
   list-style: none;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 14px;
 }
 
@@ -628,11 +680,11 @@ html.dark .post code {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  cursor: pointer;
   transition: all var(--transition);
 }
 
-.domain-card:hover {
+.domain-card:hover,
+.domain-card:focus-within {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lg), var(--shadow-glow);
   border-color: var(--border-hover);
@@ -691,6 +743,14 @@ html.dark .post code {
   transition: color var(--transition);
 }
 
+/* Stretched link: the anchor's hit area covers the whole card, so the card
+   is a real link (middle-click, ctrl+click, keyboard all work natively). */
+.domain-title::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
 .domain-card:hover .domain-title {
   color: var(--accent);
 }
@@ -702,11 +762,6 @@ html.dark .post code {
   line-height: 1.45;
 }
 
-
-/* 5-card layout: first 3 in row, last 2 spanning half each */
-.domain-grid {
-  grid-template-columns: repeat(6, 1fr);
-}
 .domain-card:nth-child(1),
 .domain-card:nth-child(2),
 .domain-card:nth-child(3) {
@@ -852,6 +907,7 @@ html.dark .post code {
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1358,14 +1414,35 @@ th {
 
 /* ============================================================
    SCROLL REVEAL — triggered by JS
+   Hidden state only applies when JS is running (html.js is set by
+   the inline head snippet), so content stays visible without JS.
    ============================================================ */
-.reveal {
+html.js .reveal {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.reveal.visible {
+html.js .reveal.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  html.js .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }

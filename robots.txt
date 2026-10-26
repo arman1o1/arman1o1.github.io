@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://arman1o1.github.io/sitemap.xml

@@ -1,36 +1,26 @@
 (function () {
   const KEY = 'theme';
-  const savedTheme = localStorage.getItem(KEY);
-
-  // Default to dark mode unless user explicitly saved 'light'
-  const isDark = savedTheme !== 'light';
-
-  if (isDark) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
+  // NOTE: the initial .dark class is applied by the inline snippet in <head>
+  // (runs before CSS paints, so no flash). This file is loaded with `defer`.
 
   function setup() {
+    const root = document.documentElement;
     const cb = document.getElementById('theme-toggle-checkbox');
     if (!cb) return;
 
-    cb.checked = isDark;
+    cb.checked = root.classList.contains('dark');
 
     cb.addEventListener('change', function () {
-      document.documentElement.style.transition = 'none';
-      if (cb.checked) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem(KEY, 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem(KEY, 'light');
-      }
-      // Re-enable transitions after a frame
+      // Suppress transitions during the swap. A class is required here:
+      // style.transition on <html> alone would not stop descendants
+      // (body, cards, header) from animating their own transitions.
+      root.classList.add('theme-switching');
+      root.classList.toggle('dark', cb.checked);
+      try {
+        localStorage.setItem(KEY, cb.checked ? 'dark' : 'light');
+      } catch (e) { /* private browsing / storage disabled */ }
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          document.documentElement.style.transition = '';
-        });
+        requestAnimationFrame(() => root.classList.remove('theme-switching'));
       });
     });
 
