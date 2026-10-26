@@ -1446,3 +1446,159 @@ html.js .reveal.visible {
     transform: none;
   }
 }
+
+/* ============================================================
+   POST-TRAINING & TECHNICAL ARTICLE COMPONENTS
+   ============================================================ */
+.math-block {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  backdrop-filter: blur(8px);
+}
+.math-block .katex {
+  font-size: 1.05em;
+}
+.math-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.flow {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  backdrop-filter: blur(8px);
+}
+.flow svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+.flow-caption {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.85rem;
+  font-style: italic;
+}
+
+.callout {
+  border-left: 4px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 0.85rem 1.2rem;
+  margin: 1.25rem 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.callout-warn {
+  border-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.08);
+}
+.callout-tip {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+.callout-info {
+  border-color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 0.9rem;
+  margin: 0.75rem 0 1.25rem 0;
+}
+.kv dt {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.kv dd {
+  color: var(--text-color);
+  margin: 0;
+}
+
+details.code-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  margin: 1.25rem 0;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+details.code-card summary {
+  padding: 0.75rem 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-surface);
+  border-bottom: 1px solid transparent;
+  user-select: none;
+  transition: background var(--transition);
+}
+details.code-card summary:hover {
+  background: var(--accent-glow);
+}
+details.code-card[open] summary {
+  border-bottom-color: var(--border-color);
+}
+.code-body {
+  position: relative;
+  padding: 0;
+  overflow-x: auto;
+}
+.code-body pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.copy-btn:hover {
+  color: var(--text-color);
+  border-color: var(--accent);
+}
+.copy-btn.copied {
+  color: #10b981;
+  border-color: #10b981;
+}
+.badge-code {
+  font-size: 0.7rem;
+  background: var(--accent-surface);
+  color: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-weight: 500;
+}

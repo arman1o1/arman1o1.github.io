@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Post-Training: A Practitioner's First-Principles Guide | arman1o1 blog</title>
+    <meta name="description"
+        content="A practitioner's first-principles guide to LLM post-training & alignment: SFT, DPO, PPO, GRPO, and Knowledge Distillation with mathematical formulation and PyTorch implementations." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/llm-post-training-methods.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="LLM Post-Training: A Practitioner's First-Principles Guide">
+    <meta property="og:description" content="A practitioner's first-principles guide to LLM post-training & alignment: SFT, DPO, PPO, GRPO, and Knowledge Distillation with mathematical formulation and PyTorch implementations.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/llm-post-training-methods.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-10-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "LLM Post-Training: A Practitioner's First-Principles Guide", "description": "A practitioner's first-principles guide to LLM post-training & alignment: SFT, DPO, PPO, GRPO, and Knowledge Distillation with mathematical formulation and PyTorch implementations.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-10-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/llm-post-training-methods.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/llm-post-training-methods.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Alignment</span>
+                    <span class="tag">Deep Learning</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>LLM Post-Training: A Practitioner's First-Principles Guide</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-10-26">October 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 8 min read</span>
+                </div>
+
+                <hr>
+
+                <p>Pre-training teaches language models grammar, vocabulary, and world facts via next-token prediction over trillions of tokens. But base models are fundamentally unsteerable: ask them a question, and they might generate an alternate question, ramble indefinitely, or parrot internet tropes.</p>
+
+                <p><strong>Post-training</strong> is the staged discipline that turns an unaligned statistical next-token predictor into a steerable, reliable, and safe assistant. Here is an end-to-end breakdown of the modern alignment stack: SFT and LoRA, preference optimization (DPO, PPO), rule-based exploration (GRPO), and edge distillation, complete with exact loss formulations and minimal PyTorch implementations.</p>
+
+                <hr>
+
+                <!-- ===== 0. PIPELINE ===== -->
+                <h2>0. The Post-Training Pipeline</h2>
+                <p>Modern post-training decomposes alignment into distinct, sequential stages where each phase tackles a specific failure mode:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif">
+                        <rect x="5" y="30" width="130" height="44" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="70" y="57" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-weight="600">Pre-trained LLM</text>
+                        <polygon points="145,42 165,52 145,62" fill="var(--text-muted)"/>
+                        
+                        <rect x="175" y="25" width="120" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="235" y="49" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">Stage 1</text>
+                        <text x="235" y="66" text-anchor="middle" fill="#d1fae5" font-size="11">SFT / LoRA</text>
+                        <polygon points="305,42 325,52 305,62" fill="var(--text-muted)"/>
+                        
+                        <rect x="335" y="25" width="120" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="395" y="49" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">Stage 2</text>
+                        <text x="395" y="66" text-anchor="middle" fill="#bae6fd" font-size="11">DPO / PPO / GRPO</text>
+                        <polygon points="465,42 485,52 465,62" fill="var(--text-muted)"/>
+                        
+                        <rect x="495" y="25" width="120" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="555" y="49" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">Stage 3</text>
+                        <text x="555" y="66" text-anchor="middle" fill="#ddd6fe" font-size="11">Distillation</text>
+                        <polygon points="625,42 645,52 625,62" fill="var(--text-muted)"/>
+                        
+                        <rect x="655" y="30" width="155" height="44" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="732" y="50" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600">Deployed Model</text>
+                        <text x="732" y="65" text-anchor="middle" fill="#fcd34d" font-size="10">(Quantized / Edge)</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Canonical post-training workflow from foundational weights to deployment.</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 1. SFT ===== -->
+                <h2>1. Supervised Fine-Tuning (SFT)</h2>
+                <p>SFT teaches the model conversation mechanics, turn-taking, and response formatting using high-quality demonstration pairs $(x, y)$.</p>
+
+                <h3>Masked Cross-Entropy Objective</h3>
+                <p>Crucially, we do <strong>not</strong> compute loss on the user prompt $x$. We compute negative log-likelihood solely over the assistant's response tokens $y$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Masked Cross-Entropy Loss</div>
+                    $$\mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{N_{\text{valid}}} \sum_{t=1}^{L} m_t \log \pi_\theta(y_t \mid x, y_{\lt t})$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">where $m_t = \mathbb{I}(\text{labels}[t] \neq -100)$ masks prompt and padding tokens so gradients only supervise target responses.</p>
+                </div>
+
+                <h3>LoRA: Low-Rank Adaptation</h3>
+                <p>Full parameter fine-tuning of 70B models requires massive optimizer states (16 bytes/param in AdamW). LoRA freezes the pre-trained weights $W_0 \in \mathbb{R}^{d \times k}$ and factorizes updates into rank $r \ll \min(d, k)$ adapters:</p>
+
+                <div class="math-block">
+                    <div class="math-label">LoRA Weight Formulation</div>
+                    $$W = W_0 + \Delta W = W_0 + \frac{\alpha}{r}\, B \cdot A$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">$A \sim \mathcal{N}(0, 1/r)$ and $B = 0$. At step zero, $\Delta W = 0$ exactly preserving base model weights while permitting non-zero initial gradients $\frac{\partial\mathcal{L}}{\partial A} \neq 0$.</p>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>QLoRA Note:</strong> In 4-bit QLoRA (NF4 quantiles), never merge LoRA adapters into quantized weights directly because discretization error degrades accuracy. Always dequantize or reload the 16-bit base before merging weights.
+                </div>
+
+                <dl class="kv">
+                    <dt>VRAM Footprint</dt>
+                    <dd>1 model instance. ~4.1 GB for a 7B model in NF4 with trainable adapters.</dd>
+                    <dt>Key Hyperparameters</dt>
+                    <dd>Learning rate 2e-4, rank $r=16$, scale $\alpha=32$, cosine decay with 5% warmup, 2–3 epochs.</dd>
+                    <dt>Primary Failure Mode</dt>
+                    <dd><strong>Exposure Bias</strong>: model is conditioned only on ground-truth prefixes at train time, accumulating compounding errors at autoregressive inference time.</dd>
+                </dl>
+
+                <details class="code-card">
+                    <summary><span>💻 PyTorch Implementation: SFT Loss Masking &amp; LoRA Layer</span><span class="badge-code">Pure PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def sft_masked_loss(logits: torch.Tensor, labels: torch.Tensor, ignore_index: int = -100) -> torch.Tensor:
+    """
+    logits: [Batch, SeqLen, Vocab]  (raw model token predictions)
+    labels: [Batch, SeqLen]         (target token IDs, user prompt masked to -100)
+    """
+    # Shift so that token at t-1 predicts token at t
+    shift_logits = logits[..., :-1, :].contiguous()
+    shift_labels = labels[..., 1:].contiguous()
+    
+    # Cross-entropy automatically normalizes by non-ignored tokens
+    return F.cross_entropy(
+        shift_logits.view(-1, shift_logits.size(-1)),
+        shift_labels.view(-1),
+        ignore_index=ignore_index,
+        reduction="mean"
+    )
+
+class LoRALinear(nn.Module):
+    def __init__(self, in_features: int, out_features: int, r: int = 16, alpha: float = 32.0):
+        super().__init__()
+        self.scaling = alpha / r
+        self.weight = nn.Parameter(torch.randn(out_features, in_features), requires_grad=False)
+        # B=0 guarantees Delta_W=0 at step 0
+        self.lora_A = nn.Parameter(torch.randn(r, in_features) / (r ** 0.5))
+        self.lora_B = nn.Parameter(torch.zeros(out_features, r))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        base_out = F.linear(x, self.weight)
+        lora_out = F.linear(F.linear(x, self.lora_A), self.lora_B) * self.scaling
+        return base_out + lora_out</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 2. DPO ===== -->
+                <h2>2. Direct Preference Optimization (DPO)</h2>
+                <p>SFT models frequently generate verbose, overly sycophantic, or inaccurate answers. Preference alignment tunes the model using paired pairwise rankings $(x, y_w, y_l)$, consisting of a chosen ($y_w$) and rejected ($y_l$) response.</p>
+
+                <h3>The Implicit Reward Trick</h3>
+                <p>Under the Bradley-Terry preference model with a KL penalty against reference policy $\pi_{\text{ref}}$, the analytically optimal policy satisfies $\pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\!\bigl(\frac{1}{\beta} r(x,y)\bigr)$. Rearranging yields the <strong>implicit reward</strong>:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Implicit Reward Formulation</div>
+                    $$r(x, y) = \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)$$
+                </div>
+
+                <p>When computing preference probability $P(y_w \succ y_l \mid x) = \sigma(r(x, y_w) - r(x, y_l))$, the partition function $\beta \log Z(x)$ cancels identically. We can optimize preferences directly through language model log-probabilities without training an auxiliary reward model:</p>
+
+                <div class="math-block">
+                    <div class="math-label">DPO Objective</div>
+                    $$\mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x, y_w, y_l)}\left[ \log \sigma\!\left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]$$
+                </div>
+
+                <h3>Relative Preference Optimization (RPO): Fixing Likelihood Displacement</h3>
+                <p>Because DPO optimizes solely for the difference $(r_w - r_l)$, the objective is satisfied if $\pi(y_w)$ drops moderately while $\pi(y_l)$ collapses severely. This phenomenon, known as likelihood displacement, causes the model to unlearn how to generate valid text. RPO resolves this by re-anchoring on the winning response via an NLL regularizer:</p>
+
+                <div class="math-block">
+                    <div class="math-label">RPO Objective</div>
+                    $$\mathcal{L}_{\text{RPO}}(\theta) = \mathcal{L}_{\text{DPO}}(\theta) - \alpha_{\text{nll}} \log \pi_\theta(y_w \mid x)$$
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 940 480" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif">
+                      <defs>
+                        <marker id="arr-dpo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                          <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#94a3b8"/>
+                        </marker>
+                        <marker id="arr-dpo-loop" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                          <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#f472b6"/>
+                        </marker>
+                      </defs>
+
+                      <!-- Title Bottom Left -->
+                      <text x="35" y="405" fill="#f8fafc" font-size="24" font-weight="800">Direct Preference</text>
+                      <text x="35" y="435" fill="#f8fafc" font-size="24" font-weight="800">Optimization (DPO)</text>
+
+                      <!-- Query Badges & Box -->
+                      <rect x="360" y="16" width="82" height="26" rx="6" fill="#14532d" stroke="#4ade80" stroke-width="1.2"/>
+                      <text x="401" y="33" text-anchor="middle" fill="#86efac" font-size="11" font-weight="700">✓ Chosen</text>
+
+                      <rect x="448" y="16" width="88" height="26" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1.2"/>
+                      <text x="492" y="33" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="700">✗ Rejected</text>
+
+                      <rect x="355" y="48" width="180" height="40" rx="9" fill="#0e7490" stroke="#22d3ee" stroke-width="1.8"/>
+                      <text x="445" y="73" text-anchor="middle" fill="#cffafe" font-size="15" font-weight="700">Query</text>
+
+                      <!-- Branches from Query to Models -->
+                      <path d="M 400 88 C 400 115 320 110 300 135" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
+                      <path d="M 490 88 C 490 115 570 110 590 135" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
+
+                      <!-- LLM Trainable (Pink) -->
+                      <rect x="235" y="138" width="130" height="46" rx="9" fill="#831843" stroke="#f472b6" stroke-width="2"/>
+                      <text x="290" y="166" text-anchor="middle" fill="#fce7f3" font-size="15" font-weight="800">LLM</text>
+                      <text x="345" y="152" fill="#f472b6" font-size="16">⚡</text>
+
+                      <!-- LLM Reference (Frozen / Grey) -->
+                      <rect x="525" y="138" width="130" height="46" rx="9" fill="#334155" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="580" y="166" text-anchor="middle" fill="#f8fafc" font-size="15" font-weight="700">LLM</text>
+                      <text x="633" y="152" fill="#94a3b8" font-size="16">❄</text>
+
+                      <!-- Down to Log-Probs -->
+                      <line x1="300" y1="184" x2="300" y2="218" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
+                      <rect x="230" y="222" width="140" height="36" rx="18" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.5"/>
+                      <text x="300" y="245" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log π_θ(y|x)</text>
+
+                      <line x1="590" y1="184" x2="590" y2="218" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
+                      <rect x="520" y="222" width="140" height="36" rx="18" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.5"/>
+                      <text x="590" y="245" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log π_ref(y|x)</text>
+
+                      <!-- Subtraction Junction -->
+                      <path d="M 370 240 C 410 240 425 250 435 258" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <path d="M 520 240 C 480 240 465 250 455 258" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <circle cx="445" cy="265" r="13" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="445" y="270" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="800">−</text>
+
+                      <!-- Implicit Reward Ratio -->
+                      <line x1="445" y1="278" x2="445" y2="306" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
+                      <rect x="360" y="310" width="170" height="42" rx="9" fill="#0369a1" stroke="#38bdf8" stroke-width="1.8"/>
+                      <text x="445" y="335" text-anchor="middle" fill="#e0f2fe" font-size="13" font-weight="700">Implicit Reward Ratio</text>
+
+                      <!-- DPO Block -->
+                      <line x1="445" y1="352" x2="445" y2="384" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
+                      <rect x="405" y="388" width="80" height="52" rx="10" fill="#581c87" stroke="#c084fc" stroke-width="2"/>
+                      <text x="445" y="420" text-anchor="middle" fill="#f3e8ff" font-size="16" font-weight="800">DPO</text>
+
+                      <!-- Backpropagation Loop to LLM (Pink Curve) -->
+                      <path d="M 405 414 C 180 414 110 250 228 165" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="6 3" marker-end="url(#arr-dpo-loop)"/>
+                      <text x="135" y="270" fill="#f472b6" font-size="11" font-weight="700">∇_θ Loss</text>
+
+                      <!-- Math Callouts on the Right -->
+                      <text x="690" y="70" fill="#e2e8f0" font-size="14" font-weight="600">log [ π_θ(y|x) / π_ref(y|x) ] =</text>
+                      <text x="690" y="98" fill="#38bdf8" font-size="14" font-weight="700">log π_θ(y|x) − log π_ref(y|x)</text>
+
+                      <rect x="680" y="360" width="245" height="85" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+                      <text x="695" y="385" fill="#e2e8f0" font-size="13" font-weight="700">L_DPO =</text>
+                      <text x="695" y="410" fill="#cbd5e1" font-size="12">−log σ ( β log [π_θ(y_w)/π_ref(y_w)]</text>
+                      <text x="742" y="430" fill="#cbd5e1" font-size="12">− β log [π_θ(y_l)/π_ref(y_l)] )</text>
+                    </svg>
+                    <div class="flow-caption">Figure 2: Direct Preference Optimization (DPO) architecture, loss formulation, and gradient feedback loop.</div>
+                </div>
+
+                <dl class="kv">
+                    <dt>VRAM Footprint</dt>
+                    <dd>2 models ($\pi_\theta$ + $\pi_{\text{ref}}$). When using LoRA, disabling adapters yields $\pi_{\text{ref}}$ on the same weights, requiring zero extra base model memory.</dd>
+                    <dt>Key Hyperparameters</dt>
+                    <dd>Learning rate 5e-6 (40× lower than SFT), $\beta \in [0.05, 0.15]$, RPO $\alpha_{\text{nll}} \in [0.1, 0.2]$, 1 epoch.</dd>
+                    <dt>Primary Failure Mode</dt>
+                    <dd><strong>Length Bias</strong>: the policy exploits unnormalized token-sum margins by generating arbitrarily verbose outputs.</dd>
+                </dl>
+
+                <details class="code-card">
+                    <summary><span>💻 PyTorch Implementation: DPO Loss with RPO Anchor</span><span class="badge-code">Pure PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+import torch.nn.functional as F
+
+def dpo_rpo_loss(
+    policy_chosen_logps: torch.Tensor,    # [Batch] \sum log pi_theta(y_w | x)
+    policy_rejected_logps: torch.Tensor,  # [Batch] \sum log pi_theta(y_l | x)
+    ref_chosen_logps: torch.Tensor,       # [Batch] \sum log pi_ref(y_w | x)
+    ref_rejected_logps: torch.Tensor,     # [Batch] \sum log pi_ref(y_l | x)
+    beta: float = 0.1,
+    alpha_nll: float = 0.0                # Set > 0 for RPO anchor
+) -> torch.Tensor:
+    # Compute margin between chosen and rejected implicit rewards
+    pi_logratios = policy_chosen_logps - policy_rejected_logps
+    ref_logratios = ref_chosen_logps - ref_rejected_logps
+    logits = beta * (pi_logratios - ref_logratios)
+    
+    # Binary cross entropy on Bradley-Terry formulation
+    dpo_loss = -F.logsigmoid(logits).mean()
+    
+    # Optional RPO anchor to suppress likelihood displacement
+    if alpha_nll > 0.0:
+        nll_loss = -policy_chosen_logps.mean()
+        return dpo_loss + alpha_nll * nll_loss
+        
+    return dpo_loss</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 3. PPO ===== -->
+                <h2>3. Proximal Policy Optimization (PPO)</h2>
+                <p>PPO represents the classical Reinforcement Learning from Human Feedback (RLHF) paradigm introduced in InstructGPT. Unlike DPO's offline static dataset, PPO generates <em>online rollouts</em> and updates policy weights against a learned neural reward model $R_\psi$.</p>
+
+                <h3>Clipped Surrogate Objective</h3>
+                <div class="math-block">
+                    <div class="math-label">PPO Clipped Surrogate</div>
+                    $$\mathcal{J}_{\text{PPO}}(\theta) = \mathbb{E}_{(x,y) \sim \mathcal{D}} \left[ \frac{1}{|y|}\sum_{t=1}^{|y|} \min\!\left( \rho_t(\theta)\hat{A}_t,\; \text{clip}\!\left(\rho_t(\theta),\, 1-\varepsilon,\, 1+\varepsilon\right)\hat{A}_t \right) \right]$$
+                </div>
+
+                <div class="math-block">
+                    <div class="math-label">Ratio and Generalized Advantage Estimation (GAE)</div>
+                    $$\rho_t(\theta) = \frac{\pi_\theta(y_t \mid x, y_{\lt t})}{\pi_{\theta_{\text{old}}}(y_t \mid x, y_{\lt t})}, \qquad \hat{A}_t = \delta_t + (\gamma \lambda) \hat{A}_{t+1}, \qquad \delta_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">The advantage $\hat{A}_t$ measures how much better token $y_t$ performed relative to baseline critic expectations $V_\phi(s_t)$.</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 980 520" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif">
+                      <defs>
+                        <marker id="arr-ppo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                          <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#94a3b8"/>
+                        </marker>
+                        <marker id="arr-ppo-loop" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                          <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#f472b6"/>
+                        </marker>
+                        <marker id="arr-ppo-adv" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                          <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#38bdf8"/>
+                        </marker>
+                      </defs>
+
+                      <!-- Query + Response -->
+                      <rect x="410" y="18" width="180" height="38" rx="8" fill="#0e7490" stroke="#22d3ee" stroke-width="1.8"/>
+                      <text x="500" y="42" text-anchor="middle" fill="#cffafe" font-size="14" font-weight="700">Query + Response</text>
+
+                      <!-- 4 Branching paths from Query + Response -->
+                      <path d="M 440 56 C 360 70 260 75 235 95" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <path d="M 480 56 C 450 72 400 78 390 95" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <path d="M 520 56 C 540 72 560 78 570 95" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <path d="M 570 56 C 660 70 730 75 750 95" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+
+                      <!-- Model 1: LLM (Trainable / Pink) -->
+                      <rect x="180" y="98" width="115" height="44" rx="8" fill="#831843" stroke="#f472b6" stroke-width="2"/>
+                      <text x="232" y="125" text-anchor="middle" fill="#fce7f3" font-size="14" font-weight="800">LLM</text>
+                      <text x="272" y="112" fill="#f472b6" font-size="15">⚡</text>
+
+                      <!-- Model 2: LLM (Frozen / Grey) -->
+                      <rect x="335" y="98" width="115" height="44" rx="8" fill="#334155" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="388" y="125" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="700">LLM</text>
+                      <text x="428" y="112" fill="#94a3b8" font-size="15">❄</text>
+
+                      <!-- Model 3: Reward Model (Frozen / Orange) -->
+                      <rect x="495" y="98" width="145" height="44" rx="8" fill="#92400e" stroke="#f59e0b" stroke-width="2"/>
+                      <text x="562" y="125" text-anchor="middle" fill="#fef3c7" font-size="14" font-weight="700">Reward Model</text>
+                      <text x="625" y="112" fill="#f59e0b" font-size="15">❄</text>
+
+                      <!-- Model 4: Value Model (Trainable Critic / Green) -->
+                      <rect x="685" y="98" width="130" height="44" rx="8" fill="#14532d" stroke="#4ade80" stroke-width="2"/>
+                      <text x="745" y="125" text-anchor="middle" fill="#dcfce7" font-size="14" font-weight="700">Value Model</text>
+                      <text x="797" y="112" fill="#4ade80" font-size="15">⚡</text>
+
+                      <!-- Outputs: log-probs 1 -->
+                      <line x1="237" y1="142" x2="237" y2="168" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <rect x="180" y="170" width="115" height="34" rx="17" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.5"/>
+                      <text x="237" y="192" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log-probs</text>
+
+                      <!-- Outputs: log-probs 2 -->
+                      <line x1="392" y1="142" x2="392" y2="168" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <rect x="335" y="170" width="115" height="34" rx="17" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.5"/>
+                      <text x="392" y="192" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log-probs</text>
+
+                      <!-- Outputs: Reward -->
+                      <line x1="567" y1="142" x2="567" y2="168" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <rect x="507" y="170" width="120" height="34" rx="17" fill="#365314" stroke="#84cc16" stroke-width="1.5"/>
+                      <text x="567" y="192" text-anchor="middle" fill="#d9f99d" font-size="12" font-weight="700">Reward</text>
+
+                      <!-- KL-div Subtraction -->
+                      <path d="M 270 204 C 295 212 305 218 310 221" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <path d="M 360 204 C 335 212 325 218 320 221" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <circle cx="315" cy="225" r="12" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="315" y="230" text-anchor="middle" fill="#f8fafc" font-size="15" font-weight="800">−</text>
+
+                      <!-- KL-div Box -->
+                      <line x1="315" y1="237" x2="315" y2="256" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <rect x="255" y="258" width="120" height="38" rx="8" fill="#0369a1" stroke="#38bdf8" stroke-width="1.8"/>
+                      <text x="315" y="282" text-anchor="middle" fill="#e0f2fe" font-size="13" font-weight="700">KL-div</text>
+
+                      <!-- Composite Reward Junction [+] -->
+                      <path d="M 375 277 C 450 277 480 277 482 277" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <path d="M 567 204 C 567 250 515 270 504 274" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <circle cx="493" cy="277" r="12" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="493" y="282" text-anchor="middle" fill="#f8fafc" font-size="15" font-weight="800">+</text>
+                      <text x="493" y="255" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="600">r_t = r_φ − β D_KL,t</text>
+
+                      <!-- Composite Reward Box -->
+                      <line x1="493" y1="289" x2="493" y2="316" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <rect x="420" y="318" width="145" height="38" rx="8" fill="#0369a1" stroke="#38bdf8" stroke-width="1.8"/>
+                      <text x="493" y="342" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="700">Composite Reward</text>
+
+                      <!-- Value Model Long Arc Down -->
+                      <path d="M 750 142 C 750 300 700 375 515 375" fill="none" stroke="#4ade80" stroke-width="1.8"/>
+
+                      <!-- Advantage Subtraction Junction [-] -->
+                      <line x1="493" y1="356" x2="493" y2="368" stroke="#94a3b8" stroke-width="1.8"/>
+                      <circle cx="493" cy="375" r="12" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="493" y="380" text-anchor="middle" fill="#f8fafc" font-size="15" font-weight="800">−</text>
+                      <text x="430" y="379" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="600">Â_t = r_t − V(s_t)</text>
+
+                      <!-- Advantage to PPO -->
+                      <path d="M 430 388 C 445 405 460 415 463 420" fill="none" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arr-ppo-adv)"/>
+
+                      <!-- PPO Block -->
+                      <line x1="493" y1="387" x2="493" y2="422" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
+                      <rect x="455" y="425" width="76" height="50" rx="10" fill="#581c87" stroke="#c084fc" stroke-width="2"/>
+                      <text x="493" y="455" text-anchor="middle" fill="#f3e8ff" font-size="15" font-weight="800">PPO</text>
+
+                      <!-- Policy Gradient Backprop Loop to LLM ⚡ -->
+                      <path d="M 455 450 C 120 450 100 240 172 125" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="6 3" marker-end="url(#arr-ppo-loop)"/>
+                      <text x="110" y="270" fill="#f472b6" font-size="11" font-weight="700">∇_θ Update</text>
+
+                      <!-- Left Math Annotations -->
+                      <text x="35" y="305" fill="#e2e8f0" font-size="13" font-weight="700">ρ_t(θ) = π_θ(y_t|x, y_&lt;t) / π_θold(y_t|x, y_&lt;t)</text>
+                      
+                      <rect x="25" y="335" width="370" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+                      <text x="35" y="360" fill="#cbd5e1" font-size="12" font-weight="700">J_PPO(θ) =</text>
+                      <text x="35" y="382" fill="#cbd5e1" font-size="12">E [ 1/|y| Σ min( ρ_t(θ)Â_t,</text>
+                      <text x="135" y="402" fill="#cbd5e1" font-size="12">clip(ρ_t(θ), 1−ε, 1+ε) Â_t ) ]</text>
+
+                      <!-- Title Bottom Right -->
+                      <text x="640" y="445" fill="#f8fafc" font-size="22" font-weight="800">Proximal Policy</text>
+                      <text x="640" y="472" fill="#f8fafc" font-size="22" font-weight="800">Optimization (PPO)</text>
+                    </svg>
+                    <div class="flow-caption">Figure 3: Proximal Policy Optimization (PPO) complete architecture with 4 models in memory, Generalized Advantage Estimation, and policy feedback loop.</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Why PPO is Fading for Reasoning:</strong> PPO suffers from three severe weaknesses: (1) enormous multi-model VRAM overhead, (2) critic training instability where value estimates fail to converge across long chains of thought, and (3) <em>reward hacking</em>, where policies exploit flaws in the neural reward model rather than truly solving tasks.
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 PyTorch Implementation: PPO Clipped Surrogate Loss</span><span class="badge-code">Pure PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+
+def ppo_clipped_loss(
+    policy_logps: torch.Tensor,  # [Batch, Len] log pi_theta(a_t | s_t)
+    old_logps: torch.Tensor,     # [Batch, Len] log pi_old(a_t | s_t)
+    advantages: torch.Tensor,    # [Batch, Len] GAE normalized advantage A_t
+    mask: torch.Tensor,          # [Batch, Len] 1.0 for valid generated tokens
+    clip_eps: float = 0.2
+) -> torch.Tensor:
+    # Probability ratio: rho_t = exp(log pi_theta - log pi_old)
+    ratios = torch.exp(policy_logps - old_logps)
+    
+    # Clipped surrogate objective: min(rho * A, clip(rho, 1-eps, 1+eps) * A)
+    surr1 = ratios * advantages
+    surr2 = torch.clamp(ratios, 1.0 - clip_eps, 1.0 + clip_eps) * advantages
+    policy_loss = -torch.min(surr1, surr2)
+    
+    # Normalize exclusively over active response tokens
+    return (policy_loss * mask).sum() / mask.sum().clamp(min=1.0)</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 4. GRPO ===== -->
+                <h2>4. Group Relative Policy Optimization (GRPO)</h2>
+                <p>Introduced in DeepSeekMath (Shao et al., 2024) and popularized by DeepSeek-R1, <strong>GRPO</strong> eliminates the neural Value Critic ($V_\phi$) completely. Instead of learning a value function, GRPO samples $G$ responses for each prompt $q$, scores them with <strong>deterministic rubrics</strong> (e.g. unit test passes, compiler outputs, or exact math solutions), and normalizes advantages against the group statistics.</p>
+
+                <h3>Group Relative Advantage Formulation</h3>
+                <div class="math-block">
+                    <div class="math-label">Critic-Free Advantage</div>
+                    $$\hat{A}_i = \frac{r_i - \mu(R)}{\sigma(R) + \epsilon}, \qquad \mu(R) = \frac{1}{G}\sum_{j=1}^{G} r_j, \qquad \sigma(R) = \sqrt{\frac{1}{G}\sum_{j=1}^{G}(r_j - \mu(R))^2}$$
+                </div>
+
+                <h3>GRPO Objective with Strictly Non-Negative $k_3$ KL Estimator</h3>
+                <div class="math-block">
+                    <div class="math-label">GRPO Loss Formulation</div>
+                    $$\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}\left[ \frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_i|}\sum_{t=1}^{|o_i|} \min\left( \rho_{i,t}\hat{A}_i,\; \text{clip}(\rho_{i,t}, 1-\varepsilon, 1+\varepsilon)\hat{A}_i \right) - \beta D_{\text{KL}}^{k_3}(\pi_\theta \| \pi_{\text{ref}}) \right]$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">where $D_{\text{KL}}^{k_3} = \exp(u) - u - 1 \ge 0$ with $u = \log \frac{\pi_{\text{ref}}}{\pi_\theta}$. The $k_3$ estimator is mathematically bounded below by zero, preventing the policy from receiving artificial rewards when diverging from reference weights.</p>
+                </div>
+
+                <div class="callout callout-tip">
+                    <strong>The Dr. GRPO / DAPO Fix:</strong> Standard GRPO normalizes by actual response length $\frac{1}{|o_i|}$. This accidentally assigns larger gradient updates to short, clipped responses and penalizes long, thorough reasoning. Modern implementations replace $\frac{1}{|o_i|}$ with a constant denominator $\frac{1}{L_{\max}}$ (e.g., 256 or 512), eliminating length gaming entirely.
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif">
+                      <defs>
+                        <marker id="arr-grpo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                          <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#94a3b8"/>
+                        </marker>
+                        <marker id="arr-grpo-loop" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                          <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#f472b6"/>
+                        </marker>
+                      </defs>
+
+                      <!-- Query Box -->
+                      <rect x="400" y="18" width="160" height="38" rx="8" fill="#0e7490" stroke="#22d3ee" stroke-width="1.8"/>
+                      <text x="480" y="42" text-anchor="middle" fill="#cffafe" font-size="14" font-weight="700">Query</text>
+
+                      <!-- Down to Trainable LLM (Pink) -->
+                      <line x1="480" y1="56" x2="480" y2="80" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-grpo)"/>
+                      <rect x="420" y="82" width="120" height="44" rx="8" fill="#831843" stroke="#f472b6" stroke-width="2"/>
+                      <text x="472" y="109" text-anchor="middle" fill="#fce7f3" font-size="14" font-weight="800">LLM</text>
+                      <text x="512" y="96" fill="#f472b6" font-size="15">⚡</text>
+
+                      <!-- Fanning out to G Rollouts (o1 .. on) -->
+                      <path d="M 450 126 C 410 135 370 145 365 155" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <path d="M 465 126 C 445 135 425 145 420 155" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <line x1="480" y1="126" x2="480" y2="152" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <path d="M 495 126 C 515 135 535 145 540 155" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <path d="M 510 126 C 550 135 590 145 595 155" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+
+                      <!-- Rollout capsules (Green) -->
+                      <rect x="345" y="156" width="40" height="30" rx="15" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+                      <text x="365" y="176" text-anchor="middle" fill="#dcfce7" font-size="12" font-weight="700">O₁</text>
+
+                      <rect x="400" y="156" width="40" height="30" rx="15" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+                      <text x="420" y="176" text-anchor="middle" fill="#dcfce7" font-size="12" font-weight="700">O₂</text>
+
+                      <rect x="460" y="156" width="40" height="30" rx="15" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+                      <text x="480" y="176" text-anchor="middle" fill="#dcfce7" font-size="12" font-weight="700">O₃</text>
+
+                      <rect x="520" y="156" width="40" height="30" rx="15" fill="#1e293b" stroke="#64748b" stroke-width="1.2"/>
+                      <text x="540" y="174" text-anchor="middle" fill="#94a3b8" font-size="12">…</text>
+
+                      <rect x="575" y="156" width="40" height="30" rx="15" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+                      <text x="595" y="176" text-anchor="middle" fill="#dcfce7" font-size="12" font-weight="700">O_n</text>
+
+                      <!-- Left Branch: Rollouts to Rule Reward -->
+                      <path d="M 365 186 C 365 205 350 215 350 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <path d="M 480 186 C 480 205 380 215 365 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      
+                      <rect x="290" y="228" width="130" height="42" rx="8" fill="#92400e" stroke="#f59e0b" stroke-width="1.8"/>
+                      <text x="355" y="254" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="700">Rule Reward</text>
+
+                      <!-- Group Advantage -->
+                      <line x1="355" y1="270" x2="355" y2="292" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-grpo)"/>
+                      <rect x="285" y="294" width="140" height="42" rx="8" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.8"/>
+                      <text x="355" y="320" text-anchor="middle" fill="#fee2e2" font-size="13" font-weight="700">Group Advantage</text>
+
+                      <!-- Math Callouts Left -->
+                      <text x="140" y="254" fill="#cbd5e1" font-size="13" font-weight="600">R = {r₁, ..., r_n}</text>
+                      <text x="140" y="318" fill="#38bdf8" font-size="14" font-weight="700">Â_i = (r_i − μ(R)) / σ(R)</text>
+
+                      <!-- Right Branch: Rollouts to Frozen Reference LLM -->
+                      <path d="M 480 186 C 480 205 580 215 595 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <path d="M 595 186 C 595 205 610 215 610 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+
+                      <rect x="545" y="228" width="125" height="42" rx="8" fill="#334155" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="597" y="254" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="700">LLM</text>
+                      <text x="637" y="242" fill="#94a3b8" font-size="15">❄</text>
+
+                      <!-- KL-div -->
+                      <line x1="607" y1="270" x2="607" y2="292" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-grpo)"/>
+                      <rect x="545" y="294" width="125" height="42" rx="8" fill="#0369a1" stroke="#38bdf8" stroke-width="1.8"/>
+                      <text x="607" y="320" text-anchor="middle" fill="#e0f2fe" font-size="13" font-weight="700">KL-div</text>
+
+                      <!-- Plus (+) Merge Node -->
+                      <path d="M 425 315 C 455 315 465 330 472 338" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <path d="M 545 315 C 515 315 505 330 498 338" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
+                      <circle cx="485" cy="345" r="13" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
+                      <text x="485" y="350" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="800">+</text>
+                      <text x="510" y="350" fill="#38bdf8" font-size="13" font-weight="700">− β · D_KL</text>
+
+                      <!-- Down to GRPO Block -->
+                      <line x1="485" y1="358" x2="485" y2="384" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-grpo)"/>
+                      <rect x="445" y="386" width="80" height="52" rx="10" fill="#581c87" stroke="#c084fc" stroke-width="2"/>
+                      <text x="485" y="418" text-anchor="middle" fill="#f3e8ff" font-size="15" font-weight="800">GRPO</text>
+
+                      <!-- Policy Gradient Backprop Loop to LLM ⚡ -->
+                      <path d="M 445 412 C 100 412 80 230 410 105" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="6 3" marker-end="url(#arr-grpo-loop)"/>
+                      <text x="130" y="270" fill="#f472b6" font-size="11" font-weight="700">∇_θ Update</text>
+
+                      <!-- Title Bottom Left -->
+                      <text x="35" y="440" fill="#f8fafc" font-size="22" font-weight="800">Group Relative Policy</text>
+                      <text x="35" y="468" fill="#f8fafc" font-size="22" font-weight="800">Optimization (GRPO)</text>
+
+                      <!-- Math Callout Bottom Right -->
+                      <rect x="580" y="380" width="360" height="100" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+                      <text x="595" y="405" fill="#e2e8f0" font-size="12" font-weight="700">J_GRPO(θ) =</text>
+                      <text x="595" y="428" fill="#cbd5e1" font-size="11">1/n Σ 1/|o_i| Σ min( ρ_i,t Â_i,</text>
+                      <text x="680" y="448" fill="#cbd5e1" font-size="11">clip(ρ_i,t, 1−ε, 1+ε) Â_i )</text>
+                      <text x="635" y="470" fill="#38bdf8" font-size="11" font-weight="700">− β D_KL(π_θ || π_ref)</text>
+                    </svg>
+                    <div class="flow-caption">Figure 4: Group Relative Policy Optimization (GRPO) complete architecture with group sampling, rule evaluation, and critic-free advantage normalization.</div>
+                </div>
+
+                <dl class="kv">
+                    <dt>VRAM Footprint</dt>
+                    <dd>2 models ($\pi_\theta$ + $\pi_{\text{ref}}$). <strong>~50% VRAM reduction</strong> relative to PPO by cutting out the Critic model.</dd>
+                    <dt>Key Hyperparameters</dt>
+                    <dd>Learning rate 1e-6 to 3e-6, group size $G=8$, rollout temperature $T=0.8$, clipping $\varepsilon=0.2$, KL weight $\beta=0.03$.</dd>
+                    <dt>Primary Failure Mode</dt>
+                    <dd><strong>Zero-Variance Stagnation</strong>: if all $G$ completions fail on a hard problem ($r_i=0$ for all $i$), $\sigma=0$ and gradients vanish. Solved via dense step-level shaping or hybrid curriculum prompting.</dd>
+                </dl>
+
+                <details class="code-card">
+                    <summary><span>💻 PyTorch Implementation: GRPO Group Advantage &amp; DAPO k3 Loss</span><span class="badge-code">Pure PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+
+def compute_group_advantages(rewards: torch.Tensor, group_size: int = 8, eps: float = 1e-4) -> torch.Tensor:
+    """
+    rewards: [Batch * G] scalar rewards evaluated from deterministic rubrics
+    returns: [Batch * G] normalized group advantages without a value model
+    """
+    rewards_group = rewards.view(-1, group_size)                     # [Batch, G]
+    mean = rewards_group.mean(dim=-1, keepdim=True)                  # [Batch, 1]
+    std = rewards_group.std(dim=-1, keepdim=True, unbiased=False)    # [Batch, 1]
+    adv = (rewards_group - mean) / (std + eps)
+    return adv.view(-1)                                              # [Batch * G]
+
+def grpo_loss(
+    policy_logps: torch.Tensor,  # [Batch * G, Len]
+    old_logps: torch.Tensor,     # [Batch * G, Len]
+    ref_logps: torch.Tensor,     # [Batch * G, Len]
+    advantages: torch.Tensor,    # [Batch * G]
+    mask: torch.Tensor,          # [Batch * G, Len]
+    clip_eps: float = 0.2,
+    beta_kl: float = 0.04,
+    l_max: int = 256             # DAPO constant denominator kills length gaming
+) -> torch.Tensor:
+    # 1. Clipped Policy Gradient objective normalized by constant L_max
+    ratios = torch.exp(policy_logps - old_logps)
+    adv = advantages.unsqueeze(-1)
+    surr = torch.min(ratios * adv, torch.clamp(ratios, 1.0 - clip_eps, 1.0 + clip_eps) * adv)
+    pg_loss = -(surr * mask).sum(dim=-1) / l_max
+    
+    # 2. Strictly Non-Negative k3 KL Divergence: exp(u) - u - 1 >= 0
+    u = ref_logps - policy_logps
+    kl_k3 = torch.exp(u) - u - 1.0
+    kl_penalty = (kl_k3 * mask).sum(dim=-1) / l_max
+    
+    return (pg_loss + beta_kl * kl_penalty).mean()</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 5. KNOWLEDGE DISTILLATION ===== -->
+                <h2>5. Knowledge Distillation</h2>
+                <p>Deploying 70B reasoning models in low-latency production environments is economically prohibitive. Distillation transfers reasoning capabilities from a large teacher $\pi_T$ to a small edge student $\pi_S$ (e.g. 1.5B–3B).</p>
+
+                <h3>Hinton Distillation Objective</h3>
+                <div class="math-block">
+                    <div class="math-label">KD Loss with Temperature Scaling</div>
+                    $$\mathcal{L}_{\text{KD}} = (1 - \alpha)\,\mathcal{L}_{\text{CE}}(y, \sigma(z_S)) + \alpha\, T^2 \cdot D_{\text{KL}}\!\left(\sigma\!\left(\frac{z_T}{T}\right) \;\Big\|\; \sigma\!\left(\frac{z_S}{T}\right)\right)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">The $T^2$ multiplier offsets the $1/T^2$ shrinkage of softmax gradients at higher temperatures, ensuring soft probability supervision remains balanced with hard ground-truth labels.</p>
+                </div>
+
+                <h3>Forward KL vs. Reverse KL</h3>
+                <p>The direction of the KL divergence dictates how the student approximates the teacher's probability distribution:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Forward KL: Mode-Covering</div>
+                    $$D_{\text{KL}}(P_T \| P_S) = \sum_{v \in V} P_T(v) \log \frac{P_T(v)}{P_S(v)}$$
+                    <p style="margin-top:.3rem;font-size:.82rem;color:#10b981"><strong>Preserves reasoning paths:</strong> The student is heavily penalized if $P_S(v) \to 0$ when $P_T(v) > 0$. It forces the student to cover all exploratory tokens, including backtrack triggers (e.g. <em>"Wait, let me recalculate..."</em>).</p>
+                </div>
+
+                <div class="math-block">
+                    <div class="math-label">Reverse KL: Mode-Seeking</div>
+                    $$D_{\text{KL}}(P_S \| P_T) = \sum_{v \in V} P_S(v) \log \frac{P_S(v)}{P_T(v)}$$
+                    <p style="margin-top:.3rem;font-size:.82rem;color:#f43f5e"><strong>Mode-dropping risk:</strong> The student minimizes loss by collapsing onto a single sharp peak and zeroing out valid alternate branches, stripping away multi-turn recovery abilities.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 PyTorch Implementation: Forward vs. Reverse KL Distillation</span><span class="badge-code">Pure PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+import torch.nn.functional as F
+
+def knowledge_distillation_loss(
+    student_logits: torch.Tensor,  # [Batch, Len, Vocab]
+    teacher_logits: torch.Tensor,  # [Batch, Len, Vocab]
+    labels: torch.Tensor,          # [Batch, Len]
+    alpha: float = 0.5,            # Balance between hard CE and soft KD
+    temp: float = 2.5,             # Temperature scaling factor T
+    mode: str = "forward"          # 'forward' (mode-covering) or 'reverse' (mode-seeking)
+) -> torch.Tensor:
+    # 1. Hard cross-entropy loss on ground-truth target tokens
+    shift_s = student_logits[..., :-1, :].contiguous()
+    shift_y = labels[..., 1:].contiguous()
+    ce_loss = F.cross_entropy(shift_s.view(-1, shift_s.size(-1)), shift_y.view(-1), ignore_index=-100)
+    
+    # 2. Temperature scaling
+    s_log_p = F.log_softmax(student_logits / temp, dim=-1)
+    t_log_p = F.log_softmax(teacher_logits / temp, dim=-1)
+    s_p = F.softmax(student_logits / temp, dim=-1)
+    t_p = F.softmax(teacher_logits / temp, dim=-1)
+    
+    # 3. Directional KL Divergence
+    if mode == "forward":
+        # Forward KL: KL(Teacher || Student)
+        kl_loss = (t_p * (t_log_p - s_log_p)).sum(dim=-1).mean()
+    else:
+        # Reverse KL: KL(Student || Teacher)
+        kl_loss = (s_p * (s_log_p - t_log_p)).sum(dim=-1).mean()
+        
+    # Scale soft loss by T^2 to match gradient magnitudes with hard CE
+    return (1.0 - alpha) * ce_loss + alpha * (temp ** 2) * kl_loss</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 6. COMPARISON ===== -->
+                <h2>6. Head-to-Head Comparison</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th style="color:#f59e0b">PPO</th>
+                            <th style="color:#38bdf8">DPO</th>
+                            <th style="color:#34d399">GRPO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Paradigm</strong></td>
+                            <td>Online RL with rollouts</td>
+                            <td>Offline Supervised log-ratio</td>
+                            <td>Online RL with group sampling</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Baseline Model</strong></td>
+                            <td>Neural Critic ($V_\phi$)</td>
+                            <td>Implicit Reference ($\pi_{\text{ref}}$)</td>
+                            <td>Statistical Group Mean $\mu(R)$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Reward Source</strong></td>
+                            <td>Neural Reward Model ($R_\psi$)</td>
+                            <td>Implicit Policy Log-Ratio</td>
+                            <td>Deterministic Tests / Compiler / Math</td>
+                        </tr>
+                        <tr>
+                            <td><strong>VRAM Footprint</strong></td>
+                            <td><strong style="color:#f43f5e">Extreme</strong> (4 models in memory)</td>
+                            <td><strong style="color:#10b981">Low</strong> (1 base + LoRA adapter)</td>
+                            <td><strong style="color:#38bdf8">Moderate</strong> (Policy + Reference only)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Best Used For</strong></td>
+                            <td>Subjective conversational style</td>
+                            <td>Rapid stylistic alignment & tone</td>
+                            <td>Math, coding & verifiable reasoning</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <hr>
+
+                <!-- ===== 7. MODERN ALIGNMENT RECIPE ===== -->
+                <h2>7. The Modern Alignment Recipe</h2>
+                <p>The transition from classical RLHF to modern reasoning models (like DeepSeek-R1 and Qwen-2.5-Math) follows a clear, battle-tested recipe:</p>
+
+                <ol>
+                    <li><strong>SFT Cold-Start:</strong> Fine-tune base models on a small set of clean, structured reasoning traces and multi-turn conversation formatting (using masked labels and LoRA).</li>
+                    <li><strong>GRPO for System 2 Reasoning:</strong> Apply GRPO with deterministic, verifiable outcome rewards (code test cases, math verification). Let the model develop self-correction and reflection organically.</li>
+                    <li><strong>DPO for Conversational Polish:</strong> Run a rapid DPO pass using chosen/rejected pairs to align helpfulness, eliminate sycophancy, and smooth tone.</li>
+                    <li><strong>Forward-KL Distillation:</strong> Distill the 70B teacher's soft probability distributions into 1.5B–3B student checkpoints for low-cost, real-time edge deployment.</li>
+                </ol>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        navigator.clipboard.writeText(pre.innerText).then(() => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        });
+    }
+    </script>
+</body>
+
+</html>
