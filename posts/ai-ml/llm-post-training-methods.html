@@ -112,7 +112,7 @@
                 <p>Modern post-training decomposes alignment into distinct, sequential stages where each phase tackles a specific failure mode:</p>
 
                 <div class="flow">
-                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="Post-training pipeline from pre-trained LLM to deployed model">
                         <rect x="5" y="30" width="130" height="44" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
                         <text x="70" y="57" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-weight="600">Pre-trained LLM</text>
                         <polygon points="145,42 165,52 145,62" fill="var(--text-muted)"/>
@@ -160,7 +160,7 @@
                 <div class="math-block">
                     <div class="math-label">LoRA Weight Formulation</div>
                     $$W = W_0 + \Delta W = W_0 + \frac{\alpha}{r}\, B \cdot A$$
-                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">$A \sim \mathcal{N}(0, 1/r)$ and $B = 0$. At step zero, $\Delta W = 0$ exactly preserving base model weights while permitting non-zero initial gradients $\frac{\partial\mathcal{L}}{\partial A} \neq 0$.</p>
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">$A \sim \mathcal{N}(0, 1/k)$ (or Kaiming uniform) and $B = 0$. Scaling $A$ by input dimension $k$ keeps activation variance $\mathcal{O}(1)$, while $B = 0$ guarantees $\Delta W = 0$ at step zero, preserving base model weights while permitting non-zero initial gradients $\frac{\partial\mathcal{L}}{\partial B} \neq 0$.</p>
                 </div>
 
                 <div class="callout callout-warn">
@@ -169,7 +169,7 @@
 
                 <dl class="kv">
                     <dt>VRAM Footprint</dt>
-                    <dd>1 model instance. ~4.1 GB for a 7B model in NF4 with trainable adapters.</dd>
+                    <dd>1 model instance. ~4.1 GB for 7B base NF4 weights + trainable adapters (~6–8 GB total with activations and optimizer states).</dd>
                     <dt>Key Hyperparameters</dt>
                     <dd>Learning rate 2e-4, rank $r=16$, scale $\alpha=32$, cosine decay with 5% warmup, 2–3 epochs.</dd>
                     <dt>Primary Failure Mode</dt>
@@ -180,7 +180,8 @@
                     <summary><span>💻 PyTorch Implementation: SFT Loss Masking &amp; LoRA Layer</span><span class="badge-code">Pure PyTorch</span></summary>
                     <div class="code-body">
                         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                        <pre><code class="language-python">import torch
+                        <pre><code class="language-python">import math
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -206,8 +207,9 @@ class LoRALinear(nn.Module):
         super().__init__()
         self.scaling = alpha / r
         self.weight = nn.Parameter(torch.randn(out_features, in_features), requires_grad=False)
-        # B=0 guarantees Delta_W=0 at step 0
-        self.lora_A = nn.Parameter(torch.randn(r, in_features) / (r ** 0.5))
+        # Kaiming uniform on A (scales with 1/sqrt(in_features)) and B=0 guarantees Delta_W=0 at step 0
+        self.lora_A = nn.Parameter(torch.empty(r, in_features))
+        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
         self.lora_B = nn.Parameter(torch.zeros(out_features, r))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -226,7 +228,7 @@ class LoRALinear(nn.Module):
                 <p>Under the Bradley-Terry preference model with a KL penalty against reference policy $\pi_{\text{ref}}$, the analytically optimal policy satisfies $\pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\!\bigl(\frac{1}{\beta} r(x,y)\bigr)$. Rearranging yields the implicit reward $r(x, y) = \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)$. When computing the pairwise difference $r(x, y_w) - r(x, y_l)$, the partition function $\beta \log Z(x)$ cancels identically, enabling direct optimization without an auxiliary reward model.</p>
 
                 <div class="flow">
-                    <svg viewBox="0 0 760 430" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif">
+                    <svg viewBox="0 0 760 430" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Direct Preference Optimization (DPO) architecture diagram">
                       <defs>
                         <marker id="arr-dpo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
                           <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#94a3b8"/>
@@ -263,11 +265,11 @@ class LoRALinear(nn.Module):
                       <!-- Down to Log-Probs -->
                       <line x1="230" y1="184" x2="230" y2="218" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
                       <rect x="160" y="222" width="140" height="36" rx="18" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.5"/>
-                      <text x="230" y="245" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log π_θ(y|x)</text>
+                      <text x="230" y="245" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log π<tspan baseline-shift="sub" font-size="9">θ</tspan>(y|x)</text>
 
                       <line x1="520" y1="184" x2="520" y2="218" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dpo)"/>
                       <rect x="450" y="222" width="140" height="36" rx="18" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.5"/>
-                      <text x="520" y="245" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log π_ref(y|x)</text>
+                      <text x="520" y="245" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="700">log π<tspan baseline-shift="sub" font-size="9">ref</tspan>(y|x)</text>
 
                       <!-- Subtraction Junction -->
                       <path d="M 300 240 C 340 240 355 250 365 258" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
@@ -287,11 +289,11 @@ class LoRALinear(nn.Module):
 
                       <!-- Backpropagation Loop to LLM (Pink Curve) -->
                       <path d="M 335 402 C 90 402 40 230 158 163" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="6 3" marker-end="url(#arr-dpo-loop)"/>
-                      <text x="75" y="270" fill="#f472b6" font-size="11" font-weight="700">∇_θ Update</text>
+                      <text x="75" y="270" fill="#f472b6" font-size="11" font-weight="700">∇<tspan baseline-shift="sub" font-size="8.5">θ</tspan> Update</text>
 
                       <!-- Title Bottom Right -->
-                      <text x="570" y="395" fill="#f8fafc" font-size="18" font-weight="800">Direct Preference</text>
-                      <text x="570" y="418" fill="#f8fafc" font-size="18" font-weight="800">Optimization (DPO)</text>
+                      <text x="570" y="395" fill="var(--text-color, #f8fafc)" font-size="18" font-weight="800">Direct Preference</text>
+                      <text x="570" y="418" fill="var(--text-color, #f8fafc)" font-size="18" font-weight="800">Optimization (DPO)</text>
                     </svg>
                     <div class="flow-caption">Figure 2: Direct Preference Optimization (DPO) architecture with pairwise implicit reward margin and policy feedback loop.</div>
                 </div>
@@ -304,8 +306,8 @@ class LoRALinear(nn.Module):
 
                 <div class="math-block">
                     <div class="math-label">RPO Objective (Likelihood Displacement Fix)</div>
-                    $$\mathcal{L}_{\text{RPO}}(\theta) = \mathcal{L}_{\text{DPO}}(\theta) - \alpha_{\text{nll}} \log \pi_\theta(y_w \mid x)$$
-                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">The NLL anchor prevents winning response probability $\pi(y_w)$ from collapsing when optimizing pairwise margins.</p>
+                    $$\mathcal{L}_{\text{RPO}}(\theta) = \mathcal{L}_{\text{DPO}}(\theta) - \frac{\alpha_{\text{nll}}}{|y_w|} \log \pi_\theta(y_w \mid x)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">The length-normalized NLL anchor prevents winning response probability $\pi_\theta(y_w \mid x)$ from collapsing during pairwise margin optimization without penalizing longer chosen responses.</p>
                 </div>
 
                 <dl class="kv">
@@ -325,12 +327,13 @@ class LoRALinear(nn.Module):
 import torch.nn.functional as F
 
 def dpo_rpo_loss(
-    policy_chosen_logps: torch.Tensor,    # [Batch] \sum log pi_theta(y_w | x)
-    policy_rejected_logps: torch.Tensor,  # [Batch] \sum log pi_theta(y_l | x)
-    ref_chosen_logps: torch.Tensor,       # [Batch] \sum log pi_ref(y_w | x)
-    ref_rejected_logps: torch.Tensor,     # [Batch] \sum log pi_ref(y_l | x)
+    policy_chosen_logps: torch.Tensor,            # [Batch] \sum log pi_theta(y_w | x)
+    policy_rejected_logps: torch.Tensor,          # [Batch] \sum log pi_theta(y_l | x)
+    ref_chosen_logps: torch.Tensor,               # [Batch] \sum log pi_ref(y_w | x)
+    ref_rejected_logps: torch.Tensor,             # [Batch] \sum log pi_ref(y_l | x)
+    chosen_lengths: torch.Tensor | None = None,   # [Batch] token lengths |y_w| for RPO normalization
     beta: float = 0.1,
-    alpha_nll: float = 0.0                # Set > 0 for RPO anchor
+    alpha_nll: float = 0.0                        # Set > 0 for RPO anchor
 ) -> torch.Tensor:
     # Compute margin between chosen and rejected implicit rewards
     pi_logratios = policy_chosen_logps - policy_rejected_logps
@@ -340,9 +343,12 @@ def dpo_rpo_loss(
     # Binary cross entropy on Bradley-Terry formulation
     dpo_loss = -F.logsigmoid(logits).mean()
     
-    # Optional RPO anchor to suppress likelihood displacement
+    # Optional length-normalized RPO anchor to suppress likelihood displacement
     if alpha_nll > 0.0:
-        nll_loss = -policy_chosen_logps.mean()
+        if chosen_lengths is not None:
+            nll_loss = -(policy_chosen_logps / chosen_lengths.clamp(min=1)).mean()
+        else:
+            nll_loss = -policy_chosen_logps.mean()
         return dpo_loss + alpha_nll * nll_loss
         
     return dpo_loss</code></pre>
@@ -353,10 +359,10 @@ def dpo_rpo_loss(
 
                 <!-- ===== 3. PPO ===== -->
                 <h2>3. Proximal Policy Optimization (PPO)</h2>
-                <p>PPO represents the classical Reinforcement Learning from Human Feedback (RLHF) paradigm introduced in InstructGPT. Unlike DPO's offline static dataset, PPO generates <em>online rollouts</em> and updates policy weights against a learned neural reward model $R_\psi$.</p>
+                <p>PPO represents the classical Reinforcement Learning from Human Feedback (RLHF) paradigm introduced in InstructGPT. Unlike DPO's offline static dataset, PPO generates <em>online rollouts</em> and updates policy weights against a learned neural reward model $R_\varphi$.</p>
 
                 <div class="flow">
-                    <svg viewBox="0 0 860 480" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif">
+                    <svg viewBox="0 0 860 480" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Proximal Policy Optimization (PPO) architecture diagram">
                       <defs>
                         <marker id="arr-ppo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
                           <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#94a3b8"/>
@@ -427,7 +433,7 @@ def dpo_rpo_loss(
                       <path d="M 502 204 C 502 245 448 270 435 274" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
                       <circle cx="424" cy="277" r="12" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
                       <text x="424" y="282" text-anchor="middle" fill="#f8fafc" font-size="15" font-weight="800">+</text>
-                      <text x="424" y="255" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="600">r_t = r_φ − β D_KL</text>
+                      <text x="424" y="255" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="600">r<tspan baseline-shift="sub" font-size="8.5">t</tspan> = R<tspan baseline-shift="sub" font-size="8.5">φ</tspan>·𝕀(t=T) − β D<tspan baseline-shift="sub" font-size="8.5">KL,t</tspan></text>
 
                       <!-- Composite Reward Box -->
                       <line x1="424" y1="289" x2="424" y2="316" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
@@ -441,7 +447,7 @@ def dpo_rpo_loss(
                       <line x1="424" y1="356" x2="424" y2="368" stroke="#94a3b8" stroke-width="1.8"/>
                       <circle cx="424" cy="375" r="12" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
                       <text x="424" y="380" text-anchor="middle" fill="#f8fafc" font-size="15" font-weight="800">−</text>
-                      <text x="360" y="379" text-anchor="middle" fill="#cbd5e1" font-size="11" font-weight="600">Â_t = r_t − V(s_t)</text>
+                      <text x="342" y="379" text-anchor="middle" fill="var(--text-muted, #cbd5e1)" font-size="11" font-weight="600">δ<tspan baseline-shift="sub" font-size="8.5">t</tspan> = r<tspan baseline-shift="sub" font-size="8.5">t</tspan> + γV(s<tspan baseline-shift="sub" font-size="8.5">t+1</tspan>) − V(s<tspan baseline-shift="sub" font-size="8.5">t</tspan>)</text>
 
                       <!-- PPO Block -->
                       <line x1="424" y1="387" x2="424" y2="416" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-ppo)"/>
@@ -450,11 +456,11 @@ def dpo_rpo_loss(
 
                       <!-- Policy Gradient Backprop Loop to LLM ⚡ -->
                       <path d="M 384 443 C 50 443 30 220 102 125" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="6 3" marker-end="url(#arr-ppo-loop)"/>
-                      <text x="45" y="270" fill="#f472b6" font-size="11" font-weight="700">∇_θ Update</text>
+                      <text x="45" y="270" fill="#f472b6" font-size="11" font-weight="700">∇<tspan baseline-shift="sub" font-size="8.5">θ</tspan> Update</text>
 
                       <!-- Title Bottom Right -->
-                      <text x="550" y="435" fill="#f8fafc" font-size="20" font-weight="800">Proximal Policy</text>
-                      <text x="550" y="460" fill="#f8fafc" font-size="20" font-weight="800">Optimization (PPO)</text>
+                      <text x="550" y="435" fill="var(--text-color, #f8fafc)" font-size="20" font-weight="800">Proximal Policy</text>
+                      <text x="550" y="460" fill="var(--text-color, #f8fafc)" font-size="20" font-weight="800">Optimization (PPO)</text>
                     </svg>
                     <div class="flow-caption">Figure 3: Proximal Policy Optimization (PPO) complete architecture with 4 models in memory, Generalized Advantage Estimation, and policy feedback loop.</div>
                 </div>
@@ -463,7 +469,7 @@ def dpo_rpo_loss(
                 <div class="math-block">
                     <div class="math-label">PPO Clipped Objective (One-Line Formulation)</div>
                     $$\mathcal{J}_{\text{PPO}}(\theta) = \mathbb{E}_{(x,y) \sim \mathcal{D},\, t} \left[ \min\!\left( \rho_t(\theta)\hat{A}_t,\; \text{clip}(\rho_t(\theta),\, 1-\varepsilon,\, 1+\varepsilon)\hat{A}_t \right) \right]$$
-                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">where $\rho_t(\theta) = \frac{\pi_\theta(y_t \mid x, y_{\lt t})}{\pi_{\theta_{\text{old}}}(y_t \mid x, y_{\lt t})}$ and advantage $\hat{A}_t = r_t - V_\phi(s_t)$ with composite reward $r_t = r_\varphi(x, y) - \beta D_{\text{KL},t}$.</p>
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">where $\rho_t(\theta) = \frac{\pi_\theta(y_t \mid x, y_{\lt t})}{\pi_{\theta_{\text{old}}}(y_t \mid x, y_{\lt t})}$, per-token composite reward is $r_t = R_\varphi(x, y)\mathbb{I}(t=T) - \beta D_{\text{KL},t}$, and Generalized Advantage Estimation (GAE) is $\hat{A}_t = \sum_{l=0}^{T-t-1} (\gamma \lambda)^l \delta_{t+l}$ with TD residual $\delta_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)$.</p>
                 </div>
 
                 <div class="callout callout-warn">
@@ -503,7 +509,7 @@ def ppo_clipped_loss(
                 <p>Introduced in DeepSeekMath (Shao et al., 2024) and popularized by DeepSeek-R1, <strong>GRPO</strong> eliminates the neural Value Critic ($V_\phi$) completely. Instead of learning a value function, GRPO samples $G$ responses for each prompt $q$, scores them with <strong>deterministic rubrics</strong> (e.g. unit test passes, compiler outputs, or exact math solutions), and normalizes advantages against group statistics.</p>
 
                 <div class="flow">
-                    <svg viewBox="0 0 780 440" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif">
+                    <svg viewBox="0 0 780 440" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Group Relative Policy Optimization (GRPO) architecture diagram">
                       <defs>
                         <marker id="arr-grpo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
                           <path d="M1 1.5 L7 4.5 L1 7.5 Z" fill="#94a3b8"/>
@@ -544,11 +550,17 @@ def ppo_clipped_loss(
                       <text x="450" y="174" text-anchor="middle" fill="#94a3b8" font-size="12">…</text>
 
                       <rect x="485" y="156" width="40" height="30" rx="15" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
-                      <text x="505" y="176" text-anchor="middle" fill="#dcfce7" font-size="12" font-weight="700">O_n</text>
+                      <text x="505" y="176" text-anchor="middle" fill="#dcfce7" font-size="12" font-weight="700">O<tspan baseline-shift="sub" font-size="9">G</tspan></text>
+
+                      <!-- Shared Collector Bus for All G Rollouts -->
+                      <line x1="275" y1="186" x2="275" y2="202" stroke="#94a3b8" stroke-width="1.5"/>
+                      <line x1="330" y1="186" x2="330" y2="202" stroke="#94a3b8" stroke-width="1.5"/>
+                      <line x1="390" y1="186" x2="390" y2="202" stroke="#94a3b8" stroke-width="1.5"/>
+                      <line x1="505" y1="186" x2="505" y2="202" stroke="#94a3b8" stroke-width="1.5"/>
+                      <line x1="265" y1="202" x2="517" y2="202" stroke="#94a3b8" stroke-width="1.5"/>
 
                       <!-- Left Branch: Rollouts to Rule Reward -->
-                      <path d="M 275 186 C 275 205 260 215 260 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
-                      <path d="M 390 186 C 390 205 290 215 275 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <line x1="265" y1="202" x2="265" y2="224" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-grpo)"/>
                       
                       <rect x="200" y="228" width="130" height="42" rx="8" fill="#92400e" stroke="#f59e0b" stroke-width="1.8"/>
                       <text x="265" y="254" text-anchor="middle" fill="#fef3c7" font-size="13" font-weight="700">Rule Reward</text>
@@ -559,8 +571,7 @@ def ppo_clipped_loss(
                       <text x="265" y="320" text-anchor="middle" fill="#fee2e2" font-size="13" font-weight="700">Group Advantage</text>
 
                       <!-- Right Branch: Rollouts to Frozen Reference LLM -->
-                      <path d="M 390 186 C 390 205 490 215 505 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
-                      <path d="M 505 186 C 505 205 520 215 520 226" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-grpo)"/>
+                      <line x1="517" y1="202" x2="517" y2="224" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-grpo)"/>
 
                       <rect x="455" y="228" width="125" height="42" rx="8" fill="#334155" stroke="#94a3b8" stroke-width="1.8"/>
                       <text x="507" y="254" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="700">LLM</text>
@@ -576,7 +587,7 @@ def ppo_clipped_loss(
                       <path d="M 455 315 C 425 315 415 330 408 338" fill="none" stroke="#94a3b8" stroke-width="1.8"/>
                       <circle cx="395" cy="345" r="13" fill="#0f172a" stroke="#94a3b8" stroke-width="1.8"/>
                       <text x="395" y="350" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="800">+</text>
-                      <text x="420" y="350" fill="#38bdf8" font-size="12" font-weight="700">− β · D_KL</text>
+                      <text x="420" y="350" fill="#38bdf8" font-size="12" font-weight="700">− β · D<tspan baseline-shift="sub" font-size="9">KL</tspan></text>
 
                       <!-- Down to GRPO Block -->
                       <line x1="395" y1="358" x2="395" y2="384" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-grpo)"/>
@@ -585,11 +596,11 @@ def ppo_clipped_loss(
 
                       <!-- Policy Gradient Backprop Loop to LLM ⚡ -->
                       <path d="M 355 408 C 80 408 50 230 320 105" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="6 3" marker-end="url(#arr-grpo-loop)"/>
-                      <text x="65" y="270" fill="#f472b6" font-size="11" font-weight="700">∇_θ Update</text>
+                      <text x="65" y="270" fill="#f472b6" font-size="11" font-weight="700">∇<tspan baseline-shift="sub" font-size="8.5">θ</tspan> Update</text>
 
                       <!-- Title Bottom Right -->
-                      <text x="560" y="395" fill="#f8fafc" font-size="18" font-weight="800">Group Relative Policy</text>
-                      <text x="560" y="418" fill="#f8fafc" font-size="18" font-weight="800">Optimization (GRPO)</text>
+                      <text x="560" y="395" fill="var(--text-color, #f8fafc)" font-size="18" font-weight="800">Group Relative Policy</text>
+                      <text x="560" y="418" fill="var(--text-color, #f8fafc)" font-size="18" font-weight="800">Optimization (GRPO)</text>
                     </svg>
                     <div class="flow-caption">Figure 4: Group Relative Policy Optimization (GRPO) complete architecture with group sampling, rule evaluation, and critic-free advantage normalization.</div>
                 </div>
@@ -597,8 +608,8 @@ def ppo_clipped_loss(
                 <h3>Mathematical Formulation</h3>
                 <div class="math-block">
                     <div class="math-label">GRPO Clipped Objective (One-Line Formulation)</div>
-                    $$\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{q \sim P(Q),\, \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}} \left[ \frac{1}{G}\sum_{i=1}^{G} \sum_{t=1}^{|o_i|} \min\!\left( \rho_{i,t}(\theta)\hat{A}_i,\; \text{clip}(\rho_{i,t}(\theta),\, 1-\varepsilon,\, 1+\varepsilon)\hat{A}_i \right) - \beta D_{\text{KL}}^{k_3}(\pi_\theta \| \pi_{\text{ref}}) \right]$$
-                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">where group advantage $\hat{A}_i = \frac{r_i - \mu(R)}{\sigma(R) + \epsilon}$ with group mean $\mu(R) = \frac{1}{G}\sum_{j=1}^G r_j$ and standard deviation $\sigma(R) = \sqrt{\frac{1}{G}\sum_{j=1}^G (r_j - \mu(R))^2}$.</p>
+                    $$\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{q \sim P(Q),\, \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}} \left[ \frac{1}{G}\sum_{i=1}^{G} \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \left( \min\!\left( \rho_{i,t}(\theta)\hat{A}_i,\; \text{clip}(\rho_{i,t}(\theta),\, 1-\varepsilon,\, 1+\varepsilon)\hat{A}_i \right) - \beta D_{\text{KL}}^{k_3}(\pi_\theta \| \pi_{\text{ref}}) \right) \right]$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">where standard group advantage is $\hat{A}_i = \frac{r_i - \mu(R)}{\sigma(R) + \epsilon}$ with group mean $\mu(R) = \frac{1}{G}\sum_{j=1}^G r_j$ and standard deviation $\sigma(R) = \sqrt{\frac{1}{G}\sum_{j=1}^G (r_j - \mu(R))^2}$.</p>
                 </div>
 
                 <div class="math-block">
@@ -608,7 +619,7 @@ def ppo_clipped_loss(
                 </div>
 
                 <div class="callout callout-tip">
-                    <strong>The Dr. GRPO / DAPO Fix:</strong> Standard GRPO normalizes by actual response length. This accidentally assigns larger gradient updates to short, clipped responses and penalizes long, thorough reasoning. Modern implementations replace length normalization with a constant denominator $\frac{1}{L_{\max}}$ (e.g., 256 or 512), eliminating length gaming entirely.
+                    <strong>The Dr. GRPO &amp; DAPO Fixes:</strong> Standard GRPO divides each response by its length $\frac{1}{|o_i|}$ and scales advantages by $\sigma(R)$, which biases gradients toward short positive responses, long negative responses, and low-variance prompts. <strong>Dr. GRPO</strong> removes both biases by replacing $\frac{1}{|o_i|}$ with a constant $\frac{1}{L_{\max}}$ and using unscaled centered advantages $\hat{A}_i = r_i - \mu(R)$. <strong>DAPO</strong> instead normalizes at the token level ($\frac{1}{\sum_{i=1}^G |o_i|}$), decouples upper/lower clipping (<code>Clip-Higher</code>), and dynamically filters out zero-variance groups.
                 </div>
 
                 <dl class="kv">
@@ -626,15 +637,22 @@ def ppo_clipped_loss(
                         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                         <pre><code class="language-python">import torch
 
-def compute_group_advantages(rewards: torch.Tensor, group_size: int = 8, eps: float = 1e-4) -> torch.Tensor:
+def compute_group_advantages(
+    rewards: torch.Tensor,
+    group_size: int = 8,
+    eps: float = 1e-4,
+    scale_by_std: bool = False  # False = Dr. GRPO unbiased advantage; True = standard GRPO
+) -> torch.Tensor:
     """
     rewards: [Batch * G] scalar rewards evaluated from deterministic rubrics
-    returns: [Batch * G] normalized group advantages without a value model
+    returns: [Batch * G] group-relative advantages without a value model
     """
     rewards_group = rewards.view(-1, group_size)                     # [Batch, G]
     mean = rewards_group.mean(dim=-1, keepdim=True)                  # [Batch, 1]
-    std = rewards_group.std(dim=-1, keepdim=True, unbiased=False)    # [Batch, 1]
-    adv = (rewards_group - mean) / (std + eps)
+    adv = rewards_group - mean
+    if scale_by_std:
+        std = rewards_group.std(dim=-1, keepdim=True, unbiased=False)
+        adv = adv / (std + eps)
     return adv.view(-1)                                              # [Batch * G]
 
 def grpo_loss(
@@ -645,7 +663,7 @@ def grpo_loss(
     mask: torch.Tensor,          # [Batch * G, Len]
     clip_eps: float = 0.2,
     beta_kl: float = 0.04,
-    l_max: int = 256             # DAPO constant denominator kills length gaming
+    l_max: int = 256             # Dr. GRPO constant denominator kills length bias
 ) -> torch.Tensor:
     # 1. Clipped Policy Gradient objective normalized by constant L_max
     ratios = torch.exp(policy_logps - old_logps)
@@ -687,7 +705,7 @@ def grpo_loss(
                 <div class="math-block">
                     <div class="math-label">Reverse KL: Mode-Seeking</div>
                     $$D_{\text{KL}}(P_S \| P_T) = \sum_{v \in V} P_S(v) \log \frac{P_S(v)}{P_T(v)}$$
-                    <p style="margin-top:.3rem;font-size:.82rem;color:#f43f5e"><strong>Mode-dropping risk:</strong> The student minimizes loss by collapsing onto a single sharp peak and zeroing out valid alternate branches, stripping away multi-turn recovery abilities.</p>
+                    <p style="margin-top:.3rem;font-size:.82rem;color:#f43f5e"><strong>Mode-seeking trade-off:</strong> Drops secondary modes to lock onto a single high-confidence peak. While naive Reverse KL can narrow exploratory diversity, on-policy Reverse KL (e.g. MiniLLM, GKD) is often preferred when student capacity is much smaller than the teacher's, preventing the student from placing probability mass in low-density voids between teacher modes.</p>
                 </div>
 
                 <details class="code-card">
@@ -700,29 +718,39 @@ import torch.nn.functional as F
 def knowledge_distillation_loss(
     student_logits: torch.Tensor,  # [Batch, Len, Vocab]
     teacher_logits: torch.Tensor,  # [Batch, Len, Vocab]
-    labels: torch.Tensor,          # [Batch, Len]
+    labels: torch.Tensor,          # [Batch, Len] (prompt & padding = -100)
     alpha: float = 0.5,            # Balance between hard CE and soft KD
     temp: float = 2.5,             # Temperature scaling factor T
     mode: str = "forward"          # 'forward' (mode-covering) or 'reverse' (mode-seeking)
 ) -> torch.Tensor:
-    # 1. Hard cross-entropy loss on ground-truth target tokens
+    # 1. Shift logits and labels so position t-1 predicts token t
     shift_s = student_logits[..., :-1, :].contiguous()
+    shift_t = teacher_logits[..., :-1, :].contiguous()
     shift_y = labels[..., 1:].contiguous()
-    ce_loss = F.cross_entropy(shift_s.view(-1, shift_s.size(-1)), shift_y.view(-1), ignore_index=-100)
     
-    # 2. Temperature scaling
-    s_log_p = F.log_softmax(student_logits / temp, dim=-1)
-    t_log_p = F.log_softmax(teacher_logits / temp, dim=-1)
-    s_p = F.softmax(student_logits / temp, dim=-1)
-    t_p = F.softmax(teacher_logits / temp, dim=-1)
+    # Hard cross-entropy loss on valid target tokens
+    ce_loss = F.cross_entropy(
+        shift_s.view(-1, shift_s.size(-1)),
+        shift_y.view(-1),
+        ignore_index=-100
+    )
     
-    # 3. Directional KL Divergence
+    # 2. Temperature-scaled distributions on valid target positions only
+    valid_mask = (shift_y != -100).unsqueeze(-1)  # [Batch, Len - 1, 1]
+    s_log_p = F.log_softmax(shift_s / temp, dim=-1)
+    t_log_p = F.log_softmax(shift_t / temp, dim=-1)
+    
+    # 3. Directional KL Divergence masked to response tokens
     if mode == "forward":
         # Forward KL: KL(Teacher || Student)
-        kl_loss = (t_p * (t_log_p - s_log_p)).sum(dim=-1).mean()
+        t_p = F.softmax(shift_t / temp, dim=-1)
+        kl_per_token = (t_p * (t_log_p - s_log_p)).sum(dim=-1, keepdim=True)
     else:
         # Reverse KL: KL(Student || Teacher)
-        kl_loss = (s_p * (s_log_p - t_log_p)).sum(dim=-1).mean()
+        s_p = F.softmax(shift_s / temp, dim=-1)
+        kl_per_token = (s_p * (s_log_p - t_log_p)).sum(dim=-1, keepdim=True)
+        
+    kl_loss = (kl_per_token * valid_mask).sum() / valid_mask.sum().clamp(min=1.0)
         
     # Scale soft loss by T^2 to match gradient magnitudes with hard CE
     return (1.0 - alpha) * ce_loss + alpha * (temp ** 2) * kl_loss</code></pre>
@@ -758,7 +786,7 @@ def knowledge_distillation_loss(
                         </tr>
                         <tr>
                             <td><strong>Reward Source</strong></td>
-                            <td>Neural Reward Model ($R_\psi$)</td>
+                            <td>Neural Reward Model ($R_\varphi$)</td>
                             <td>Implicit Policy Log-Ratio</td>
                             <td>Deterministic Tests / Compiler / Math</td>
                         </tr>
@@ -813,14 +841,30 @@ def knowledge_distillation_loss(
     <script>
     function copyCode(btn) {
         const pre = btn.parentElement.querySelector('pre');
-        navigator.clipboard.writeText(pre.innerText).then(() => {
+        const text = pre.innerText;
+        const onCopied = () => {
             btn.innerText = 'Copied!';
             btn.classList.add('copied');
             setTimeout(() => {
                 btn.innerText = 'Copy';
                 btn.classList.remove('copied');
             }, 1800);
-        });
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
     }
     </script>
 </body>
