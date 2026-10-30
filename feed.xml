@@ -4,8 +4,15 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-10-29T00:00:00Z</updated>
+  <updated>2026-10-30T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Through the Wormhole: Rendering a Morris–Thorne Spacetime Bridge</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/traversable-wormhole-ray-tracer.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/traversable-wormhole-ray-tracer.html</id>
+    <updated>2026-10-30T00:00:00Z</updated>
+    <summary>How to ray-trace a traversable Ellis–Bronnikov / Morris–Thorne wormhole in real time: two-sheeted spacetime geodesics, nested Einstein rings, photon-sphere caustics in GLSL, and a seamless 4K 120 fps fly-through loop.</summary>
+  </entry>
   <entry>
     <title>Rendering Gargantua: A Real-Time Black Hole in Your Browser</title>
     <link href="https://arman1o1.github.io/posts/ai-ml/rendering-a-black-hole.html"/>

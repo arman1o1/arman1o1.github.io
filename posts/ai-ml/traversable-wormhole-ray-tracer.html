@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Through the Wormhole: Rendering a Morris–Thorne Spacetime Bridge | arman1o1 blog</title>
+    <meta name="description"
+        content="How to ray-trace a traversable Ellis–Bronnikov / Morris–Thorne wormhole in real time in the browser: two-sheeted spacetime geodesics, nested Einstein rings, photon-sphere caustics in GLSL, and a seamless 4K 120 fps fly-through loop." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/traversable-wormhole-ray-tracer.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Through the Wormhole: Rendering a Morris–Thorne Spacetime Bridge">
+    <meta property="og:description" content="How to ray-trace a traversable Ellis–Bronnikov / Morris–Thorne wormhole in real time in the browser: two-sheeted spacetime geodesics, nested Einstein rings, photon-sphere caustics in GLSL, and a seamless 4K 120 fps fly-through loop.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/traversable-wormhole-ray-tracer.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_wormhole.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-10-30">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Through the Wormhole: Rendering a Morris–Thorne Spacetime Bridge", "description": "How to ray-trace a traversable Ellis–Bronnikov / Morris–Thorne wormhole in real time in the browser: two-sheeted spacetime geodesics, nested Einstein rings, photon-sphere caustics in GLSL, and a seamless 4K 120 fps fly-through loop.", "image": "https://arman1o1.github.io/images/thumb_wormhole.webp", "datePublished": "2026-10-30", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/traversable-wormhole-ray-tracer.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/traversable-wormhole-ray-tracer.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">Physics</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Through the Wormhole: Rendering a Morris–Thorne Spacetime Bridge</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-10-30">October 30, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 10 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE SIMULATION ===== -->
+                <figure style="margin:0 0 .5rem 0">
+                    <iframe src="../../assets/wormhole.html"
+                        title="Live traversable wormhole simulation: a Morris–Thorne null-geodesic ray tracer running in real time"
+                        loading="eager" allow="fullscreen"
+                        style="display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.35)"></iframe>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live two-universe ray tracer.</strong> Every pixel above integrates a null geodesic through a Morris–Thorne / Ellis–Bronnikov wormhole connecting two distinct celestial spheres: Universe A (cyan Milky Way + Saturn) and Universe B (crimson-gold nebula + spiral galaxy). Drag to orbit, open <strong>Controls</strong> and toggle <strong>Fly-through</strong> to cross the throat ($l = 0$) in real time, or <a href="../../assets/wormhole.html" target="_blank" rel="noopener">launch the simulation full-screen</a>.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>After <a href="rendering-a-black-hole.html">rendering Gargantua</a>, the natural sequel is the other relativistic centerpiece of <em>Interstellar</em>: the sphere sitting quietly near Saturn. In decades of science fiction, wormholes were drawn as flat 2D puddles or swirling whirlpools in space. Kip Thorne and the Double Negative team showed what general relativity actually predicts: a three-dimensional <strong>crystal sphere</strong> whose surface is rimmed by nested Einstein rings of two different universes at once.</p>
+
+                <p>Mathematically, a traversable wormhole is even cleaner to ray-trace than a black hole—and much stranger when you fly inside it. Where a Schwarzschild black hole has a one-way event horizon that terminates rays, a Morris–Thorne wormhole has a smooth minimum-radius <strong>throat</strong> at proper radial coordinate $l = 0$ connecting two asymptotically flat universes: $l \to +\infty$ (Universe A) and $l \to -\infty$ (Universe B). This post builds the full real-time WebGL ray tracer from first principles and renders a <strong>4K 120 fps seamless fly-through loop</strong> diving straight through the throat and back.</p>
+
+                <hr>
+
+                <!-- ===== 0. ANATOMY OF THE IMAGE ===== -->
+                <h2>0. Why a Wormhole Looks Like a Crystal Sphere</h2>
+                <p>Suppose you take a pair of 3D Euclidean spaces, cut a ball of radius $b_0$ out of each, and glue the two spherical boundaries together smoothly. Because the boundary you glued is a 2-sphere ($S^2$), an observer approaching from Universe A does not see a flat circular doorway; from every angle, the throat projects onto a disk of apparent radius $b_0$ on the sky.</p>
+
+                <dl class="kv">
+                    <dt>Metric</dt>
+                    <dd>Zero-tidal-force Morris–Thorne / Ellis–Bronnikov wormhole with finite cylindrical throat length $2a$ and throat radius $b_0$.</dd>
+                    <dt>Coordinate $l \in (-\infty, +\infty)$</dt>
+                    <dd>Proper radial distance measured through the throat: $l > 0$ is Universe A (Saturn sector), $l = 0$ is the throat equator, and $l < 0$ is Universe B (Gargantua sector).</dd>
+                    <dt>Interior ($b < b_0$)</dt>
+                    <dd>Rays aimed inside the critical circle have impact parameter $b < b_0$; they pass through $l = 0$ into Universe B, acting like a wide-angle fisheye lens onto the far universe.</dd>
+                    <dt>Exterior ($b > b_0$)</dt>
+                    <dd>Rays aimed outside the throat hit a centrifugal barrier at $r(l_{\text{turn}}) = b$, bounce back into Universe A, and show a lensed reflection of our own sky (notice the secondary lensed image of Saturn hugging the lower-right rim).</dd>
+                    <dt>Boundary ($b = b_0$)</dt>
+                    <dd>The throat itself is an <strong>unstable photon sphere</strong>: rays with $b \approx b_0$ wind around the throat multiple times before escaping to either $+l$ or $-l$, creating an infinite stack of alternating Einstein rings.</dd>
+                </dl>
+
+                <hr>
+
+                <!-- ===== 1. THE METRIC & GEODESIC EQUATIONS ===== -->
+                <h2>1. The Ellis–Bronnikov / Dneg Metric</h2>
+                <p>To make a wormhole human-traversable without crushing the traveller via tidal forces, Morris and Thorne (1988) set the gravitational redshift function $\Phi(l) = 0$ everywhere. Time ticks at the exact same rate inside the throat as at infinity—there is no gravitational time dilation and no horizon. The entire spacetime curvature lives in the spatial circumferential radius $r(l)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Zero-tidal-force Morris–Thorne line element</div>
+                    $$ds^2 = -dt^2 + dl^2 + r^2(l)\,\left(d\theta^2 + \sin^2\theta\,d\varphi^2\right)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Here $dl$ measures true proper radial distance along a ruler poked through the throat, while $2\pi r(l)$ is the circumference of a sphere centered on the wormhole at coordinate $l$.</p>
+                </div>
+
+                <p>In the classic textbook <strong>Ellis–Bronnikov wormhole</strong>, $r(l) = \sqrt{b_0^2 + l^2}$. For <em>Interstellar</em> (James et al., 2015), Kip Thorne added a second dial: a cylindrical throat of half-length $a$ so the team could tune how long the <em>Endurance</em> spent inside the tunnel and how tightly the Einstein rings packed around the rim. Using a $C^2$-smooth transition across $|l| = a$, the profile integrated by our shader is:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Circumferential radius profile $r(l)$ and its derivative</div>
+                    $$r(l) = \sqrt{b_0^2 + x(l)^2}, \qquad x(l) = \frac{(|l| - a) + \sqrt{(|l| - a)^2 + s^2}}{2}, \qquad \frac{dr}{dl} = \frac{x(l)}{r(l)}\,\frac{dx}{dl}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">For $|l| \gg a$, $r(l) \to |l|$ and both universes become flat Euclidean space. Inside the throat ($|l| < a$), $r(l) \approx b_0$ and $dr/dl \approx 0$. Setting the Throat Length slider $2a = 0$ recovers the pure Ellis wormhole.</p>
+                </div>
+
+                <p>Because the metric is spherically symmetric on both sheets, every light ray stays in a single 2D plane spanned by the observer's radial unit vector $\hat n_0$ and the ray's initial tangent vector $\hat t_0$ on $S^2$. Parameterizing the null geodesic by proper spatial arc length $s$ (so $(dl/ds)^2 + r^2(l)(d\varphi/ds)^2 = 1$), Euler–Lagrange conservation of angular momentum gives a conserved impact parameter $b$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Coupled 1st/2nd-order null geodesic ODEs integrated per pixel</div>
+                    $$b = r(l_0)\,\sin\psi_0, \qquad \frac{d^2 l}{ds^2} = \frac{b^2}{r^3(l)}\,\frac{dr}{dl}, \qquad \frac{d\varphi}{ds} = \frac{b}{r^2(l)}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Compare this to Schwarzschild: there is no singularity at $r = 0$ because $r(l) \ge b_0 > 0$ everywhere! Even better, the second-order equation for $l(s)$ has no coordinate turning-point singularity when a ray bounces off the centrifugal barrier.</p>
+                </div>
+
+                <div class="callout callout-tip">
+                    <strong>Why integrate $\ddot l$ instead of the first-order equation $\dot l = \pm\sqrt{1 - b^2/r^2(l)}$?</strong> In the first-order form, every exterior ray ($b > b_0$) hits a turning point where $r(l) = b$ and the square root hits zero, requiring manual sign-flipping and branch logic. In the second-order form $\ddot l = (b^2/r^3)\,dr/dl$, the outward "centrifugal force" smoothly decelerates $v_l = \dot l$ through zero and reverses it automatically.
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Velocity-Verlet Wormhole Geodesic Integrator</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Decompose pixel ray rd into radial (e_l = uCamDir) and tangential components on S^2
+vec3 e_l     = uCamDir;
+float dl_ds  = dot(rd, e_l);                  // initial radial velocity cos(psi)
+vec3 tang    = rd - dl_ds * e_l;
+float sinPsi = length(tang);
+vec3 n0      = uCamDir;
+vec3 t0      = (sinPsi &gt; 1e-6) ? (tang / sinPsi) : normalize(cross(n0, vec3(0.0, 1.0, 0.001)));
+
+float r0, dr0;
+wormholeMetric(uCamL, r0, dr0);
+float b = r0 * sinPsi * uLensing;             // conserved impact parameter
+
+float l   = uCamL;
+float vl  = dl_ds;
+float phi = 0.0;
+
+for (int i = 0; i &lt; MAX_STEPS; i++){
+  float r, drdl;
+  wormholeMetric(l, r, drdl);
+  if (abs(l) &gt; escapeL &amp;&amp; l * vl &gt; 0.0) break; // escaped to Universe A (+l) or B (-l)
+
+  float ds = clamp(0.045 * r + 0.035 * abs(l), 0.025, 0.95);
+
+  // Symplectic Velocity-Verlet step on (l, vl) + midpoint step on phi
+  float acc1  = (b * b) / (r * r * r) * drdl;
+  float l_mid = l + 0.5 * vl * ds;
+  float r_mid, dr_mid;
+  wormholeMetric(l_mid, r_mid, dr_mid);
+
+  float acc_mid = (b * b) / (r_mid * r_mid * r_mid) * dr_mid;
+  vl  += acc_mid * ds;
+  l   += vl * ds + 0.5 * acc1 * ds * ds;
+  phi += (b / (r_mid * r_mid)) * ds;
+}
+
+// Reconstruct asymptotic 3D look direction on the target celestial sphere
+vec3 nFinal = cos(phi) * n0 + sin(phi) * t0;
+vec3 tFinal = -sin(phi) * n0 + cos(phi) * t0;
+float rEnd, drEnd;
+wormholeMetric(l, rEnd, drEnd);
+float vTang = clamp(b / rEnd, 0.0, 1.0);
+float vRad  = sign(vl) * sqrt(max(0.0, 1.0 - vTang*vTang));
+vec3 skyDir = normalize(vRad * nFinal + vTang * tFinal);
+
+vec3 col = (l &gt;= 0.0) ? skyUniverseA(skyDir) : skyUniverseB(skyDir);</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 2. BIFURCATING EINSTEIN RINGS ===== -->
+                <h2>2. The Throat as a Photon Sphere: Bifurcating Einstein Rings</h2>
+                <p>Look closely at the boundary of the wormhole sphere in the simulation above. Where a black hole has a photon sphere at $r = 1.5\,r_s$ bordering a pitch-black shadow, the wormhole's photon sphere sits right at the throat $l = 0$ ($r = b_0$) bordering a <em>second universe</em>.</p>
+
+                <p>Why does that matter? Because rays with impact parameter $b$ just slightly larger than $b_0$ ($b = b_0 + \epsilon$) dive toward the throat, wind around the equator $N$ times as $dr/dl \to 0$, and eventually bounce back into Universe A. Rays with $b$ just slightly smaller than $b_0$ ($b = b_0 - \epsilon$) wind around the exact same throat $N$ times and then slip across $l = 0$ into Universe B:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Logarithmic winding angle near the critical impact parameter $b \to b_0$</div>
+                    $$\Delta\varphi(b) = \int \frac{b\,dl}{r(l)\sqrt{r^2(l) - b^2}} \;\underset{b \to b_0}{\sim}\; \left(1 + \frac{a}{b_0}\right)\,\ln\!\left(\frac{b_0}{|b - b_0|}\right)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Increasing the throat length $2a$ in the control panel linearly amplifies the winding angle. Inside the throat, $r(l) = b_0$ is constant, so a grazing ray spirals down a cylinder before emerging on the other side.</p>
+                </div>
+
+                <p>This creates a striking visual signature you can test interactively right now:</p>
+                <ul>
+                    <li><strong>Outside the critical circle ($b > b_0$):</strong> Saturn and the blue-cyan Milky Way of Universe A are compressed into thin concentric arcs hugging the outer rim—including an inverted secondary image of Saturn on the opposite side of the sphere.</li>
+                    <li><strong>Inside the critical circle ($b < b_0$):</strong> The crimson-gold nebula and two-arm spiral galaxy of Universe B fill the crystal ball, with their own compressed Einstein rings stacked just inside the critical curve.</li>
+                    <li><strong>Inside the throat ($l = 0$):</strong> Click the <strong>Throat (l=0)</strong> preset button in Controls. When the camera sits at $l = 0$, the wormhole no longer looks like a sphere in front of you—it wraps around the entire $360^\circ$ sky as an equatorial band! The forward hemisphere shows Universe B, the backward hemisphere shows Universe A, and the perpendicular equator ($\psi_0 = 90^\circ$) is trapped on the photon sphere.</li>
+                </ul>
+
+                <hr>
+
+                <!-- ===== 3. RENDER PIPELINE ===== -->
+                <h2>3. Dual-Universe Render Pipeline</h2>
+                <p>Because both celestial spheres are evaluated procedurally in GLSL, the entire two-universe spacetime requires zero external texture fetches:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="Wormhole render pipeline from local camera basis to dual skyboxes">
+                        <rect x="5" y="25" width="135" height="54" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="72" y="48" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-weight="600">Observer (l₀, n̂₀)</text>
+                        <text x="72" y="65" text-anchor="middle" fill="var(--text-muted)" font-size="10">b = r(l₀)·sin ψ₀</text>
+                        <polygon points="148,42 168,52 148,62" fill="var(--text-muted)"/>
+
+                        <rect x="176" y="25" width="165" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="258" y="48" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">Verlet l(s) integrator</text>
+                        <text x="258" y="65" text-anchor="middle" fill="#bae6fd" font-size="10">l̈ = (b²/r³)·dr/dl</text>
+                        <polygon points="349,42 369,52 349,62" fill="var(--text-muted)"/>
+
+                        <rect x="377" y="25" width="145" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="449" y="48" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">Sheet branch</text>
+                        <text x="449" y="65" text-anchor="middle" fill="#ddd6fe" font-size="10">sign(l_final) → A or B</text>
+                        <polygon points="530,42 550,52 530,62" fill="var(--text-muted)"/>
+
+                        <rect x="558" y="25" width="145" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="630" y="48" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Dual sky shaders</text>
+                        <text x="630" y="65" text-anchor="middle" fill="#d1fae5" font-size="10">Saturn + Spiral galaxy</text>
+                        <polygon points="711,42 731,52 711,62" fill="var(--text-muted)"/>
+
+                        <rect x="739" y="28" width="76" height="48" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="777" y="49" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600">ACES +</text>
+                        <text x="777" y="66" text-anchor="middle" fill="#fcd34d" font-size="10">Bloom</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Each pixel integrates $(l(s), \varphi(s))$ on the great circle defined by $(\hat n_0, \hat t_0)$, then branches on the sign of $l_{\text{final}}$ to sample either Universe A or Universe B.</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 4. SEAMLESS FLY-THROUGH LOOP ===== -->
+                <h2>4. Designing a Seamless Two-Universe Fly-Through Loop</h2>
+                <p>For the offline 4K 120 fps render, a static orbit in Universe A would miss the entire point of a <em>traversable</em> wormhole. Instead, the camera executes a closed $C^1$-continuous harmonic plunge across the throat: starting at $l = +8.8\,b_0$ in Universe A, diving straight through the Einstein ring at $l = 0$, emerging at $l = -5.6\,b_0$ inside the crimson-gold nebula of Universe B, and smoothly gliding back through the throat to its exact starting pose at $t = L = 8.0\text{ s}$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Closed harmonic traversal trajectory ($t \in [0, L]$)</div>
+                    $$l(t) = l_{\text{mid}} + A_l \cos\!\left(\frac{2\pi t}{L}\right), \qquad \varphi_{\text{cam}}(t) = \varphi_0 + A_\varphi \sin\!\left(\frac{2\pi t}{L}\right), \qquad \theta_{\text{cam}}(t) = \theta_0 + A_\theta \frac{1 - \cos(2\pi t / L)}{2}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">With $l_{\text{mid}} = 1.6\,b_0$ and $A_l = 7.2\,b_0$, the camera crosses $l = 0$ twice per loop while its radial velocity $\dot l(t) \propto -\sin(2\pi t/L)$ vanishes smoothly at both turnaround points ($t = 0$ and $t = L/2$).</p>
+                </div>
+
+                <p>To keep Universe B's rotating spiral galaxy seamless across the loop boundary without a crossfade, the shader exploits the galaxy's <strong>two-fold rotational symmetry</strong> ($\cos(2\alpha - 3.6\ln r)$): advancing the galactic azimuth $\alpha$ by exactly $\pi$ radians over the 8-second period maps Arm 1 onto Arm 2 at $t = L$, making the background evolution analytically periodic.</p>
+
+                <hr>
+
+                <!-- ===== 5. THE 4K 120 FPS LOOP ===== -->
+                <h2>5. The 4K 120 fps Fly-Through Video</h2>
+                <p>Rendered offline via the same stateless slice architecture as Gargantua—960 frames at 3840×2160, 120 fps—here is the complete traversal from the Saturn sector, through the wormhole throat, into the Gargantua sector, and back:</p>
+
+                <figure style="margin:0 0 .5rem 0">
+                    <video controls muted loop playsinline preload="metadata"
+                        poster="../../assets/videos/wormhole-loop-poster.webp"
+                        style="display:block;width:100%;border-radius:12px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.35)">
+                        <source src="../../assets/videos/wormhole-loop.mp4" type="video/mp4" />
+                        Your browser doesn't support embedded video; <a href="../../assets/videos/wormhole-loop.mp4">download the MP4</a> instead.
+                    </video>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <em>Morris–Thorne Wormhole · seamless fly-through loop.</em> 3840×2160 · 120 fps · 8.000 s · 24.2 MB. Watch the outer Einstein ring expand to fill the 360° sky as the camera passes $l = 0$, then collapse behind us into Universe B.
+                    </div>
+                </figure>
+
+                <p>Toggle the <strong>Sky grid</strong> pill in the live simulation at the top of the page and drag the <strong>Radial pos · l</strong> slider slowly through zero—watching a coordinate grid invert across two universes in real time is the closest intuition you can get for curved 3-manifolds without leaving your browser.</p>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>
