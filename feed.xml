@@ -4,8 +4,15 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-10-26T00:00:00Z</updated>
+  <updated>2026-10-29T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Rendering Gargantua: A Real-Time Black Hole in Your Browser</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/rendering-a-black-hole.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/rendering-a-black-hole.html</id>
+    <updated>2026-10-29T00:00:00Z</updated>
+    <summary>How to render an Interstellar-style black hole in real time: Schwarzschild null geodesics, a Shakura–Sunyaev disk, Doppler beaming in GLSL, and a seamless 4K 120 fps loop, with the live simulation embedded in the post.</summary>
+  </entry>
   <entry>
     <title>LLM Post-Training: A Practitioner's First-Principles Guide</title>
     <link href="https://arman1o1.github.io/posts/ai-ml/llm-post-training-methods.html"/>
