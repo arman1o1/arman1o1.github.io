@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>arman1o1 blog</title>
-  <meta name="description" content="A personal blog exploring AI/ML, movies, photography, and life." />
+  <meta name="description" content="A personal blog exploring AI/ML, physics, movies, photography, and life." />
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="canonical" href="https://arman1o1.github.io/">
@@ -15,13 +15,13 @@
   <!-- Open Graph / Twitter -->
   <meta property="og:site_name" content="arman1o1 blog">
   <meta property="og:title" content="arman1o1 blog">
-  <meta property="og:description" content="A personal blog exploring AI/ML, movies, photography, and life.">
+  <meta property="og:description" content="A personal blog exploring AI/ML, physics, movies, photography, and life.">
   <meta property="og:url" content="https://arman1o1.github.io/">
   <meta property="og:image" content="https://arman1o1.github.io/images/og-image.jpg">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
 
-  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "name": "arman1o1 blog", "url": "https://arman1o1.github.io/"}, {"@type": "Blog", "name": "arman1o1 blog", "url": "https://arman1o1.github.io/", "description": "A personal blog exploring AI/ML, movies, photography, and life.", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}}]}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "name": "arman1o1 blog", "url": "https://arman1o1.github.io/"}, {"@type": "Blog", "name": "arman1o1 blog", "url": "https://arman1o1.github.io/", "description": "A personal blog exploring AI/ML, physics, movies, photography, and life.", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}}]}</script>
 
 
   <link rel="preload" href="assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -42,6 +42,7 @@
       <nav class="nav-links">
         <a href="index.html" class="nav-link active">Home</a>
         <a href="posts/ai-ml/index.html" class="nav-link">AI/ML</a>
+        <a href="posts/physics/index.html" class="nav-link">Physics</a>
         <a href="posts/movies/index.html" class="nav-link">Movies</a>
         <a href="posts/photography/index.html" class="nav-link">Photography</a>
         <a href="posts/life/index.html" class="nav-link">Life</a>
@@ -85,6 +86,18 @@
             </div>
             <a href="posts/ai-ml/index.html" class="domain-title">AI/ML</a>
             <p class="domain-desc">Deep learning, architectures, and the future of code.</p>
+          </li>
+
+          <!-- Physics -->
+          <li class="domain-card reveal">
+            <div class="domain-card-top">
+              <span class="domain-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.2"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(-30 12 12)"/></svg>
+              </span>
+              <span class="domain-badge">Science</span>
+            </div>
+            <a href="posts/physics/index.html" class="domain-title">Physics</a>
+            <p class="domain-desc">Astrophysics, fluid dynamics, and real-time physical simulations.</p>
           </li>
 
           <!-- Movies -->
@@ -145,14 +158,29 @@
           <a href="posts/archives.html" class="view-all-link">View all archives →</a>
         </div>
 
-        <a href="posts/ai-ml/traversable-wormhole-ray-tracer.html" class="thought-card reveal">
+        <a href="posts/physics/spinning-up-gargantua-kerr-black-hole.html" class="thought-card reveal">
+          <div class="thought-thumb">
+            <img src="images/thumb_kerr_blackhole-320.webp" srcset="images/thumb_kerr_blackhole-320.webp 320w, images/thumb_kerr_blackhole.webp 480w" sizes="(max-width: 768px) 100vw, 160px" width="320" height="320" alt="A spinning Kerr black hole with Bardeen's D-shaped shadow and ergosphere" loading="lazy">
+          </div>
+          <div class="thought-body">
+            <div class="thought-meta">
+              <span class="thought-date">October 31, 2026</span>
+              <span class="thought-tag">Physics</span>
+            </div>
+            <h3 class="thought-title">Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser</h3>
+            <p class="thought-excerpt">How to ray-trace a spinning Kerr black hole in real time: Boyer–Lindquist null geodesics in Mino time, Carter's constant, frame dragging, the ergosphere, and Bardeen's D-shaped shadow in GLSL.</p>
+            <span class="thought-read-time">11 min read</span>
+          </div>
+        </a>
+
+        <a href="posts/physics/traversable-wormhole-ray-tracer.html" class="thought-card reveal">
           <div class="thought-thumb">
             <img src="images/thumb_wormhole-320.webp" srcset="images/thumb_wormhole-320.webp 320w, images/thumb_wormhole.webp 480w" sizes="(max-width: 768px) 100vw, 160px" width="320" height="320" alt="A Morris–Thorne traversable wormhole crystal sphere with Einstein rings" loading="lazy">
           </div>
           <div class="thought-body">
             <div class="thought-meta">
               <span class="thought-date">October 30, 2026</span>
-              <span class="thought-tag">AI/ML</span>
+              <span class="thought-tag">Physics</span>
             </div>
             <h3 class="thought-title">Through the Wormhole: Rendering a Morris–Thorne Spacetime Bridge</h3>
             <p class="thought-excerpt">How to ray-trace a traversable Ellis–Bronnikov / Morris–Thorne wormhole in real time: two-sheeted spacetime geodesics, nested Einstein rings, and a seamless 4K 120 fps fly-through loop.</p>
@@ -160,14 +188,14 @@
           </div>
         </a>
 
-        <a href="posts/ai-ml/rendering-a-black-hole.html" class="thought-card reveal">
+        <a href="posts/physics/rendering-a-black-hole.html" class="thought-card reveal">
           <div class="thought-thumb">
             <img src="images/thumb_blackhole-320.webp" srcset="images/thumb_blackhole-320.webp 320w, images/thumb_blackhole.webp 480w" sizes="(max-width: 768px) 100vw, 160px" width="320" height="320" alt="A ray-traced black hole with a lensed accretion disk" loading="lazy">
           </div>
           <div class="thought-body">
             <div class="thought-meta">
               <span class="thought-date">October 29, 2026</span>
-              <span class="thought-tag">AI/ML</span>
+              <span class="thought-tag">Physics</span>
             </div>
             <h3 class="thought-title">Rendering Gargantua: A Real-Time Black Hole in Your Browser</h3>
             <p class="thought-excerpt">How to render an Interstellar-style black hole in real time: Schwarzschild null geodesics, a Shakura–Sunyaev disk, Doppler beaming in GLSL, and a seamless 4K 120 fps loop.</p>
@@ -217,21 +245,6 @@
             <h3 class="thought-title">Snowpiercer (2013): Movie Review</h3>
             <p class="thought-excerpt">A movie review of Snowpiercer (2013) by Bong Joon-ho.</p>
             <span class="thought-read-time">3 min read</span>
-          </div>
-        </a>
-
-        <a href="posts/ai-ml/testing-gemini-omni.html" class="thought-card reveal">
-          <div class="thought-thumb">
-            <img src="images/thumb_ai_ml-320.webp" srcset="images/thumb_ai_ml-320.webp 320w, images/thumb_ai_ml.webp 480w" sizes="(max-width: 768px) 100vw, 160px" width="320" height="320" alt="Gemini Omni video generation testing" loading="lazy">
-          </div>
-          <div class="thought-body">
-            <div class="thought-meta">
-              <span class="thought-date">June 10, 2026</span>
-              <span class="thought-tag">AI/ML</span>
-            </div>
-            <h3 class="thought-title">Testing Gemini Omni: Making a Still Bird Fly</h3>
-            <p class="thought-excerpt">A first look at Gemini Omni's image-to-video generation capabilities, evaluating biomechanical motion realism and temporal consistency.</p>
-            <span class="thought-read-time">4 min read</span>
           </div>
         </a>
 

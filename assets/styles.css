@@ -660,7 +660,7 @@ html.dark .post code {
   letter-spacing: -0.02em;
 }
 
-/* 5-card layout: first 3 in a row, last 2 spanning half each */
+/* 6-card layout: 2 rows of 3 cards (span 2 each on a 6-column grid) */
 .domain-grid {
   list-style: none;
   padding: 0;
@@ -670,6 +670,7 @@ html.dark .post code {
 }
 
 .domain-card {
+  grid-column: span 2;
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-md);
@@ -760,16 +761,6 @@ html.dark .post code {
   color: var(--text-muted);
   font-size: 0.8rem;
   line-height: 1.45;
-}
-
-.domain-card:nth-child(1),
-.domain-card:nth-child(2),
-.domain-card:nth-child(3) {
-  grid-column: span 2;
-}
-.domain-card:nth-child(4),
-.domain-card:nth-child(5) {
-  grid-column: span 3;
 }
 
 /* ============================================================
@@ -1094,11 +1085,7 @@ th {
   .domain-grid {
     grid-template-columns: 1fr;
   }
-  .domain-card:nth-child(1),
-  .domain-card:nth-child(2),
-  .domain-card:nth-child(3),
-  .domain-card:nth-child(4),
-  .domain-card:nth-child(5) {
+  .domain-card {
     grid-column: span 1;
   }
 

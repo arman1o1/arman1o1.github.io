@@ -269,7 +269,7 @@ void main(){
         float grav = sqrt(max(1.0 - 1.5/rr, 0.02));                        // E_inf factor incl. orbital gamma
         vec3 tangent = uSpin * vec3(p.z, 0.0, -p.x) / rr;
         float cosT = dot(tangent, -vel);                                   // photon dir -> observer
-        float dop  = sqrt(1.0 - beta*beta) / max(1.0 - beta*cosT, 0.12);   // local relativistic Doppler
+        float dop  = 1.0 / max(1.0 - beta*cosT, 0.12);                     // directional beaming (sqrt(1-beta^2) is in grav)
         float g = grav * mix(1.0, dop, uDoppler);
 
         float Tk = Tb * clamp(g, 0.25, 3.2);

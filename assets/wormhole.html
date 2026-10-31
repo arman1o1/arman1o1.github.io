@@ -397,15 +397,16 @@ void main(){
     // Adaptive step size: fine near the throat (r ~ b0), larger far away
     float ds = clamp(0.045 * r + 0.035 * abs(l), 0.025, 0.95);
 
-    // Velocity-Verlet / Leapfrog step on (l, vl) and midpoint step on phi
-    float acc1 = (b * b) / (r * r * r) * drdl;
-    float l_mid = l + 0.5 * vl * ds;
+    // Second-order midpoint / Velocity-Verlet step on (l, vl) and phi
+    float acc1   = (b * b) / (r * r * r) * drdl;
+    float vl_mid = vl + 0.5 * acc1 * ds;
+    float l_mid  = l + 0.5 * vl * ds;
     float r_mid, dr_mid;
     wormholeMetric(l_mid, r_mid, dr_mid);
 
     float acc_mid = (b * b) / (r_mid * r_mid * r_mid) * dr_mid;
+    l   += vl_mid * ds;
     vl  += acc_mid * ds;
-    l   += vl * ds + 0.5 * acc1 * ds * ds;
     phi += (b / (r_mid * r_mid)) * ds;
 
     // Subtle Cerenkov/caustic energy accumulation for rays grazing the unstable photon sphere (|b - b0| -> 0)
