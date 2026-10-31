@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>When Two Shadows Collide — Real-Time Binary Black Hole Ray Tracer</title>
+<style>
+  :root {
+    --bg: #07080c;
+    --panel: rgba(14, 17, 26, 0.84);
+    --border: rgba(148, 163, 184, 0.18);
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --gold: #f59e0b;
+    --violet: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  #glCanvas {
+    display: block; width: 100%; height: 100%;
+    cursor: grab; touch-action: none;
+  }
+  #glCanvas:active { cursor: grabbing; }
+
+  .hud-bar {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    pointer-events: none; z-index: 10; gap: 10px;
+  }
+  .telemetry {
+    pointer-events: auto;
+    background: var(--panel);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 12px;
+    font-size: 11.5px; line-height: 1.45; color: var(--muted);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  }
+  .telemetry strong { color: var(--text); font-weight: 600; }
+  .telemetry .val { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .telemetry .val-gold { color: var(--gold); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .ctrl-wrap {
+    pointer-events: auto;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .toggle-panel-btn {
+    background: var(--panel);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; font-weight: 600;
+    padding: 7px 12px; border-radius: 9px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    transition: border-color 0.15s;
+  }
+  .toggle-panel-btn:hover { border-color: var(--accent); }
+
+  .panel {
+    width: 295px; max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 70px); overflow-y: auto;
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+    display: flex; flex-direction: column; gap: 10px;
+    font-size: 12px;
+  }
+  .panel.hidden { display: none; }
+  .row { display: flex; flex-direction: column; gap: 4px; }
+  .row-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11.5px; }
+  .row-head span.v { color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; }
+  input[type="range"] {
+    width: 100%; accent-color: var(--accent); cursor: pointer; height: 5px;
+  }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .pill {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill.active {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: var(--accent); color: #e0f2fe;
+  }
+  .pill.gold.active {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: var(--gold); color: #fef3c7;
+  }
+  .presets { display: flex; gap: 5px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 8px; }
+  .preset-btn {
+    flex: 1 1 auto; background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border); color: var(--text);
+    font-size: 10.5px; padding: 4px 7px; border-radius: 6px; cursor: pointer;
+  }
+  .preset-btn:hover { border-color: var(--accent); }
+  @media (max-width: 560px) {
+    .telemetry { font-size: 10.5px; padding: 6px 9px; }
+    .panel { width: 255px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="glCanvas"></canvas>
+
+<div class="hud-bar">
+  <div class="telemetry" id="telemetryBox">
+    <div><strong>Majumdar–Papapetrou Binary</strong> (<i>M</i><sub>tot</sub> = 1)</div>
+    <div>Sep <i>d</i>: <span class="val" id="hudSep">3.20 M</span> · Ratio <i>q</i>: <span class="val" id="hudRatio">1.00</span></div>
+    <div><i>M</i><sub>1</sub>: <span class="val-gold" id="hudM1">0.500 M</span> · <i>M</i><sub>2</sub>: <span class="val-gold" id="hudM2">0.500 M</span></div>
+    <div><i>v</i><sub>orb</sub>: <span class="val" id="hudVorb">0.341 c</span> · <span id="hudFps">-- fps</span></div>
+  </div>
+
+  <div class="ctrl-wrap">
+    <button class="toggle-panel-btn" id="togglePanelBtn" type="button">⚙ Controls ▾</button>
+    <div class="panel hidden" id="ctrlPanel">
+      <div class="row">
+        <div class="row-head"><span>Binary Separation · <i>d</i> / <i>M</i></span><span class="v" id="valSep">3.20 M</span></div>
+        <input type="range" id="slSep" min="0.0" max="5.5" step="0.05" value="3.20" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Mass Ratio · <i>q</i> = <i>M</i><sub>2</sub> / <i>M</i><sub>1</sub></span><span class="v" id="valRatio">1.00</span></div>
+        <input type="range" id="slRatio" min="0.20" max="1.00" step="0.02" value="1.00" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Inclination · <i>θ</i><sub>0</sub></span><span class="v" id="valInc">76.0°</span></div>
+        <input type="range" id="slInc" min="8" max="89" step="0.5" value="76.0" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Camera Distance · <i>r</i><sub>0</sub> / <i>M</i></span><span class="v" id="valDist">21.0 M</span></div>
+        <input type="range" id="slDist" min="6.5" max="28.0" step="0.5" value="21.0" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Resolution Scale</span><span class="v" id="valRes">0.70×</span></div>
+        <input type="range" id="slRes" min="0.4" max="1.0" step="0.05" value="0.70" />
+      </div>
+
+      <div class="row">
+        <div class="row-head"><span>Relativistic &amp; Lensing Layers</span></div>
+        <div class="pills">
+          <button type="button" class="pill active" id="pillOrbit">Orbiting</button>
+          <button type="button" class="pill active" id="pillDisks">Accretion Disks</button>
+          <button type="button" class="pill active" id="pillDoppler">Doppler</button>
+          <button type="button" class="pill gold active" id="pillBridge">Photon Bridge</button>
+          <button type="button" class="pill" id="pillGrid">Sky Grid</button>
+        </div>
+      </div>
+
+      <div class="presets">
+        <button type="button" class="preset-btn" id="preEyebrows">Eyebrow Bridge (d=2.4M)</button>
+        <button type="button" class="preset-btn" id="preEclipse">Eclipsing Ring</button>
+        <button type="button" class="preset-btn" id="preUnequal">Unequal (q=0.32)</button>
+        <button type="button" class="preset-btn" id="preMerged">Merged (d=0)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('glCanvas');
+  const gl = canvas.getContext('webgl', { antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false });
+  if (!gl) {
+    document.body.innerHTML = '<div style="padding:2rem;color:#fff">WebGL is required to run this simulation.</div>';
+    return;
+  }
+
+  const vsSource = `
+    attribute vec2 aPos;
+    varying vec2 vUv;
+    void main() {
+      vUv = aPos * 0.5 + 0.5;
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }
+  `;
+
+  const fsSource = `
+    precision highp float;
+    varying vec2 vUv;
+
+    uniform vec2  uRes;
+    uniform float uTime;
+    uniform vec3  uCamPos;
+    uniform vec3  uCamFwd;
+    uniform vec3  uCamRight;
+    uniform vec3  uCamUp;
+    uniform vec3  uPos1;        // BH 1 position in isotropic coordinates
+    uniform vec3  uPos2;        // BH 2 position in isotropic coordinates
+    uniform vec3  uVel1;        // BH 1 orbital velocity vector
+    uniform vec3  uVel2;        // BH 2 orbital velocity vector
+    uniform float uM1;          // BH 1 mass (M1 + M2 = 1.0)
+    uniform float uM2;          // BH 2 mass
+    uniform float uSep;         // binary separation d
+    uniform float uDisks;       // 1.0 = render mini-disks + circumbinary disk
+    uniform float uDoppler;     // 1.0 = relativistic Doppler beaming
+    uniform float uBridge;      // 1.0 = highlight saddle photon bridge & eyebrow caustics
+    uniform float uGrid;        // 1.0 = overlay celestial coordinate grid
+
+    #define MAX_STEPS 200
+
+    float hash(vec3 p) {
+      p = fract(p * vec3(443.897, 441.423, 437.195));
+      p += dot(p, p.yzx + 19.19);
+      return fract((p.x + p.y) * p.z);
+    }
+
+    float noise3(vec3 x) {
+      vec3 i = floor(x);
+      vec3 f = fract(x);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+            mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+        mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+            mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+        f.z
+      );
+    }
+
+    float fbm(vec3 p) {
+      float v = 0.0;
+      float amp = 0.52;
+      for (int i = 0; i < 4; i++) {
+        v += amp * noise3(p);
+        p = p * 2.05 + vec3(11.3, 7.1, 4.9);
+        amp *= 0.48;
+      }
+      return v;
+    }
+
+    /* Tanner Helland blackbody locus */
+    vec3 blackbody(float t) {
+      t = clamp(t, 1400.0, 34000.0) / 100.0;
+      vec3 c;
+      c.r = (t <= 66.0) ? 1.0 : clamp(1.29290 * pow(t - 60.0, -0.13320), 0.0, 1.0);
+      c.g = (t <= 66.0) ? clamp(0.39008 * log(t) - 0.63184, 0.0, 1.0)
+                        : clamp(1.12989 * pow(t - 60.0, -0.07551), 0.0, 1.0);
+      c.b = (t >= 66.0) ? 1.0 : ((t <= 19.0) ? 0.0 : clamp(0.54320 * log(t - 10.0) - 1.19625, 0.0, 1.0));
+      c.b = pow(c.b, 1.22);
+      return c;
+    }
+
+    vec3 sampleSky(vec3 dir) {
+      vec3 d = normalize(dir);
+      float stars = 0.0;
+      vec3 cell = floor(d * 200.0);
+      float h = hash(cell);
+      if (h > 0.9905) {
+        vec3 center = normalize(cell + 0.5);
+        float ang = length(d - center) * 200.0;
+        stars += smoothstep(0.44, 0.0, ang) * pow((h - 0.9905) / 0.0095, 1.5) * 2.6;
+      }
+      float band = exp(-abs(d.y - 0.22 * d.z) * 4.2);
+      float dust = fbm(d * 6.0 + vec3(0.7, -1.1, 2.3));
+      vec3 nebula = mix(vec3(0.04, 0.08, 0.16), vec3(0.18, 0.08, 0.14), smoothstep(-0.4, 0.6, d.x)) * band * (0.45 + 0.9 * dust);
+      vec3 sCol = mix(vec3(1.0, 0.86, 0.70), vec3(0.70, 0.86, 1.0), fract(h * 67.3));
+      vec3 col = nebula + sCol * stars;
+
+      if (uGrid > 0.5) {
+        float theta = acos(clamp(d.y, -1.0, 1.0));
+        float phi   = atan(d.z, d.x);
+        float gLat  = smoothstep(0.94, 0.992, abs(cos(theta * 18.0)));
+        float gLon  = smoothstep(0.94, 0.992, abs(cos(phi * 18.0)));
+        col += vec3(0.22, 0.68, 0.95) * max(gLat, gLon) * 0.45;
+      }
+      return col;
+    }
+
+    // Exact Majumdar-Papapetrou potential U(x) and optical gradient g(x) = 2 * grad(U) / U
+    void mpField(vec3 p, out float U, out vec3 gVec, out float r1, out float r2) {
+      vec3 d1 = p - uPos1;
+      vec3 d2 = p - uPos2;
+      r1 = length(d1);
+      r2 = length(d2);
+      float r1Safe = max(r1, 0.02);
+      float r2Safe = max(r2, 0.02);
+      U = 1.0 + uM1 / r1Safe + uM2 / r2Safe;
+      vec3 gradU = -uM1 * d1 / (r1Safe * r1Safe * r1Safe) - uM2 * d2 / (r2Safe * r2Safe * r2Safe);
+      gVec = (2.0 / U) * gradU;
+    }
+
+    void main() {
+      vec2 ndc = vUv * 2.0 - 1.0;
+      ndc.x *= uRes.x / max(uRes.y, 1.0);
+      float fov = 0.52;
+      vec3 vel = normalize(uCamFwd + ndc.x * fov * uCamRight + ndc.y * fov * uCamUp);
+      vec3 pos = uCamPos;
+
+      vec3 accumCol = vec3(0.0);
+      float T = 1.0;
+      bool captured = false;
+
+      // Track closest approach to each black hole to highlight multi-hole saddle caustics ("eyebrows")
+      float minR1 = 100.0;
+      float minR2 = 100.0;
+      float totalTurn = 0.0;
+
+      // Capture threshold in isotropic coordinates (well inside single-hole photon sphere r_ph = M_i)
+      float cap1 = max(0.35 * uM1, 0.03);
+      float cap2 = max(0.35 * uM2, 0.03);
+
+      float r1 = 100.0, r2 = 100.0, rBary = 100.0;
+
+      for (int i = 0; i < MAX_STEPS; i++) {
+        float U;
+        vec3 gVec;
+        mpField(pos, U, gVec, r1, r2);
+
+        minR1 = min(minR1, r1 / max(uM1, 0.05));
+        minR2 = min(minR2, r2 / max(uM2, 0.05));
+
+        if (r1 < cap1) { captured = true; break; }
+        if (r2 < cap2 && uM2 > 0.001) { captured = true; break; }
+
+        rBary = length(pos);
+        if (rBary > 32.0 && dot(pos, vel) > 0.0) break;
+
+        float dMin = min(r1 - cap1, r2 - cap2);
+        float ds = clamp(0.11 * max(dMin, 0.04) * (1.0 + 0.06 * rBary), 0.016, 0.75);
+
+        vec3 prevPos = pos;
+
+        // Exact Fermat / Euler-Lagrange midpoint step for unit tangent vel = dx/ds:
+        // d(vel)/ds = gVec - dot(vel, gVec) * vel
+        vec3 acc1 = gVec - dot(vel, gVec) * vel;
+        vec3 posMid = pos + 0.5 * vel * ds;
+        vec3 velMid = normalize(vel + 0.5 * acc1 * ds);
+
+        float UMid;
+        vec3 gMid;
+        float r1m, r2m;
+        mpField(posMid, UMid, gMid, r1m, r2m);
+        vec3 accMid = gMid - dot(velMid, gMid) * velMid;
+
+        pos += velMid * ds;
+        vel = normalize(vel + accMid * ds);
+        totalTurn += length(accMid) * ds;
+
+        // Equatorial plane crossing (y = 0) for dual mini-disks + circumbinary ring
+        if (uDisks > 0.5 && prevPos.y * pos.y <= 0.0) {
+          float frac = abs(prevPos.y) / max(abs(prevPos.y) + abs(pos.y), 1e-6);
+          vec3 hit = mix(prevPos, pos, frac);
+
+          vec3 rel1 = hit - uPos1;
+          vec3 rel2 = hit - uPos2;
+          float d1 = length(rel1.xz);
+          float d2 = length(rel2.xz);
+          float dBary = length(hit.xz);
+
+          // Mini-disk inner/outer radii and circumbinary disk inner/outer radii
+          float rIn1  = 1.15 * uM1;
+          float rOut1 = max(0.42 * uSep, 1.8 * uM1);
+          float rIn2  = 1.15 * uM2;
+          float rOut2 = max(0.42 * uSep, 1.8 * uM2);
+          float rCbIn  = 0.80 * uSep + 1.50;
+          float rCbOut = rCbIn + 5.8;
+
+          float emitFlux = 0.0;
+          float baseTemp = 7200.0;
+          vec3  vGas     = vec3(0.0);
+          float turb     = 0.5;
+          float env      = 0.0;
+
+          // 1. Mini-disk around BH 1
+          if (uSep > 0.9 && d1 > rIn1 && d1 < rOut1) {
+            float x = d1 / rIn1;
+            env = smoothstep(rIn1, rIn1 * 1.12, d1) * (1.0 - smoothstep(rOut1 * 0.68, rOut1, d1));
+            emitFlux = 2.8 * pow(1.0 / x, 2.1) * env;
+            baseTemp = 9200.0 * pow(x, -0.55);
+            vec3 tang1 = normalize(vec3(-rel1.z, 0.0, rel1.x));
+            float vOrb1 = clamp(sqrt(uM1 / max(d1, 0.25)), 0.0, 0.65);
+            vGas = uVel1 + vOrb1 * tang1;
+            float ang1 = atan(rel1.z, rel1.x) - uTime * 3.5;
+            turb = fbm(vec3(d1 * 3.5, sin(ang1 * 2.0) * 1.5, cos(ang1 * 2.0) * 1.5));
+          }
+          // 2. Mini-disk around BH 2
+          else if (uSep > 0.9 && uM2 > 0.01 && d2 > rIn2 && d2 < rOut2) {
+            float x = d2 / rIn2;
+            env = smoothstep(rIn2, rIn2 * 1.12, d2) * (1.0 - smoothstep(rOut2 * 0.68, rOut2, d2));
+            emitFlux = 2.8 * pow(1.0 / x, 2.1) * env;
+            baseTemp = 8600.0 * pow(x, -0.55);
+            vec3 tang2 = normalize(vec3(-rel2.z, 0.0, rel2.x));
+            float vOrb2 = clamp(sqrt(uM2 / max(d2, 0.25)), 0.0, 0.65);
+            vGas = uVel2 + vOrb2 * tang2;
+            float ang2 = atan(rel2.z, rel2.x) - uTime * 3.8;
+            turb = fbm(vec3(d2 * 3.5, sin(ang2 * 2.0) * 1.5, cos(ang2 * 2.0) * 1.5));
+          }
+          // 3. Circumbinary accretion disk (or single disk when merged d -> 0)
+          else if (dBary > rCbIn && dBary < rCbOut) {
+            float x = dBary / rCbIn;
+            float spiralArm = 0.5 + 0.5 * cos(2.0 * (atan(hit.z, hit.x) - uTime * 0.85) - 3.8 * log(max(x, 1.0)));
+            env = smoothstep(rCbIn, rCbIn * 1.08, dBary) * (1.0 - smoothstep(rCbOut * 0.65, rCbOut, dBary));
+            emitFlux = 1.85 * pow(1.0 / x, 2.2) * pow(max(1.0 - inversesqrt(x), 0.02), 0.55) * env;
+            baseTemp = 6800.0 * pow(x, -0.58) * pow(max(1.0 - inversesqrt(x), 0.02), 0.20) * 1.75;
+            vec3 tangB = normalize(vec3(-hit.z, 0.0, hit.x));
+            float vOrbB = clamp(sqrt(1.0 / max(dBary, 0.8)), 0.0, 0.58);
+            vGas = vOrbB * tangB;
+            float angB = atan(hit.z, hit.x) - vOrbB * uTime * 2.1;
+            turb = mix(fbm(vec3(dBary * 1.35, sin(angB * 2.0) * 1.7, cos(angB * 2.0) * 1.7)), spiralArm, 0.35);
+          }
+
+          if (env > 0.005) {
+            float Uhit = 1.0 + uM1 / max(d1, 0.15) + uM2 / max(d2, 0.15);
+            float grav = 1.0 / Uhit; // exact MP static lapse sqrt(-g_tt) = 1/U
+            float beta2    = clamp(dot(vGas, vGas), 0.0, 0.78);
+            float betaCosT = dot(vGas, -vel); // beta * cos(theta), since |vel| = 1 and |vGas| = beta
+            float dop      = sqrt(1.0 - beta2) / max(1.0 - betaCosT, 0.16);
+            float g     = clamp(grav * mix(1.0, dop, uDoppler), 0.18, 3.0);
+
+            vec3 bb = blackbody(baseTemp * g);
+            bb = mix(bb, bb * vec3(1.15, 0.99, 0.76), 0.52);
+
+            float dens = env * (0.32 + 0.88 * turb);
+            float aOp  = clamp(dens * 0.95, 0.0, 0.82);
+
+            vec3 emission = bb * emitFlux * pow(g, 3.2) * (0.35 + 1.25 * turb) * 3.8;
+            accumCol += T * emission;
+            T *= (1.0 - aOp);
+            if (T < 0.03) break;
+          }
+        }
+      }
+
+      // Rays still trapped inside the local photon spheres after the step budget are captured
+      if (!captured && (r1 < 0.90 * uM1 || (uM2 > 0.001 && r2 < 0.90 * uM2))) {
+        captured = true;
+      }
+
+      if (!captured && T > 0.02) {
+        accumCol += T * sampleSky(vel);
+      }
+
+      // Highlight the binary photon bridge & Bohn et al. "eyebrow" caustics
+      // Rays that skim close to BOTH black holes (minR1 < 2.2 and minR2 < 2.2) form the figure-8 bridge & eyebrows
+      if (uBridge > 0.5 && uSep > 0.25) {
+        float dualSkim = smoothstep(2.4, 0.95, minR1) * smoothstep(2.4, 0.95, minR2);
+        float ringGlow = smoothstep(2.2, 4.8, totalTurn) * (0.35 + 0.65 * dualSkim);
+        vec3 bridgeCol = mix(vec3(0.32, 0.78, 1.0), vec3(1.0, 0.78, 0.32), dualSkim);
+        accumCol += bridgeCol * ringGlow * 0.42;
+      }
+
+      // ACES tone mapping + highlight bloom
+      vec3 hdr = accumCol;
+      vec3 bloom = max(hdr - vec3(0.75), vec3(0.0));
+      hdr += bloom * 0.45;
+      vec3 mapped = (hdr * (2.51 * hdr + 0.03)) / (hdr * (2.43 * hdr + 0.59) + 0.14);
+      mapped = pow(clamp(mapped, 0.0, 1.0), vec3(1.0 / 2.15));
+
+      gl_FragColor = vec4(mapped, 1.0);
+    }
+  `;
+
+  function compileShader(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(sh));
+    }
+    return sh;
+  }
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, vsSource));
+  gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, fsSource));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  const aPosLoc = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(aPosLoc);
+  gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+  const locs = {
+    uRes:      gl.getUniformLocation(prog, 'uRes'),
+    uTime:     gl.getUniformLocation(prog, 'uTime'),
+    uCamPos:   gl.getUniformLocation(prog, 'uCamPos'),
+    uCamFwd:   gl.getUniformLocation(prog, 'uCamFwd'),
+    uCamRight: gl.getUniformLocation(prog, 'uCamRight'),
+    uCamUp:    gl.getUniformLocation(prog, 'uCamUp'),
+    uPos1:     gl.getUniformLocation(prog, 'uPos1'),
+    uPos2:     gl.getUniformLocation(prog, 'uPos2'),
+    uVel1:     gl.getUniformLocation(prog, 'uVel1'),
+    uVel2:     gl.getUniformLocation(prog, 'uVel2'),
+    uM1:       gl.getUniformLocation(prog, 'uM1'),
+    uM2:       gl.getUniformLocation(prog, 'uM2'),
+    uSep:      gl.getUniformLocation(prog, 'uSep'),
+    uDisks:    gl.getUniformLocation(prog, 'uDisks'),
+    uDoppler:  gl.getUniformLocation(prog, 'uDoppler'),
+    uBridge:   gl.getUniformLocation(prog, 'uBridge'),
+    uGrid:     gl.getUniformLocation(prog, 'uGrid')
+  };
+
+  const state = {
+    sep: 3.20,
+    ratio: 1.00,
+    incDeg: 76.0,
+    camR: 21.0,
+    camAz: 0.0,
+    orbPhase: 1.36,
+    resScale: 0.70,
+    orbiting: true,
+    disks: 1.0,
+    doppler: 1.0,
+    bridge: 1.0,
+    grid: 0.0
+  };
+
+  function updateHUD() {
+    const m1 = 1.0 / (1.0 + state.ratio);
+    const m2 = state.ratio / (1.0 + state.ratio);
+    const d  = state.sep;
+    const omegaOrb = d > 0.1 ? Math.pow(d * d * d + 1.8, -0.5) * 1.35 : 0.0;
+    const vOrb = d * omegaOrb;
+
+    document.getElementById('hudSep').textContent = d.toFixed(2) + ' M';
+    document.getElementById('hudRatio').textContent = state.ratio.toFixed(2);
+    document.getElementById('hudM1').textContent = m1.toFixed(3) + ' M';
+    document.getElementById('hudM2').textContent = m2.toFixed(3) + ' M';
+    document.getElementById('hudVorb').textContent = vOrb.toFixed(3) + ' c';
+
+    document.getElementById('valSep').textContent = d.toFixed(2) + ' M';
+    document.getElementById('valRatio').textContent = state.ratio.toFixed(2);
+    document.getElementById('valInc').textContent = state.incDeg.toFixed(1) + '°';
+    document.getElementById('valDist').textContent = state.camR.toFixed(1) + ' M';
+    document.getElementById('valRes').textContent = state.resScale.toFixed(2) + '×';
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0) * state.resScale;
+    const w = Math.max(Math.floor(window.innerWidth * dpr), 64);
+    const h = Math.max(Math.floor(window.innerHeight * dpr), 64);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  updateHUD();
+
+  document.getElementById('togglePanelBtn').addEventListener('click', (e) => {
+    const isHidden = document.getElementById('ctrlPanel').classList.toggle('hidden');
+    e.currentTarget.textContent = isHidden ? '⚙ Controls ▾' : '⚙ Controls ▴';
+  });
+
+  document.getElementById('slSep').addEventListener('input', (e) => {
+    state.sep = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slRatio').addEventListener('input', (e) => {
+    state.ratio = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slInc').addEventListener('input', (e) => {
+    state.incDeg = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slDist').addEventListener('input', (e) => {
+    state.camR = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slRes').addEventListener('input', (e) => {
+    state.resScale = parseFloat(e.target.value);
+    resize();
+    updateHUD();
+  });
+
+  function bindPill(id, fn) {
+    const el = document.getElementById(id);
+    el.addEventListener('click', () => {
+      fn(el);
+      updateHUD();
+    });
+  }
+  bindPill('pillOrbit', (el) => {
+    state.orbiting = !state.orbiting;
+    el.classList.toggle('active', state.orbiting);
+  });
+  bindPill('pillDisks', (el) => {
+    state.disks = state.disks > 0.5 ? 0.0 : 1.0;
+    el.classList.toggle('active', state.disks > 0.5);
+  });
+  bindPill('pillDoppler', (el) => {
+    state.doppler = state.doppler > 0.5 ? 0.0 : 1.0;
+    el.classList.toggle('active', state.doppler > 0.5);
+  });
+  bindPill('pillBridge', (el) => {
+    state.bridge = state.bridge > 0.5 ? 0.0 : 1.0;
+    el.classList.toggle('active', state.bridge > 0.5);
+  });
+  bindPill('pillGrid', (el) => {
+    state.grid = state.grid > 0.5 ? 0.0 : 1.0;
+    el.classList.toggle('active', state.grid > 0.5);
+  });
+
+  document.getElementById('preEyebrows').addEventListener('click', () => {
+    state.sep = 2.60; state.ratio = 1.00; state.incDeg = 76.0; state.camR = 20.0;
+    state.orbiting = false; state.orbPhase = state.camAz + 1.48; state.bridge = 1.0;
+    document.getElementById('slSep').value = state.sep;
+    document.getElementById('slRatio').value = state.ratio;
+    document.getElementById('slInc').value = state.incDeg;
+    document.getElementById('slDist').value = state.camR;
+    document.getElementById('pillOrbit').classList.remove('active');
+    document.getElementById('pillBridge').classList.add('active');
+    updateHUD();
+  });
+  document.getElementById('preEclipse').addEventListener('click', () => {
+    state.sep = 3.40; state.ratio = 1.00; state.incDeg = 85.0; state.camR = 21.0;
+    state.orbPhase = state.camAz; state.orbiting = true; state.bridge = 1.0;
+    document.getElementById('slSep').value = state.sep;
+    document.getElementById('slRatio').value = state.ratio;
+    document.getElementById('slInc').value = state.incDeg;
+    document.getElementById('slDist').value = state.camR;
+    document.getElementById('pillOrbit').classList.add('active');
+    updateHUD();
+  });
+  document.getElementById('preUnequal').addEventListener('click', () => {
+    state.sep = 3.20; state.ratio = 0.32; state.incDeg = 75.0; state.camR = 20.5;
+    state.orbiting = true;
+    document.getElementById('slSep').value = state.sep;
+    document.getElementById('slRatio').value = state.ratio;
+    document.getElementById('slInc').value = state.incDeg;
+    document.getElementById('slDist').value = state.camR;
+    document.getElementById('pillOrbit').classList.add('active');
+    updateHUD();
+  });
+  document.getElementById('preMerged').addEventListener('click', () => {
+    state.sep = 0.0; state.ratio = 1.00; state.incDeg = 80.0; state.camR = 18.5;
+    document.getElementById('slSep').value = state.sep;
+    document.getElementById('slRatio').value = state.ratio;
+    document.getElementById('slInc').value = state.incDeg;
+    document.getElementById('slDist').value = state.camR;
+    updateHUD();
+  });
+
+  // Pointer orbit controls
+  let dragging = false;
+  let lastX = 0, lastY = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    state.camAz -= dx * 0.006;
+    state.incDeg = Math.min(Math.max(state.incDeg - dy * 0.25, 8.0), 89.0);
+    document.getElementById('slInc').value = state.incDeg;
+    updateHUD();
+  });
+  canvas.addEventListener('pointerup', () => { dragging = false; });
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    state.camR = Math.min(Math.max(state.camR + e.deltaY * 0.012, 6.5), 28.0);
+    document.getElementById('slDist').value = state.camR;
+    updateHUD();
+  }, { passive: false });
+
+  function normalize3(v) {
+    const len = Math.hypot(v[0], v[1], v[2]) || 1.0;
+    return [v[0]/len, v[1]/len, v[2]/len];
+  }
+  function cross3(a, b) {
+    return [
+      a[1]*b[2] - a[2]*b[1],
+      a[2]*b[0] - a[0]*b[2],
+      a[0]*b[1] - a[1]*b[0]
+    ];
+  }
+
+  let frames = 0, lastFpsTime = performance.now();
+  let prevTime = performance.now();
+  const t0 = performance.now();
+
+  function frame(now) {
+    const dt = Math.min((now - prevTime) * 0.001, 0.05);
+    prevTime = now;
+    const t = (now - t0) * 0.001;
+
+    frames++;
+    if (now - lastFpsTime >= 600) {
+      const fps = Math.round((frames * 1000) / (now - lastFpsTime));
+      document.getElementById('hudFps').textContent = fps + ' fps';
+      frames = 0;
+      lastFpsTime = now;
+    }
+
+    const m1 = 1.0 / (1.0 + state.ratio);
+    const m2 = state.ratio / (1.0 + state.ratio);
+    const d  = state.sep;
+
+    // Keplerian angular speed softened at small d
+    const omegaOrb = d > 0.1 ? Math.pow(d * d * d + 1.8, -0.5) * 1.35 : 0.0;
+    if (state.orbiting) {
+      state.orbPhase += omegaOrb * dt;
+    }
+
+    // Center-of-mass positions in the equatorial (x, z) plane
+    const r1Orb = d * m2;
+    const r2Orb = d * m1;
+    const cP = Math.cos(state.orbPhase);
+    const sP = Math.sin(state.orbPhase);
+
+    const pos1 = [ r1Orb * cP, 0.0,  r1Orb * sP];
+    const pos2 = [-r2Orb * cP, 0.0, -r2Orb * sP];
+
+    const v1Mag = r1Orb * omegaOrb;
+    const v2Mag = r2Orb * omegaOrb;
+    const vel1 = [-v1Mag * sP, 0.0,  v1Mag * cP];
+    const vel2 = [ v2Mag * sP, 0.0, -v2Mag * cP];
+
+    const th = state.incDeg * Math.PI / 180.0;
+    const az = state.camAz;
+    const camPos = [
+      state.camR * Math.sin(th) * Math.cos(az),
+      state.camR * Math.cos(th),
+      state.camR * Math.sin(th) * Math.sin(az)
+    ];
+    const camFwd = normalize3([-camPos[0], -camPos[1], -camPos[2]]);
+    const worldUp = [0.0, 1.0, 0.0];
+    const camRight = normalize3(cross3(camFwd, worldUp));
+    const camUp = normalize3(cross3(camRight, camFwd));
+
+    gl.uniform2f(locs.uRes, canvas.width, canvas.height);
+    gl.uniform1f(locs.uTime, t);
+    gl.uniform3fv(locs.uCamPos, camPos);
+    gl.uniform3fv(locs.uCamFwd, camFwd);
+    gl.uniform3fv(locs.uCamRight, camRight);
+    gl.uniform3fv(locs.uCamUp, camUp);
+    gl.uniform3fv(locs.uPos1, pos1);
+    gl.uniform3fv(locs.uPos2, pos2);
+    gl.uniform3fv(locs.uVel1, vel1);
+    gl.uniform3fv(locs.uVel2, vel2);
+    gl.uniform1f(locs.uM1, m1);
+    gl.uniform1f(locs.uM2, m2);
+    gl.uniform1f(locs.uSep, d);
+    gl.uniform1f(locs.uDisks, state.disks);
+    gl.uniform1f(locs.uDoppler, state.doppler);
+    gl.uniform1f(locs.uBridge, state.bridge);
+    gl.uniform1f(locs.uGrid, state.grid);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

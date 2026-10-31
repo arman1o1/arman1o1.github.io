@@ -7,6 +7,13 @@
   <updated>2026-10-31T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
   <entry>
+    <title>When Two Shadows Collide: Ray-Tracing a Binary Black Hole Merger</title>
+    <link href="https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html"/>
+    <id>https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html</id>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <summary>How to ray-trace an orbiting binary black hole merger in real time in the browser: the exact Majumdar–Papapetrou two-hole metric, Fermat's optical refractive index, figure-eight photon bridges, Bohn et al. eyebrow shadows, and circumbinary + mini-disk Doppler beaming in GLSL.</summary>
+  </entry>
+  <entry>
     <title>Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser</title>
     <link href="https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html"/>
     <id>https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html</id>
