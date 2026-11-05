@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>arman1o1 blog</title>
+  <link href="https://arman1o1.github.io/"/>
+  <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
+  <id>https://arman1o1.github.io/</id>
+  <updated>2026-11-05T00:00:00Z</updated>
+  <author><name>arman1o1</name></author>
+  <entry>
+    <title>Test-Time Compute &amp; Reasoning Verification: PRMs, MCTS &amp; Search Scaling Laws</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/llm-test-time-compute-reasoning.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/llm-test-time-compute-reasoning.html</id>
+    <updated>2026-11-05T00:00:00Z</updated>
+    <summary>A practitioner&#x27;s first-principles guide to LLM test-time compute scaling: Outcome vs. Process Reward Models (ORM vs. PRM), step-level credit assignment, Best-of-N asymptotics, and Monte Carlo Tree Search (PUCT) in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>LLM Inference &amp; Speculative Decoding: From Roofline Physics to Lossless Acceleration</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/llm-speculative-decoding-inference.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/llm-speculative-decoding-inference.html</id>
+    <updated>2026-11-04T00:00:00Z</updated>
+    <summary>A first-principles practitioner guide to LLM inference engineering: Roofline memory-bandwidth bounds, Paged KV-Cache mechanics, exact Speculative Decoding rejection sampling proof, and tree-based verification in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Does the Totem Fall? Ray-Tracing Inception’s Spinning Top in GLSL</title>
+    <link href="https://arman1o1.github.io/posts/physics/does-the-totem-fall-inception-top.html"/>
+    <id>https://arman1o1.github.io/posts/physics/does-the-totem-fall-inception-top.html</id>
+    <updated>2026-11-01T00:00:00Z</updated>
+    <summary>How to simulate and ray-trace Cobb's spinning top totem from Inception in real time: the heavy symmetric top Lagrangian, effective potential U_eff(θ), sleeping-top stability threshold, exact biconical smin SDF, and brushed pewter + 85mm bokeh in GLSL.</summary>
+  </entry>
+  <entry>
+    <title>Solving Navier–Stokes at 60 FPS: Stable Fluids &amp; Helmholtz–Hodge Projection in WebGL</title>
+    <link href="https://arman1o1.github.io/posts/physics/real-time-navier-stokes-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/real-time-navier-stokes-webgl.html</id>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <summary>How to build a real-time incompressible Navier–Stokes fluid solver in WebGL: Jos Stam's semi-Lagrangian Stable Fluids, Helmholtz–Hodge pressure projection via Jacobi ping-pong FBOs, Fedkiw vorticity confinement, and von Kármán vortex streets in GLSL.</summary>
+  </entry>
+  <entry>
+    <title>Attention Engineering: From MHA to GQA, MLA &amp; FlashAttention</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/llm-attention-engineering.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/llm-attention-engineering.html</id>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <summary>A practitioner's first-principles reference to modern LLM attention: Roofline arithmetic intensity, RoPE &amp; YaRN, Grouped-Query Attention (GQA), DeepSeek's Multi-Head Latent Attention (MLA) with matrix absorption, and FlashAttention-2 online softmax tiling in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>When Two Shadows Collide: Ray-Tracing a Binary Black Hole Merger</title>
+    <link href="https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html"/>
+    <id>https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html</id>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <summary>How to ray-trace an orbiting binary black hole merger in real time in the browser: the exact Majumdar–Papapetrou two-hole metric, Fermat's optical refractive index, figure-eight photon bridges, Bohn et al. eyebrow shadows, and circumbinary + mini-disk Doppler beaming in GLSL.</summary>
+  </entry>
+  <entry>
+    <title>Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser</title>
+    <link href="https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html"/>
+    <id>https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html</id>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <summary>How to ray-trace a spinning Kerr black hole in real time in the browser: Boyer–Lindquist null geodesics in Mino time, Carter's constant, frame dragging, the ergosphere, and Bardeen's D-shaped shadow in GLSL.</summary>
+  </entry>
+  <entry>
+    <title>Through the Wormhole: Rendering a Morris–Thorne Spacetime Bridge</title>
+    <link href="https://arman1o1.github.io/posts/physics/traversable-wormhole-ray-tracer.html"/>
+    <id>https://arman1o1.github.io/posts/physics/traversable-wormhole-ray-tracer.html</id>
+    <updated>2026-10-30T00:00:00Z</updated>
+    <summary>How to ray-trace a traversable Ellis–Bronnikov / Morris–Thorne wormhole in real time: two-sheeted spacetime geodesics, nested Einstein rings, photon-sphere caustics in GLSL, and a seamless 4K 120 fps fly-through loop.</summary>
+  </entry>
+  <entry>
+    <title>Rendering Gargantua: A Real-Time Black Hole in Your Browser</title>
+    <link href="https://arman1o1.github.io/posts/physics/rendering-a-black-hole.html"/>
+    <id>https://arman1o1.github.io/posts/physics/rendering-a-black-hole.html</id>
+    <updated>2026-10-29T00:00:00Z</updated>
+    <summary>How to render an Interstellar-style black hole in real time: Schwarzschild null geodesics, a Shakura–Sunyaev disk, Doppler beaming in GLSL, and a seamless 4K 120 fps loop, with the live simulation embedded in the post.</summary>
+  </entry>
+  <entry>
+    <title>LLM Post-Training: A Practitioner's First-Principles Guide</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/llm-post-training-methods.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/llm-post-training-methods.html</id>
+    <updated>2026-10-26T00:00:00Z</updated>
+    <summary>A practitioner's first-principles guide to LLM post-training &amp; alignment: SFT, DPO, PPO, GRPO, and Knowledge Distillation with mathematical formulation and PyTorch implementations.</summary>
+  </entry>
+  <entry>
+    <title>Into Inception, Again, Again and Again</title>
+    <link href="https://arman1o1.github.io/posts/movies/into-inception-again-again-and-again.html"/>
+    <id>https://arman1o1.github.io/posts/movies/into-inception-again-again-and-again.html</id>
+    <updated>2026-07-01T00:00:00Z</updated>
+    <summary>A rewatch review of Inception (2010) — returning to Nolan's dream heist again and again, and what each descent reveals.</summary>
+  </entry>
+  <entry>
+    <title>Snowpiercer (2013) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/snowpiercer-2013-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/snowpiercer-2013-movie-review.html</id>
+    <updated>2026-06-21T00:00:00Z</updated>
+    <summary>A review of Bong Joon-ho's Snowpiercer (2013) — class warfare fought car by car, gritty practical action, and one of the bleakest endings in sci-fi.</summary>
+  </entry>
+  <entry>
+    <title>Testing Gemini Omni: Making a Still Bird Fly</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/testing-gemini-omni.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/testing-gemini-omni.html</id>
+    <updated>2026-06-10T00:00:00Z</updated>
+    <summary>An in-depth look at Gemini Omni's video generation capabilities, testing its understanding of physics, motion, and temporal consistency.</summary>
+  </entry>
+  <entry>
+    <title>No Other Choice (2025) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/no-other-choice-2025-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/no-other-choice-2025-movie-review.html</id>
+    <updated>2026-06-10T00:00:00Z</updated>
+    <summary>A review of No Other Choice (2025) by Park Chan-wook — my third film from the director, and thoughts on where it stands.</summary>
+  </entry>
+  <entry>
+    <title>Project Hail Mary (2026) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/project-hail-mary-2026-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/project-hail-mary-2026-movie-review.html</id>
+    <updated>2026-05-15T00:00:00Z</updated>
+    <summary>A review of Project Hail Mary (2026), directed by Phil Lord and Christopher Miller and starring Ryan Gosling — first impressions of the sci-fi adaptation.</summary>
+  </entry>
+  <entry>
+    <title>Building a Custom Agent Skill: The Semantic Git-Commit Assistant</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-a-custom-skill.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-a-custom-skill.html</id>
+    <updated>2026-05-02T00:00:00Z</updated>
+    <summary>A hands-on tutorial for building a three-layered local agent skill following progressive disclosure design guidelines.</summary>
+  </entry>
+  <entry>
+    <title>Building a Custom MCP Server: The Port &amp; Process Manager</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-a-mcp.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-a-mcp.html</id>
+    <updated>2026-05-01T00:00:00Z</updated>
+    <summary>A hands-on tutorial for building a robust, cross-platform Port and Process Manager MCP server using FastMCP and psutil.</summary>
+  </entry>
+  <entry>
+    <title>Paprika (2006) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/paprika-2006-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/paprika-2006-movie-review.html</id>
+    <updated>2026-04-05T00:00:00Z</updated>
+    <summary>A review of Satoshi Kon's Paprika (2006) — a first encounter with Kon's dream-bending animation, and it left me spellbound.</summary>
+  </entry>
+  <entry>
+    <title>From Prompts to Playbooks: Distilling Anthropic’s Guide to Agent Skills</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-skills-guide.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-skills-guide.html</id>
+    <updated>2026-02-15T00:00:00Z</updated>
+    <summary>A high-density guide to building portable, production-ready AI playbooks: progressive disclosure, YAML routing, validation boundaries, and evaluation suites.</summary>
+  </entry>
+  <entry>
+    <title>Beyond Chatbots: Hard-Won Realities from OpenAI's Agent Guide</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/building-agents.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/building-agents.html</id>
+    <updated>2026-02-14T00:00:00Z</updated>
+    <summary>A high-density distillation of OpenAI's practical guide to agents: core mental models, production-grade tool design, and guardrail realities.</summary>
+  </entry>
+  <entry>
+    <title>The Future of Video: AI, Anime, and the New Cinema</title>
+    <link href="https://arman1o1.github.io/posts/photography/future-of-video-creation.html"/>
+    <id>https://arman1o1.github.io/posts/photography/future-of-video-creation.html</id>
+    <updated>2026-02-13T00:00:00Z</updated>
+    <summary>Exploring how AI video generation will revolutionize cinema, drawing parallels to the anime industry's shift to digital.</summary>
+  </entry>
+  <entry>
+    <title>The "Human" Element in a Generative World</title>
+    <link href="https://arman1o1.github.io/posts/photography/the-human-element.html"/>
+    <id>https://arman1o1.github.io/posts/photography/the-human-element.html</id>
+    <updated>2026-02-12T00:00:00Z</updated>
+    <summary>A personal essay on why taking photos manually still matters when AI can generate perfection.</summary>
+  </entry>
+  <entry>
+    <title>Inception (2010) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/inception-2010-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/inception-2010-movie-review.html</id>
+    <updated>2026-01-15T00:00:00Z</updated>
+    <summary>A review of Christopher Nolan's Inception (2010) — practical effects over CGI, dream logic, and why it rewards a rewatch every year.</summary>
+  </entry>
+  <entry>
+    <title>Setup for MCP (Model Context Protocol)</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/setup-for-mcp.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/setup-for-mcp.html</id>
+    <updated>2026-01-11T00:00:00Z</updated>
+    <summary>A comprehensive guide to setting up the Model Context Protocol (MCP) for Claude and other LLMs.</summary>
+  </entry>
+  <entry>
+    <title>The Thinking Game (2024) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/the-thinking-game-2024-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/the-thinking-game-2024-movie-review.html</id>
+    <updated>2026-01-07T00:00:00Z</updated>
+    <summary>A review of The Thinking Game (2024), Greg Kohs's DeepMind documentary — a follow-up to his AlphaGo (2017) and a look at the pursuit of AGI.</summary>
+  </entry>
+  <entry>
+    <title>Photos of 2025</title>
+    <link href="https://arman1o1.github.io/posts/photography/photos-of-2025.html"/>
+    <id>https://arman1o1.github.io/posts/photography/photos-of-2025.html</id>
+    <updated>2025-12-31T00:00:00Z</updated>
+    <summary>A collection of photographs from 2025.</summary>
+  </entry>
+  <entry>
+    <title>The Unreasonable Realness of Dreams</title>
+    <link href="https://arman1o1.github.io/posts/life/the-unreasonable-realness-of-dreams.html"/>
+    <id>https://arman1o1.github.io/posts/life/the-unreasonable-realness-of-dreams.html</id>
+    <updated>2025-11-20T00:00:00Z</updated>
+    <summary>A reflection on dreams, consciousness, and the mysteries of the mind</summary>
+  </entry>
+  <entry>
+    <title>Stalker (1979) - Movie Review</title>
+    <link href="https://arman1o1.github.io/posts/movies/stalker-1979-movie-review.html"/>
+    <id>https://arman1o1.github.io/posts/movies/stalker-1979-movie-review.html</id>
+    <updated>2025-11-18T00:00:00Z</updated>
+    <summary>A review of Stalker (1979), my second Tarkovsky after Mirror (1975) — slow cinema, the Zone, and what lingers after.</summary>
+  </entry>
+</feed>

@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spinning Up Gargantua — Real-Time Kerr Black Hole Ray Tracer</title>
+<style>
+  :root {
+    --bg: #07080c;
+    --panel: rgba(14, 17, 26, 0.82);
+    --border: rgba(148, 163, 184, 0.18);
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --gold: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  #glCanvas {
+    display: block; width: 100%; height: 100%;
+    cursor: grab; touch-action: none;
+  }
+  #glCanvas:active { cursor: grabbing; }
+
+  /* Top-left HUD badge */
+  .hud-bar {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    pointer-events: none; z-index: 10; gap: 10px;
+  }
+  .telemetry {
+    pointer-events: auto;
+    background: var(--panel);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 12px;
+    font-size: 11.5px; line-height: 1.5; color: var(--muted);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  }
+  .telemetry strong { color: var(--text); font-weight: 600; }
+  .telemetry .val { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .telemetry .val-gold { color: var(--gold); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .ctrl-wrap {
+    pointer-events: auto;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .toggle-panel-btn {
+    background: var(--panel);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; font-weight: 600;
+    padding: 7px 12px; border-radius: 9px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .toggle-panel-btn:hover { border-color: var(--accent); }
+
+  .panel {
+    width: 290px; max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 70px); overflow-y: auto;
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+    display: flex; flex-direction: column; gap: 10px;
+    font-size: 12px;
+  }
+  .panel.hidden { display: none; }
+  .row { display: flex; flex-direction: column; gap: 4px; }
+  .row-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11.5px; }
+  .row-head span.v { color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; }
+  input[type="range"] {
+    width: 100%; accent-color: var(--accent); cursor: pointer; height: 5px;
+  }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .pill {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill.active {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: var(--accent); color: #e0f2fe;
+  }
+  .pill.gold.active {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: var(--gold); color: #fef3c7;
+  }
+  .presets { display: flex; gap: 5px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 8px; }
+  .preset-btn {
+    flex: 1 1 auto; background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border); color: var(--text);
+    font-size: 10.5px; padding: 4px 7px; border-radius: 6px; cursor: pointer;
+  }
+  .preset-btn:hover { border-color: var(--accent); }
+  @media (max-width: 560px) {
+    .telemetry { font-size: 10.5px; padding: 6px 9px; }
+    .panel { width: 250px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="glCanvas"></canvas>
+
+<div class="hud-bar">
+  <div class="telemetry" id="telemetryBox">
+    <div><strong>Kerr Metric</strong> · Boyer–Lindquist (<i>M</i> = 1)</div>
+    <div>Spin <i>a/M</i>: <span class="val" id="hudSpin">+0.990</span> · <i>r</i><sub>+</sub>: <span class="val" id="hudRp">1.141 M</span></div>
+    <div><i>r</i><sub>ISCO</sub>: <span class="val-gold" id="hudIsco">1.454 M</span> · <i>r</i><sub>ph</sub><sup>−</sup>: <span class="val" id="hudRph">1.168 M</span></div>
+    <div>Ω<sub>H</sub>: <span class="val" id="hudOmega">0.434 /M</span> · <span id="hudFps">-- fps</span></div>
+  </div>
+
+  <div class="ctrl-wrap">
+    <button class="toggle-panel-btn" id="togglePanelBtn" type="button">⚙ Controls ▾</button>
+    <div class="panel hidden" id="ctrlPanel">
+      <div class="row">
+        <div class="row-head"><span>Kerr Spin · <i>a/M</i></span><span class="v" id="valSpin">0.990</span></div>
+        <input type="range" id="slSpin" min="0.0" max="0.998" step="0.002" value="0.990" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Inclination · <i>θ</i><sub>0</sub></span><span class="v" id="valInc">84.5°</span></div>
+        <input type="range" id="slInc" min="8" max="89" step="0.5" value="84.5" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Camera Distance · <i>r</i><sub>0</sub> / <i>M</i></span><span class="v" id="valDist">24.0 M</span></div>
+        <input type="range" id="slDist" min="6.5" max="32.0" step="0.5" value="24.0" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Peak Disk Temp · <i>T</i><sub>peak</sub></span><span class="v" id="valTemp">8500 K</span></div>
+        <input type="range" id="slTemp" min="4500" max="18000" step="250" value="8500" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Resolution Scale</span><span class="v" id="valRes">0.75×</span></div>
+        <input type="range" id="slRes" min="0.4" max="1.0" step="0.05" value="0.75" />
+      </div>
+
+      <div class="row">
+        <div class="row-head"><span>Relativistic &amp; Visual Layers</span></div>
+        <div class="pills">
+          <button type="button" class="pill active" id="pillPrograde">Prograde (+a)</button>
+          <button type="button" class="pill active" id="pillDoppler">Doppler</button>
+          <button type="button" class="pill gold active" id="pillErgo">Ergosphere</button>
+          <button type="button" class="pill" id="pillShadowRef">D-Shadow Guide</button>
+          <button type="button" class="pill active" id="pillOrbit">Auto-Orbit</button>
+        </div>
+      </div>
+
+      <div class="presets">
+        <button type="button" class="preset-btn" id="preGargantua">Gargantua (a=0.998)</button>
+        <button type="button" class="preset-btn" id="preSchwarz">Schwarzschild (a=0)</button>
+        <button type="button" class="preset-btn" id="prePolar">Polar Ergosphere</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('glCanvas');
+  const gl = canvas.getContext('webgl', { antialias: false, depth: false, stencil: false, preserveDrawingBuffer: location.hash === '#capture' });
+  if (!gl) {
+    document.body.innerHTML = '<div style="padding:2rem;color:#fff">WebGL is required to run this simulation.</div>';
+    return;
+  }
+
+  const vsSource = `
+    attribute vec2 aPos;
+    varying vec2 vUv;
+    void main() {
+      vUv = aPos * 0.5 + 0.5;
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }
+  `;
+
+  const fsSource = `
+    precision highp float;
+    varying vec2 vUv;
+
+    uniform vec2  uRes;
+    uniform float uTime;
+    uniform float uSpin;        // dimensionless spin magnitude a/M in [0, 0.998]
+    uniform float uPrograde;    // +1.0 for prograde disk, -1.0 for retrograde disk
+    uniform float uCamR;        // camera Boyer-Lindquist radius in M
+    uniform float uCamTheta;    // camera polar angle in radians
+    uniform float uCamPhi;      // camera azimuth in radians
+    uniform float uTpeak;       // peak disk Kelvin
+    uniform float uDoppler;     // 1.0 = full Cunningham beaming, 0.0 = symmetric film grade
+    uniform float uErgo;        // 1.0 = show ergosphere static-limit shell
+    uniform float uShadowRef;   // 1.0 = show Bardeen D-shadow vs Schwarzschild circle
+    uniform float uIsco;        // exact Bardeen-Press-Teukolsky ISCO radius in M
+    uniform float uRp;          // outer event horizon radius r_+ = 1 + sqrt(1 - a^2)
+
+    #define MAX_STEPS 240
+
+    float hash(vec3 p) {
+      p = fract(p * vec3(443.897, 441.423, 437.195));
+      p += dot(p, p.yzx + 19.19);
+      return fract((p.x + p.y) * p.z);
+    }
+
+    float noise3(vec3 x) {
+      vec3 i = floor(x);
+      vec3 f = fract(x);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+            mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+        mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+            mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+        f.z
+      );
+    }
+
+    float fbm(vec3 p) {
+      float v = 0.0;
+      float amp = 0.52;
+      for (int i = 0; i < 4; i++) {
+        v += amp * noise3(p);
+        p = p * 2.07 + vec3(13.1, 7.7, 5.3);
+        amp *= 0.48;
+      }
+      return v;
+    }
+
+    /* Tanner Helland blackbody locus */
+    vec3 blackbody(float t) {
+      t = clamp(t, 1400.0, 34000.0) / 100.0;
+      vec3 c;
+      c.r = (t <= 66.0) ? 1.0 : clamp(1.29290 * pow(t - 60.0, -0.13320), 0.0, 1.0);
+      c.g = (t <= 66.0) ? clamp(0.39008 * log(t) - 0.63184, 0.0, 1.0)
+                        : clamp(1.12989 * pow(t - 60.0, -0.07551), 0.0, 1.0);
+      c.b = (t >= 66.0) ? 1.0 : ((t <= 19.0) ? 0.0 : clamp(0.54320 * log(t - 10.0) - 1.19625, 0.0, 1.0));
+      c.b = pow(c.b, 1.22);
+      return c;
+    }
+
+    vec3 sampleStarfield(vec3 dir) {
+      vec3 d = normalize(dir);
+      float stars = 0.0;
+      vec3 cell = floor(d * 210.0);
+      float h = hash(cell);
+      if (h > 0.991) {
+        vec3 center = normalize(cell + 0.5);
+        float ang = length(d - center) * 210.0;
+        stars += smoothstep(0.42, 0.0, ang) * pow((h - 0.991) / 0.009, 1.6) * 2.4;
+      }
+      float band = exp(-abs(d.y + 0.18 * d.x) * 4.5);
+      float dust = fbm(d * 6.5 + vec3(1.2, 0.4, -0.8));
+      vec3 mw = vec3(0.05, 0.075, 0.13) * band * (0.45 + 0.85 * dust);
+      vec3 sCol = mix(vec3(1.0, 0.85, 0.68), vec3(0.72, 0.86, 1.0), fract(h * 73.1));
+      return mw + sCol * stars;
+    }
+
+    void main() {
+      vec2 ndc = (vUv * 2.0 - 1.0);
+      ndc.x *= uRes.x / max(uRes.y, 1.0);
+
+      float fov = 0.42; // tan(fov/2)
+      // Local orthonormal components (n_r, n_theta, n_phi) at camera (r0, theta0, phi0)
+      // Camera looks inward along -e_r; screen +x is +e_phi (right); screen +y is -e_theta (up toward +y spin axis)
+      vec3 localDir = normalize(vec3(-1.0, -ndc.y * fov, ndc.x * fov));
+      float nr     = localDir.x;
+      float nTheta = localDir.y;
+      float nPhi   = localDir.z;
+
+      float r0   = uCamR;
+      float th0  = uCamTheta;
+      float sin0 = sin(th0);
+      float cos0 = cos(th0);
+      float a    = uSpin;
+      float a2   = a * a;
+
+      // Impact parameters in Mino-time formulation (G = c = M = 1)
+      float bScale = sqrt(r0 * r0 + a2);
+      // Forward-photon conserved azimuthal impact parameter xi = L_z / E
+      // Left side of screen (nPhi < 0) corresponds to prograde approaching matter (xi > 0)
+      float xi     = -bScale * sin0 * nPhi;
+      float dth0   = bScale * nTheta;
+      float cot0   = cos0 / max(sin0, 1e-4);
+      // Carter's constant eta = Q / E^2
+      float eta    = dth0 * dth0 + xi * xi * cot0 * cot0 - a2 * cos0 * cos0;
+      float K      = max(eta + (xi - a) * (xi - a), 0.0);
+
+      // Initial state in Mino time tau (d/d_tau = Sigma * d/d_lambda)
+      float r    = r0;
+      float mu   = cos0; // mu = cos(theta)
+      float phi  = uCamPhi;
+
+      float Delta0 = r0 * r0 - 2.0 * r0 + a2;
+      float R0     = (r0 * r0 + a2 - a * xi) * (r0 * r0 + a2 - a * xi) - Delta0 * K;
+      float vr     = sign(nr) * sqrt(max(R0, 0.0));
+      float vmu    = -sin0 * dth0;
+
+      vec3 accumCol = vec3(0.0);
+      float T = 1.0; // transmittance
+      bool captured = false;
+
+      float rOutDisk = 12.5;
+
+      for (int i = 0; i < MAX_STEPS; i++) {
+        if (r <= uRp * 1.015) {
+          captured = true;
+          break;
+        }
+        if (r > 34.0 && vr > 0.0) {
+          break;
+        }
+
+        // Adaptive Mino-time step dtau = ds / (r^2 + a^2): fine near horizon, coarse at infinity
+        float distH = max(r - uRp, 0.025);
+        float ds    = clamp(0.15 * distH, 0.018, 0.85);
+        float dtau  = ds / (r * r + a2);
+
+        float prevR   = r;
+        float prevMu  = mu;
+        float prevPhi = phi;
+
+        // Exact Mino-time polynomial accelerations:
+        // d2r/dtau2  = 0.5 * R'(r)  = 2*r*(r^2 + a^2 - a*xi) - (r - 1)*K
+        // d2mu/dtau2 = 0.5 * M'(mu) = -(eta + xi^2 - a^2)*mu - 2*a^2*mu^3
+        float accR1  = 2.0 * r * (r * r + a2 - a * xi) - (r - 1.0) * K;
+        float accMu1 = -(eta + xi * xi - a2) * mu - 2.0 * a2 * mu * mu * mu;
+
+        float vr_mid  = vr  + 0.5 * accR1  * dtau;
+        float vmu_mid = vmu + 0.5 * accMu1 * dtau;
+        float r_mid   = max(r + 0.5 * vr * dtau, uRp * 1.005);
+        float mu_mid  = clamp(mu + 0.5 * vmu * dtau, -0.9995, 0.9995);
+
+        float accR_mid  = 2.0 * r_mid * (r_mid * r_mid + a2 - a * xi) - (r_mid - 1.0) * K;
+        float accMu_mid = -(eta + xi * xi - a2) * mu_mid - 2.0 * a2 * mu_mid * mu_mid * mu_mid;
+
+        r   += vr_mid  * dtau;
+        vr  += accR_mid  * dtau;
+        mu  = clamp(mu + vmu_mid * dtau, -0.9998, 0.9998);
+        vmu += accMu_mid * dtau;
+
+        // Azimuthal evolution including Kerr frame-dragging term a*(2*r - a*xi)/Delta
+        // (minus sign because we trace the ray backward from the camera)
+        float Delta_mid = max(r_mid * r_mid - 2.0 * r_mid + a2, 0.025);
+        float sin2_mid  = max(1.0 - mu_mid * mu_mid, 0.002);
+        float dphi_dtau = -((a * (2.0 * r_mid - a * xi)) / Delta_mid + xi / sin2_mid);
+        phi += dphi_dtau * dtau;
+
+        // Optional Ergosphere static-limit surface visualization: r_ergo(mu) = 1 + sqrt(1 - a^2 * mu^2)
+        if (uErgo > 0.5 && a > 0.05) {
+          float rErgoPrev = 1.0 + sqrt(max(1.0 - a2 * prevMu * prevMu, 0.0));
+          float rErgoCurr = 1.0 + sqrt(max(1.0 - a2 * mu * mu, 0.0));
+          if ((prevR - rErgoPrev) * (r - rErgoCurr) <= 0.0) {
+            float fracE = abs(prevR - rErgoPrev) / max(abs(prevR - rErgoPrev) + abs(r - rErgoCurr), 1e-5);
+            float muE   = mix(prevMu, mu, fracE);
+            float phiE  = mix(prevPhi, phi, fracE);
+            float latGrid = smoothstep(0.92, 0.99, abs(cos(muE * 18.0)));
+            float lonGrid = smoothstep(0.90, 0.985, cos(phiE * 12.0 + uTime * 2.2 * a));
+            float eqBelt  = exp(-muE * muE * 6.0);
+            vec3 ergoCol  = mix(vec3(0.15, 0.68, 1.0), vec3(0.65, 0.38, 1.0), eqBelt);
+            float wire    = (0.12 + 0.45 * max(latGrid, lonGrid)) * (0.35 + 0.65 * eqBelt);
+            accumCol += T * ergoCol * wire * 0.38;
+            T *= (1.0 - 0.12 * wire);
+          }
+        }
+
+        // Equatorial accretion disk crossing (mu = cos(theta) = 0)
+        if (prevMu * mu <= 0.0) {
+          float frac = abs(prevMu) / max(abs(prevMu) + abs(mu), 1e-6);
+          float rr   = mix(prevR, r, frac);
+          float phC  = mix(prevPhi, phi, frac);
+
+          if (rr > uIsco && rr < rOutDisk) {
+            float x      = rr / uIsco;
+            float x01    = (rr - uIsco) / (rOutDisk - uIsco);
+            float crease = pow(max(1.0 - inversesqrt(x), 0.0), 0.25);
+            float tprof  = pow(x, -0.55) * crease * 1.85;
+            float Tb     = uTpeak * tprof;
+
+            float innerFade = smoothstep(0.0, 0.04, x01);
+            float outerFade = 1.0 - smoothstep(0.68, 1.0, x01);
+            float env       = innerFade * outerFade;
+
+            float edge   = max(1.0 - sqrt(uIsco / max(rr, uIsco + 1e-4)), 0.0);
+            float rScale = 0.55 * uIsco + 2.2;
+            float flux   = 2.4 * pow(rScale / rr, 2.05) * pow(edge, 0.65);
+
+            // Signed spin for prograde (+a) vs retrograde (-a) orbital motion
+            float aSigned = a * uPrograde;
+            float r32     = rr * sqrt(rr);
+            // Exact Kerr Keplerian angular velocity Omega_K = sign / (r^(3/2) + a_signed)
+            // Exact Cunningham (1975) redshift + Doppler factor:
+            // g = sqrt(1 - 3/r + 2*a_signed/r^(3/2)) / (1 + (a_signed - xi*uPrograde)/r^(3/2))
+            float numG = sqrt(max(1.0 - 3.0 / rr + 2.0 * aSigned / r32, 0.015));
+            float denG = max(1.0 + (aSigned - xi * uPrograde) / r32, 0.14);
+            float gGravOnly = numG / max(1.0 + aSigned / r32, 0.2);
+            float gFull     = numG / denG;
+            float g         = mix(gGravOnly, gFull, uDoppler);
+
+            // Differential Keplerian shear turbulence in Boyer-Lindquist (rr, phC)
+            float omega = uPrograde / max(r32 + aSigned, 0.35);
+            float advPhi = phC - omega * uTime * 6.5;
+            vec3 noiseCoord = vec3(rr * 1.45, sin(advPhi * 2.0) * 1.8, cos(advPhi * 2.0) * 1.8 + rr * 0.7);
+            float n = fbm(noiseCoord);
+            float spiral = 0.5 + 0.5 * sin(advPhi * 3.0 + 4.2 * log(max(rr, 1.0)));
+            n = mix(n, spiral, 0.28);
+
+            vec3 bb = blackbody(Tb * clamp(g, 0.28, 3.4));
+            bb = mix(bb, bb * vec3(1.14, 0.99, 0.75), 0.58);
+
+            float dens = env * (0.35 + 0.95 * n);
+            float aOp  = clamp(dens * 1.22, 0.0, 0.94);
+
+            vec3 emission = bb * flux * pow(clamp(g, 0.12, 16.0), 3.4) * (0.35 + 1.30 * n) * 5.8 * env;
+            accumCol += T * emission;
+            T *= (1.0 - aOp);
+            if (T < 0.025) break;
+          }
+        }
+      }
+
+      // Rays still trapped in the photon-sphere shell after the step budget are captured
+      if (!captured && (r < 6.0 || vr <= 0.0)) {
+        captured = true;
+      }
+
+      if (!captured && T > 0.02) {
+        // Reconstruct asymptotic 3D velocity direction from outgoing orthonormal components at (r, mu, phi)
+        float sinTh = sqrt(max(1.0 - mu * mu, 1e-6));
+        float cPhi  = cos(phi), sPhi = sin(phi);
+        vec3 eR     = vec3(sinTh * cPhi,  mu,    -sinTh * sPhi);
+        vec3 eTh    = vec3(mu * cPhi,    -sinTh, -mu * sPhi);
+        vec3 ePhi   = vec3(-sPhi,         0.0,   -cPhi);
+        float vR_hat   = vr / sqrt(max(r * r - 2.0 * r + a2, 1.0));
+        float vTh_hat  = -vmu / sinTh;
+        float vPhi_hat = -xi / sinTh;
+        vec3 skyDir    = normalize(vR_hat * eR + vTh_hat * eTh + vPhi_hat * ePhi);
+        accumCol += T * sampleStarfield(skyDir);
+      }
+
+      // Optional analytical shadow comparison overlay (Schwarzschild dashed circle vs Kerr shifted D-shadow)
+      if (uShadowRef > 0.5) {
+        // Impact parameters on observer sky plane (alpha, beta_sky) in units of M
+        float alphaSky = -xi / max(sin0, 0.15);
+        float betaSky  = dth0;
+        float rSky     = sqrt(alphaSky * alphaSky + betaSky * betaSky);
+        // Finite-r0 Schwarzschild critical circle sqrt(27 * (1 - 2/r0))
+        float rSchwApp = 5.19615 * sqrt(max(1.0 - 2.0 / r0, 0.1));
+        float dSchw    = abs(rSky - rSchwApp);
+        float dash     = step(0.0, sin(atan(betaSky, alphaSky) * 18.0));
+        float ringSchw = smoothstep(0.09, 0.02, dSchw) * dash;
+        accumCol = mix(accumCol, vec3(0.35, 0.82, 1.0), ringSchw * 0.75);
+
+        // Prograde D-chord indicator at alpha = -2 M (for high spin edge-on)
+        if (a > 0.85 && abs(betaSky) < 2.4) {
+          float dChord = abs(alphaSky - (-2.0 * sin0 * sqrt(max(1.0 - 2.0 / r0, 0.1)) - 0.15));
+          float chordLine = smoothstep(0.08, 0.015, dChord);
+          accumCol = mix(accumCol, vec3(1.0, 0.75, 0.2), chordLine * 0.65);
+        }
+      }
+
+      // Soft ACES filmic tone map + warm highlight bloom approximation
+      vec3 hdr = accumCol;
+      vec3 bloom = max(hdr - vec3(0.75), vec3(0.0));
+      hdr += bloom * 0.45;
+      vec3 mapped = (hdr * (2.51 * hdr + 0.03)) / (hdr * (2.43 * hdr + 0.59) + 0.14);
+      mapped = pow(clamp(mapped, 0.0, 1.0), vec3(1.0 / 2.15));
+
+      gl_FragColor = vec4(mapped, 1.0);
+    }
+  `;
+
+  function compileShader(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(sh));
+    }
+    return sh;
+  }
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, vsSource));
+  gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, fsSource));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  const aPosLoc = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(aPosLoc);
+  gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+  const locs = {
+    uRes:       gl.getUniformLocation(prog, 'uRes'),
+    uTime:      gl.getUniformLocation(prog, 'uTime'),
+    uSpin:      gl.getUniformLocation(prog, 'uSpin'),
+    uPrograde:  gl.getUniformLocation(prog, 'uPrograde'),
+    uCamR:      gl.getUniformLocation(prog, 'uCamR'),
+    uCamTheta:  gl.getUniformLocation(prog, 'uCamTheta'),
+    uCamPhi:    gl.getUniformLocation(prog, 'uCamPhi'),
+    uTpeak:     gl.getUniformLocation(prog, 'uTpeak'),
+    uDoppler:   gl.getUniformLocation(prog, 'uDoppler'),
+    uErgo:      gl.getUniformLocation(prog, 'uErgo'),
+    uShadowRef: gl.getUniformLocation(prog, 'uShadowRef'),
+    uIsco:      gl.getUniformLocation(prog, 'uIsco'),
+    uRp:        gl.getUniformLocation(prog, 'uRp')
+  };
+
+  // Simulation state
+  const state = {
+    spin: 0.990,
+    prograde: 1.0,
+    incDeg: 84.5,
+    camR: 24.0,
+    camPhi: 0.35,
+    tPeak: 8500.0,
+    resScale: 0.75,
+    doppler: 1.0,
+    ergo: 1.0,
+    shadowRef: 0.0,
+    autoOrbit: true
+  };
+
+  // Exact Bardeen-Press-Teukolsky (1972) ISCO formula
+  function computeISCO(aMag, progradeSign) {
+    const a = Math.min(Math.max(aMag, 0.0), 0.9999);
+    const oneMinusA2 = Math.max(1.0 - a * a, 0.0);
+    const z1 = 1.0 + Math.cbrt(oneMinusA2) * (Math.cbrt(1.0 + a) + Math.cbrt(1.0 - a));
+    const z2 = Math.sqrt(3.0 * a * a + z1 * z1);
+    const root = Math.sqrt(Math.max((3.0 - z1) * (3.0 + z1 + 2.0 * z2), 0.0));
+    return 3.0 + z2 - progradeSign * root;
+  }
+
+  function computePhotonSphere(aMag, progradeSign) {
+    const a = Math.min(Math.max(aMag, 0.0), 0.9999);
+    const arg = Math.min(Math.max(-progradeSign * a, -1.0), 1.0);
+    return 2.0 * (1.0 + Math.cos((2.0 / 3.0) * Math.acos(arg)));
+  }
+
+  function updateHUD() {
+    const a = state.spin;
+    const rp = 1.0 + Math.sqrt(Math.max(1.0 - a * a, 0.0));
+    const isco = computeISCO(a, state.prograde);
+    const rph = computePhotonSphere(a, state.prograde);
+    const omegaH = a / (2.0 * rp);
+
+    document.getElementById('hudSpin').textContent = (state.prograde > 0 ? '+' : '-') + a.toFixed(3);
+    document.getElementById('hudRp').textContent = rp.toFixed(3) + ' M';
+    document.getElementById('hudIsco').textContent = isco.toFixed(3) + ' M';
+    document.getElementById('hudRph').textContent = rph.toFixed(3) + ' M';
+    document.getElementById('hudOmega').textContent = omegaH.toFixed(3) + ' /M';
+
+    document.getElementById('valSpin').textContent = a.toFixed(3);
+    document.getElementById('valInc').textContent = state.incDeg.toFixed(1) + '°';
+    document.getElementById('valDist').textContent = state.camR.toFixed(1) + ' M';
+    document.getElementById('valTemp').textContent = Math.round(state.tPeak) + ' K';
+    document.getElementById('valRes').textContent = state.resScale.toFixed(2) + '×';
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0) * state.resScale;
+    const w = Math.max(Math.floor(window.innerWidth * dpr), 64);
+    const h = Math.max(Math.floor(window.innerHeight * dpr), 64);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  updateHUD();
+
+  // UI bindings
+  document.getElementById('togglePanelBtn').addEventListener('click', (e) => {
+    const isHidden = document.getElementById('ctrlPanel').classList.toggle('hidden');
+    e.currentTarget.textContent = isHidden ? '⚙ Controls ▾' : '⚙ Controls ▴';
+  });
+
+  document.getElementById('slSpin').addEventListener('input', (e) => {
+    state.spin = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slInc').addEventListener('input', (e) => {
+    state.incDeg = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slDist').addEventListener('input', (e) => {
+    state.camR = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slTemp').addEventListener('input', (e) => {
+    state.tPeak = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slRes').addEventListener('input', (e) => {
+    state.resScale = parseFloat(e.target.value);
+    resize();
+    updateHUD();
+  });
+
+  function bindPill(id, fn) {
+    const el = document.getElementById(id);
+    el.addEventListener('click', () => {
+      fn(el);
+      updateHUD();
+    });
+  }
+  bindPill('pillPrograde', (el) => {
+    state.prograde = state.prograde > 0 ? -1.0 : 1.0;
+    el.textContent = state.prograde > 0 ? 'Prograde (+a)' : 'Retrograde (-a)';
+    el.classList.toggle('active', state.prograde > 0);
+  });
+  bindPill('pillDoppler', (el) => {
+    state.doppler = state.doppler > 0.5 ? 0.0 : 1.0;
+    el.classList.toggle('active', state.doppler > 0.5);
+  });
+  bindPill('pillErgo', (el) => {
+    state.ergo = state.ergo > 0.5 ? 0.0 : 1.0;
+    el.classList.toggle('active', state.ergo > 0.5);
+  });
+  bindPill('pillShadowRef', (el) => {
+    state.shadowRef = state.shadowRef > 0.5 ? 0.0 : 1.0;
+    el.classList.toggle('active', state.shadowRef > 0.5);
+  });
+  bindPill('pillOrbit', (el) => {
+    state.autoOrbit = !state.autoOrbit;
+    el.classList.toggle('active', state.autoOrbit);
+  });
+
+  document.getElementById('preGargantua').addEventListener('click', () => {
+    state.spin = 0.998; state.prograde = 1.0; state.incDeg = 84.5; state.camR = 24.0;
+    document.getElementById('slSpin').value = state.spin;
+    document.getElementById('slInc').value = state.incDeg;
+    document.getElementById('slDist').value = state.camR;
+    const p = document.getElementById('pillPrograde');
+    p.textContent = 'Prograde (+a)'; p.classList.add('active');
+    updateHUD();
+  });
+  document.getElementById('preSchwarz').addEventListener('click', () => {
+    state.spin = 0.0; state.prograde = 1.0; state.incDeg = 83.0; state.camR = 25.0;
+    document.getElementById('slSpin').value = state.spin;
+    document.getElementById('slInc').value = state.incDeg;
+    document.getElementById('slDist').value = state.camR;
+    updateHUD();
+  });
+  document.getElementById('prePolar').addEventListener('click', () => {
+    state.spin = 0.990; state.incDeg = 32.0; state.camR = 19.0; state.ergo = 1.0;
+    document.getElementById('slSpin').value = state.spin;
+    document.getElementById('slInc').value = state.incDeg;
+    document.getElementById('slDist').value = state.camR;
+    document.getElementById('pillErgo').classList.add('active');
+    updateHUD();
+  });
+
+  // Pointer orbit controls
+  let dragging = false;
+  let lastX = 0, lastY = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    state.camPhi -= dx * 0.0055;
+    state.incDeg = Math.min(Math.max(state.incDeg - dy * 0.25, 8.0), 89.0);
+    document.getElementById('slInc').value = state.incDeg;
+    updateHUD();
+  });
+  canvas.addEventListener('pointerup', () => { dragging = false; });
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    state.camR = Math.min(Math.max(state.camR + e.deltaY * 0.012, 6.5), 32.0);
+    document.getElementById('slDist').value = state.camR;
+    updateHUD();
+  }, { passive: false });
+
+  // Render loop
+  let frames = 0, lastFpsTime = performance.now();
+  const t0 = performance.now();
+
+  function frame(now) {
+    const t = (now - t0) * 0.001;
+    frames++;
+    if (now - lastFpsTime >= 600) {
+      const fps = Math.round((frames * 1000) / (now - lastFpsTime));
+      document.getElementById('hudFps').textContent = fps + ' fps';
+      frames = 0;
+      lastFpsTime = now;
+    }
+
+    if (state.autoOrbit && !dragging) {
+      state.camPhi += 0.0022;
+    }
+
+    const a = state.spin;
+    const rp = 1.0 + Math.sqrt(Math.max(1.0 - a * a, 0.0));
+    const isco = computeISCO(a, state.prograde);
+
+    gl.uniform2f(locs.uRes, canvas.width, canvas.height);
+    gl.uniform1f(locs.uTime, t);
+    gl.uniform1f(locs.uSpin, a);
+    gl.uniform1f(locs.uPrograde, state.prograde);
+    gl.uniform1f(locs.uCamR, state.camR);
+    gl.uniform1f(locs.uCamTheta, state.incDeg * Math.PI / 180.0);
+    gl.uniform1f(locs.uCamPhi, state.camPhi);
+    gl.uniform1f(locs.uTpeak, state.tPeak);
+    gl.uniform1f(locs.uDoppler, state.doppler);
+    gl.uniform1f(locs.uErgo, state.ergo);
+    gl.uniform1f(locs.uShadowRef, state.shadowRef);
+    gl.uniform1f(locs.uIsco, isco);
+    gl.uniform1f(locs.uRp, rp);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

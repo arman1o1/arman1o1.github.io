@@ -1,0 +1,8 @@
+.agents/
+*.zip
+GEMINI.md
+OPTIMIZATION_PLAN.md
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Does the Totem Fall? — Real-Time Inception Spinning Top Simulation in WebGL</title>
+<style>
+:root {
+    --sim-bg: #14110d;
+    --sim-panel: rgba(18, 15, 12, 0.85);
+    --sim-border: rgba(226, 192, 141, 0.22);
+    --sim-accent: #f59e0b;
+    --sim-gold: #fbbf24;
+    --sim-text: #f8fafc;
+    --sim-muted: #cbd5e1;
+}
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--sim-bg);
+    color: var(--sim-text);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.sim-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    background: #14110d;
+}
+
+.sim-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: none;
+}
+.sim-canvas:active {
+    cursor: grabbing;
+}
+
+/* Film Reference Overlay Wipe */
+.ref-overlay-pane {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+    overflow: hidden;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 0.05s linear;
+}
+
+.ref-overlay-pane img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 49%;
+    filter: contrast(1.02);
+}
+
+.ref-split-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(251, 191, 36, 0.88);
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
+    z-index: 4;
+    pointer-events: none;
+    display: none;
+}
+
+.ref-split-tag {
+    position: absolute;
+    top: 52px;
+    left: 14px;
+    background: rgba(15, 13, 10, 0.82);
+    color: #fde68a;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    backdrop-filter: blur(8px);
+}
+
+/* Top HUD bar */
+.sim-hud-top {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    gap: 8px;
+    flex-wrap: wrap;
+    z-index: 6;
+}
+
+.sim-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.sim-pill {
+    background: rgba(16, 14, 11, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 192, 141, 0.22);
+    color: #f3e5cf;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.01em;
+}
+
+.sim-pill .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+}
+
+.sim-pill .dot.dream {
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+}
+
+.sim-pill .dot.fall {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+.sim-actions {
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+    flex-wrap: wrap;
+}
+
+.sim-btn {
+    background: rgba(18, 15, 12, 0.76);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 192, 141, 0.26);
+    color: #f5e8d3;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.sim-btn:hover {
+    background: rgba(217, 155, 78, 0.24);
+    border-color: rgba(245, 189, 107, 0.6);
+    color: #fff;
+}
+
+.sim-btn.active {
+    background: rgba(217, 155, 78, 0.34);
+    border-color: #f59e0b;
+    color: #fff;
+}
+
+#btn-controls-toggle {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: rgba(245, 158, 11, 0.55);
+    color: #fef3c7;
+}
+
+#btn-controls-toggle:hover {
+    background: rgba(245, 158, 11, 0.38);
+    border-color: #fbbf24;
+    color: #fff;
+}
+
+#btn-controls-toggle.active {
+    background: #f59e0b;
+    border-color: #fbbf24;
+    color: #14110d;
+}
+
+/* Controls Drawer */
+.sim-drawer {
+    position: absolute;
+    top: 48px;
+    right: 12px;
+    width: 296px;
+    max-width: calc(100% - 24px);
+    max-height: calc(100% - 104px);
+    overflow-y: auto;
+    background: rgba(14, 12, 9, 0.90);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(226, 192, 141, 0.26);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #efe3cf;
+    font-size: 12px;
+    z-index: 10;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.58);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.sim-drawer.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+}
+
+.sim-control-row {
+    margin-bottom: 9px;
+}
+
+.sim-control-row:last-child {
+    margin-bottom: 0;
+}
+
+.sim-control-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #d6c3a5;
+    margin-bottom: 3px;
+    font-weight: 500;
+}
+
+.sim-control-label span.val {
+    color: #fbbf24;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sim-slider {
+    width: 100%;
+    accent-color: #f59e0b;
+    cursor: pointer;
+    height: 5px;
+}
+
+.sim-toggles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sim-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #dfd0b8;
+    cursor: pointer;
+}
+
+.sim-check input {
+    accent-color: #f59e0b;
+    cursor: pointer;
+}
+
+/* Nutation & Phase Telemetry Canvas */
+.nutation-box {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(14, 12, 9, 0.76);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 192, 141, 0.24);
+    border-radius: 10px;
+    padding: 7px 9px;
+    pointer-events: none;
+    z-index: 5;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.nutation-box.hidden {
+    display: none;
+}
+
+.hud-subpanel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.nutation-title {
+    font-size: 9px;
+    color: #d1bb98;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+    font-weight: 600;
+}
+
+#nutation-canvas {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    border: 1px dashed rgba(226, 192, 141, 0.24);
+    background: rgba(0, 0, 0, 0.25);
+}
+
+#potential-canvas {
+    width: 96px;
+    height: 78px;
+    border-radius: 6px;
+    border: 1px solid rgba(226, 192, 141, 0.18);
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* Presets at bottom left */
+.sim-presets {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    gap: 8px;
+    flex-wrap: wrap;
+    z-index: 6;
+}
+
+.sim-preset-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 700px) {
+    .nutation-box {
+        bottom: 52px;
+        padding: 5px 7px;
+    }
+    #nutation-canvas {
+        width: 60px;
+        height: 60px;
+    }
+    #potential-canvas {
+        width: 74px;
+        height: 60px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="sim-wrapper" id="totem-sim-container">
+    <canvas id="totem-gl-canvas" class="sim-canvas" aria-label="Interactive WebGL ray-traced Inception spinning top simulation"></canvas>
+
+    <div class="ref-overlay-pane" id="ref-overlay-pane">
+        <img src="../images/inception_top_reference.webp" alt="Inception (2010) 35mm reference frame" />
+        <div class="ref-split-tag">35mm Film Frame (2010)</div>
+    </div>
+    <div class="ref-split-line" id="ref-split-line"></div>
+
+    <div class="sim-hud-top">
+        <div class="sim-badges">
+            <div class="sim-pill" title="Current dynamical state of Cobb's totem">
+                <span class="dot" id="hud-state-dot"></span>
+                <span id="hud-state-text">Cut-to-Black Wobble</span>
+            </div>
+            <div class="sim-pill" title="Axial spin ω₃ vs critical sleeping-top threshold ω_crit">
+                <span>ω₃ / ω<sub>crit</sub>: <strong id="hud-omega-ratio">1.14</strong></span>
+            </div>
+            <div class="sim-pill" title="Instantaneous nutation tilt angle θ">
+                <span>Tilt θ: <strong id="hud-tilt-deg">1.8°</strong></span>
+            </div>
+        </div>
+
+        <div class="sim-actions">
+            <button type="button" class="sim-btn" id="btn-nudge" title="Tap the top laterally to excite nutation loops">👉 Flick Top</button>
+            <button type="button" class="sim-btn" id="btn-relaunch" title="Re-spin the totem from upright">↻ Re-Spin</button>
+            <button type="button" class="sim-btn" id="btn-controls-toggle" title="Open physics and shader controls">⚙ Controls</button>
+        </div>
+    </div>
+
+    <div class="sim-drawer hidden" id="sim-controls-drawer">
+        <div class="sim-control-row">
+            <div class="sim-control-label">
+                <span>Spin Rate · ω₃ (rad/s)</span>
+                <span class="val" id="val-spin">103</span>
+            </div>
+            <input type="range" class="sim-slider" id="slider-spin" min="15" max="240" step="1" value="103">
+        </div>
+
+        <div class="sim-control-row">
+            <div class="sim-control-label">
+                <span>Initial Tilt · θ₀ (deg)</span>
+                <span class="val" id="val-tilt">1.8°</span>
+            </div>
+            <input type="range" class="sim-slider" id="slider-tilt" min="0.2" max="32" step="0.1" value="1.8">
+        </div>
+
+        <div class="sim-control-row">
+            <div class="sim-control-label">
+                <span>Pivot &amp; Air Friction · γ</span>
+                <span class="val" id="val-friction">0.015</span>
+            </div>
+            <input type="range" class="sim-slider" id="slider-friction" min="0" max="0.18" step="0.005" value="0.015">
+        </div>
+
+        <div class="sim-control-row">
+            <div class="sim-control-label">
+                <span>Pewter Brush Roughness</span>
+                <span class="val" id="val-roughness">0.22</span>
+            </div>
+            <input type="range" class="sim-slider" id="slider-roughness" min="0.06" max="0.55" step="0.01" value="0.22">
+        </div>
+
+        <div class="sim-control-row">
+            <div class="sim-control-label">
+                <span>35mm Film Grain &amp; Grade</span>
+                <span class="val" id="val-grain">0.72</span>
+            </div>
+            <input type="range" class="sim-slider" id="slider-grain" min="0" max="1" step="0.05" value="0.72">
+        </div>
+
+        <div class="sim-control-row">
+            <div class="sim-control-label">
+                <span>🎞️ Film Reference Split Wipe</span>
+                <span class="val" id="val-split">0%</span>
+            </div>
+            <input type="range" class="sim-slider" id="slider-split" min="0" max="100" step="1" value="0">
+        </div>
+
+        <div class="sim-toggles">
+            <label class="sim-check">
+                <input type="checkbox" id="chk-dream-lock">
+                <span>Dream Lock (γ=0)</span>
+            </label>
+            <label class="sim-check">
+                <input type="checkbox" id="chk-dof" checked>
+                <span>Shallow DoF</span>
+            </label>
+            <label class="sim-check">
+                <input type="checkbox" id="chk-audio">
+                <span>Totem Audio</span>
+            </label>
+            <label class="sim-check">
+                <input type="checkbox" id="chk-trace" checked>
+                <span>Phase HUD</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="nutation-box" id="nutation-hud">
+        <div class="hud-subpanel">
+            <div class="nutation-title">Tip Axis (n̂₃)</div>
+            <canvas id="nutation-canvas" width="120" height="120"></canvas>
+        </div>
+        <div class="hud-subpanel">
+            <div class="nutation-title">U<sub>eff</sub>(θ) Well</div>
+            <canvas id="potential-canvas" width="144" height="120"></canvas>
+        </div>
+    </div>
+
+    <div class="sim-presets">
+        <div class="sim-preset-group">
+            <button type="button" class="sim-btn active" id="preset-wobble">🎬 Cut-to-Black Wobble</button>
+            <button type="button" class="sim-btn" id="preset-dream">♾️ Limbo Dream (γ = 0)</button>
+            <button type="button" class="sim-btn" id="preset-cusp">➰ Cusp Nutation</button>
+            <button type="button" class="sim-btn" id="preset-reality">🍂 Reality Topple</button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+
+(function() {
+    const canvas = document.getElementById('totem-gl-canvas');
+    if (!canvas) return;
+    const gl = canvas.getContext('webgl', { antialias: false, powerPreference: 'high-performance' });
+    if (!gl) return;
+
+    canvas.addEventListener('webglcontextlost', function(e) {
+        e.preventDefault();
+        console.warn('WebGL context lost');
+    }, false);
+    canvas.addEventListener('webglcontextrestored', function() {
+        console.info('WebGL context restored');
+        resize();
+    }, false);
+
+    const vsSource = `
+        attribute vec2 aPos;
+        varying vec2 vUv;
+        void main() {
+            vUv = aPos * 0.5 + 0.5;
+            gl_Position = vec4(aPos, 0.0, 1.0);
+        }
+    `;
+
+    const fsSource = `
+        precision highp float;
+        varying vec2 vUv;
+
+        uniform vec2 uRes;
+        uniform float uTime;
+        uniform vec3 uCamPos;
+        uniform vec3 uCamTarget;
+        uniform mat3 uTopRot;     // Columns: body X, body Y (figure axis), body Z in world space
+        uniform vec3 uPivotPos;   // World position of the bottom contact tip
+        uniform float uSpinPhase; // Accumulated axial spin angle psi
+        uniform float uOmega;     // Current axial spin rate
+        uniform float uRoughness;
+        uniform float uGrain;
+        uniform float uDofOn;
+
+        float hash12(vec2 p) {
+            vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+            p3 += dot(p3, p3.yzx + 33.33);
+            return fract((p3.x + p3.y) * p3.z);
+        }
+
+        float noise2D(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            float a = hash12(i);
+            float b = hash12(i + vec2(1.0, 0.0));
+            float c = hash12(i + vec2(0.0, 1.0));
+            float d = hash12(i + vec2(1.0, 1.0));
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        float fbmWood(vec2 p) {
+            float v = 0.0;
+            float a = 0.5;
+            for (int i = 0; i < 4; i++) {
+                v += a * noise2D(p);
+                p = p * 2.03 + vec2(13.1, 7.7);
+                a *= 0.48;
+            }
+            return v;
+        }
+
+        // C2 cubic polynomial smooth minimum (Inigo Quilez)
+        float smin(float a, float b, float k) {
+            float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+            return mix(b, a, h) - k * h * (1.0 - h);
+        }
+
+        // Exact 3D Capped Cone SDF along Y axis in the meridian half-plane (r, y)
+        float sdCappedConeY(float r, float y, float h, float r1, float r2) {
+            vec2 q = vec2(r, y);
+            vec2 k1 = vec2(r2, h);
+            vec2 k2 = vec2(r2 - r1, 2.0 * h);
+            vec2 ca = vec2(q.x - min(q.x, (q.y < 0.0) ? r1 : r2), abs(q.y) - h);
+            vec2 cb = q - k1 + k2 * clamp(dot(k1 - q, k2) / dot(k2, k2), 0.0, 1.0);
+            float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+            return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
+        }
+
+        // Exact Euclidean SDF for Cobb's Inception Totem via smooth-filleted biconical revolution primitives
+        float sdTotemBody(vec3 pBody) {
+            float r = length(pBody.xz);
+            float y = pBody.y;
+            float yRim = 0.385;
+
+            // Fast bounding cylinder-box reject
+            if (r > 0.58 || y < -0.08 || y > 1.18) {
+                vec2 dBox = vec2(r - 0.48, abs(y - 0.55) - 0.56);
+                return length(max(dBox, 0.0)) + min(max(dBox.x, dBox.y), 0.0);
+            }
+
+            // 1. Biconical equatorial saucer tapering smoothly all the way to the outer rim at R_rim = 0.456
+            float dSaucerUp  = sdCappedConeY(r, y - (yRim + 0.052), 0.052, 0.446, 0.145) - 0.011;
+            float dSaucerLow = sdCappedConeY(r, y - (yRim - 0.042), 0.042, 0.165, 0.446) - 0.011;
+            float dSaucer    = smin(dSaucerUp, dSaucerLow, 0.016);
+
+            // 2. Upper slender spindle from y = yRim (radius 0.112) to y = 1.06 (radius 0.017)
+            float hUp = 0.338; // spans [0.385, 1.061]
+            float dSpindle = sdCappedConeY(r, y - (yRim + hUp), hUp, 0.112, 0.017) - 0.006;
+
+            // Smooth concave tractrix fillet joining the upper saucer slope into the vertical spindle
+            float dUpper = smin(dSaucer, dSpindle, 0.185);
+
+            // 3. Lower teardrop conical belly + rounded parabolic contact tip from y = 0.038 to y = yRim
+            float hLow = 0.172; // spans [0.038, 0.382]
+            float dLowerCone = sdCappedConeY(r, y - (0.038 + hLow), hLow, 0.008, 0.162) - 0.038;
+
+            // Smoothly blend the lower conical belly into the underside of the saucer
+            float dTotem = smin(dUpper, max(dLowerCone, y - (yRim + 0.01)), 0.105);
+
+            return dTotem;
+        }
+
+        vec3 toBody(vec3 pWorld) {
+            vec3 d = pWorld - uPivotPos;
+            return vec3(
+                dot(d, uTopRot[0]),
+                dot(d, uTopRot[1]),
+                dot(d, uTopRot[2])
+            );
+        }
+
+        float mapTotem(vec3 pWorld) {
+            return sdTotemBody(toBody(pWorld));
+        }
+
+        vec3 calcNormal(vec3 pWorld) {
+            vec2 e = vec2(0.0005, -0.0005);
+            return normalize(
+                e.xyy * mapTotem(pWorld + e.xyy) +
+                e.yyx * mapTotem(pWorld + e.yyx) +
+                e.yxy * mapTotem(pWorld + e.yxy) +
+                e.xxx * mapTotem(pWorld + e.xxx)
+            );
+        }
+
+        // Studio & window lighting calibrated to the 2010 Inception close-up reference frame (0.jpg)
+        vec3 shadeTotem(vec3 pos, vec3 nor, vec3 rd) {
+            vec3 pBody = toBody(pos);
+            float H = 1.07;
+            float u = clamp(pBody.y / H, 0.0, 1.0);
+            float r = length(pBody.xz);
+            float angle = atan(pBody.z, pBody.x) + uSpinPhase;
+
+            // Fine concentric lathe-turned brushed metal micro-texture + spin motion blur
+            float motionBlur = 1.0 / (1.0 + 0.05 * uOmega);
+            float fineBrush = (noise2D(vec2(pBody.y * 290.0 + r * 240.0, 1.5)) - 0.5) * 0.014;
+            float spinStreak = sin(angle * 7.0 + pBody.y * 18.0) * 0.008 * motionBlur;
+
+            vec3 bodyUp = uTopRot[1];
+            vec3 N = normalize(nor + bodyUp * (fineBrush + spinStreak) * (uRoughness / 0.22));
+            vec3 V = -rd;
+            float NoV = clamp(dot(N, V), 0.001, 1.0);
+
+            float rough = clamp(uRoughness, 0.06, 0.55);
+            // World-space radial offset from the totem's symmetry axis so studio lights stay fixed in the room!
+            vec3 pAxisRel = pos - (uPivotPos + bodyUp * pBody.y);
+            float xNorm = pAxisRel.x / max(r, 0.016);
+            float nUp = dot(N, bodyUp);
+
+            // 1. Broad studio softbox reflection on the upper-right concave horn & shoulder (matches 0.jpg)
+            vec3 keyDir = normalize(vec3(0.60, 0.68, 0.42));
+            vec3 Hkey = normalize(keyDir + V);
+            float upperMask = smoothstep(-0.03, 0.11, nUp);
+            float rightSide = smoothstep(-0.16, 0.45, xNorm);
+
+            float keyWrap = pow(max(dot(N, keyDir), 0.0), 1.65) * upperMask * rightSide;
+            float keySpec = pow(max(dot(N, Hkey), 0.0), mix(90.0, 14.0, rough)) * upperMask * (0.22 + 0.78 * rightSide);
+
+            // 2. Left upper shoulder warm pewter studio fill reflection
+            vec3 fillDir = normalize(vec3(-0.62, 0.66, 0.42));
+            vec3 Hfill = normalize(fillDir + V);
+            float leftSide = smoothstep(0.16, -0.45, xNorm);
+            float fillWrap = pow(max(dot(N, fillDir), 0.0), 1.85) * upperMask * leftSide;
+            float fillSpec = pow(max(dot(N, Hfill), 0.0), mix(70.0, 11.0, rough)) * upperMask * leftSide * 0.45;
+
+            // 3. Grazing Fresnel rim highlights along the outer left & right edges of the flange and stem
+            float fresnel = pow(1.0 - NoV, 3.0);
+            float rimRight = max(N.x, 0.0) * fresnel * smoothstep(-0.18, 0.22, N.y);
+            float rimLeft  = max(-N.x, 0.0) * fresnel * smoothstep(-0.18, 0.22, N.y);
+
+            // 4. Lower conical belly: dark overhang directly beneath the flange lip, warm wood-table reflection on the flanks,
+            // and deep charcoal down the central spine and bottom tip
+            float lowerMask = smoothstep(0.02, -0.20, nUp);
+            float flankMask = 1.0 - pow(clamp(N.z, 0.0, 1.0), 1.35);
+            float underLipShadow = smoothstep(0.35, 0.25, u) * smoothstep(0.02, 0.11, u);
+            float lowerBounce = lowerMask * flankMask * underLipShadow;
+
+            // 5. Crisp dark equatorial bevel line right along the outer rim (where N.y crosses 0)
+            float equatorLine = 1.0 - 0.74 * exp(-pow(nUp / 0.11, 2.0)) * smoothstep(0.28, 0.42, r);
+
+            // Deep blackened pewter base
+            vec3 col = vec3(0.018, 0.016, 0.015);
+
+            vec3 champagneKey = vec3(0.96, 0.91, 0.79);
+            col += champagneKey * (keyWrap * 0.92 + keySpec * 0.65);
+
+            vec3 pewterFill = vec3(0.74, 0.68, 0.58);
+            col += pewterFill * (fillWrap * 0.56 + fillSpec * 0.34);
+
+            col += vec3(0.92, 0.86, 0.74) * (rimRight * 0.62 + rimLeft * 0.42);
+
+            // Warm sunlit wood bounce on the underside flanks
+            col += vec3(0.48, 0.41, 0.33) * lowerBounce * 0.78;
+
+            col *= equatorLine;
+            col *= smoothstep(0.0, 0.04, u) * 0.90 + 0.10;
+
+            return col;
+        }
+
+        // Shallow-DoF domain-warped wooden tabletop & bokeh background
+        vec3 shadeTableAndBg(vec3 ro, vec3 rd, vec2 uv) {
+            vec3 bgTop = vec3(0.65, 0.57, 0.48);
+            vec3 bgMid = vec3(0.74, 0.68, 0.57);
+            vec3 bgBot = vec3(0.67, 0.60, 0.50);
+            vec3 baseBokeh = mix(bgBot, bgMid, smoothstep(-0.48, -0.05, uv.y));
+            baseBokeh = mix(baseBokeh, bgTop, smoothstep(-0.05, 0.48, uv.y));
+
+            float bokehCloud = (fbmWood(uv * vec2(2.8, 5.5)) - 0.5) * 0.055;
+            vec3 col = baseBokeh + vec3(bokehCloud);
+
+            if (rd.y < -0.0001) {
+                float tTable = -ro.y / rd.y;
+                vec3 pos = ro + rd * tTable;
+
+                float horizonBlend = exp(-max(tTable - 6.0, 0.0) * 0.25);
+                float dz = pos.z - uPivotPos.z;
+                float focusSharpness = exp(-dz * dz * 4.5 * uDofOn) * horizonBlend;
+
+                // Organic 2D domain-warped weathered oak/walnut tabletop texture
+                vec2 warp = vec2(fbmWood(pos.xz * 1.4), fbmWood(pos.xz * 1.4 + vec2(5.2, 1.3)));
+                vec2 woodUv = (pos.xz + 0.12 * warp) * vec2(2.2, 9.5);
+                float g1 = fbmWood(woodUv * 0.65);
+                float g2 = noise2D(woodUv * vec2(1.4, 3.0) + vec2(g1 * 1.8, 0.0));
+                float poreMask = smoothstep(0.64, 0.86, noise2D((pos.xz + 0.06 * warp) * vec2(3.8, 26.0)));
+                float localVariation = fbmWood(pos.xz * vec2(1.2, 2.5));
+
+                float fineTex = ((g1 - 0.5) * 0.10 + (g2 - 0.5) * 0.06 - poreMask * 0.12 * localVariation);
+                col += vec3(fineTex) * focusSharpness;
+
+                // Dual-zone contact shadow & soft reflection beneath the totem tip
+                vec2 tiltShift = uTopRot[1].xz * 0.18;
+                vec2 dPiv = pos.xz - uPivotPos.xz;
+                vec2 dFlange = pos.xz - (uPivotPos.xz + tiltShift);
+
+                float rTip = length(dPiv * vec2(1.0, 1.85));
+                float tipShadow = 1.0 - 0.84 * exp(-rTip * rTip / 0.0055);
+
+                float rPen = length(dFlange * vec2(0.92, 1.65));
+                float penumbra = 1.0 - 0.52 * exp(-rPen * rPen / 0.082);
+
+                float reflX = pos.x - (uPivotPos.x + tiltShift.x * 0.5);
+                float reflZ = pos.z - uPivotPos.z;
+                float reflMask = exp(-reflX * reflX / 0.035) * exp(-pow((reflZ - 0.14) / 0.25, 2.0)) * smoothstep(-0.04, 0.06, reflZ);
+                float reflDark = 1.0 - 0.36 * reflMask;
+
+                col *= mix(1.0, tipShadow * penumbra * reflDark, horizonBlend);
+            }
+
+            return col;
+        }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+
+            vec3 fwd = normalize(uCamTarget - uCamPos);
+            vec3 right = normalize(cross(fwd, vec3(0.0, 1.0, 0.0)));
+            vec3 up = cross(right, fwd);
+            float fov = 0.32;
+            vec3 rd = normalize(fwd + fov * (uv.x * right + uv.y * up));
+            vec3 ro = uCamPos;
+
+            vec3 col = shadeTableAndBg(ro, rd, uv);
+
+            // Ray-march the exact totem SDF
+            float t = 1.2;
+            float tMax = 9.0;
+            bool hitTotem = false;
+
+            for (int i = 0; i < 110; i++) {
+                vec3 p = ro + rd * t;
+                float d = mapTotem(p);
+                if (d < 0.0005) {
+                    hitTotem = true;
+                    break;
+                }
+                t += d * 0.85;
+                if (t > tMax) break;
+            }
+
+            float tTable = (rd.y < -0.0001) ? (-ro.y / rd.y) : 1e6;
+            if (hitTotem && t < tTable) {
+                vec3 pos = ro + rd * t;
+                vec3 nor = calcNormal(pos);
+                col = shadeTotem(pos, nor, rd);
+            }
+
+            // 35mm Kodak Vision3 film grain & warm photochemical contrast curve
+            col = smoothstep(-0.015, 1.015, col);
+            float g1 = hash12(gl_FragCoord.xy + fract(uTime * 23.7) * 100.0) - 0.5;
+            float g2 = noise2D(gl_FragCoord.xy * 0.65 + fract(uTime * 11.3) * 50.0) - 0.5;
+            float filmGrain = (g1 * 0.65 + g2 * 0.35) * 0.095 * uGrain;
+            col += vec3(filmGrain, filmGrain * 0.94, filmGrain * 0.85);
+
+            col *= 1.0 - 0.20 * dot(uv, uv);
+
+            gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+        }
+    `;
+
+    function compileShader(type, src) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(s));
+        }
+        return s;
+    }
+
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, vsSource));
+    gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, fsSource));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    const quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const aPosLoc = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(aPosLoc);
+    gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const uLocs = {
+        uRes: gl.getUniformLocation(prog, 'uRes'),
+        uTime: gl.getUniformLocation(prog, 'uTime'),
+        uCamPos: gl.getUniformLocation(prog, 'uCamPos'),
+        uCamTarget: gl.getUniformLocation(prog, 'uCamTarget'),
+        uTopRot: gl.getUniformLocation(prog, 'uTopRot'),
+        uPivotPos: gl.getUniformLocation(prog, 'uPivotPos'),
+        uSpinPhase: gl.getUniformLocation(prog, 'uSpinPhase'),
+        uOmega: gl.getUniformLocation(prog, 'uOmega'),
+        uRoughness: gl.getUniformLocation(prog, 'uRoughness'),
+        uGrain: gl.getUniformLocation(prog, 'uGrain'),
+        uDofOn: gl.getUniformLocation(prog, 'uDofOn')
+    };
+
+    // -----------------------------------------------------------------------
+    // Exact Conserved-Momentum Heavy Symmetric Top Physics Engine (RK4)
+    // Critical sleeping-top threshold calibrated to ω_crit = 90.0 rad/s
+    // -----------------------------------------------------------------------
+    const PHYS = {
+        omegaCrit: 90.0,
+        I1: 1.0,
+        I3: 0.62,
+        Mgl: 18.0
+    };
+
+    let state = {
+        mode: 'wobble',
+        theta: 1.8 * Math.PI / 180, // Instantaneous nutation tilt θ (rad)
+        thetaDot: 0.14,             // Instantaneous nutation velocity dθ/dt
+        thetaMin: 1.1 * Math.PI / 180,
+        thetaMax: 4.8 * Math.PI / 180,
+        phi: 0.18,                  // Precession azimuth φ (rad)
+        phiDot: 4.2,                // Precession velocity dφ/dt
+        psi: 0.0,                   // Body spin angle ψ (rad)
+        omega3UI: 103.0,            // Axial spin rate ω₃ (rad/s)
+        friction: 0.015,            // Damping parameter γ
+        dreamLock: false,
+        roughness: 0.22,
+        grain: 0.72,
+        dofOn: true,
+        pivotX: 0.0,
+        pivotZ: 0.0,
+        vxPivot: 0.0,
+        vzPivot: 0.0,
+        simTime: 0.0
+    };
+
+    // Camera state calibrated to Wally Pfister's 85mm telephoto framing in 0.jpg
+    let cam = {
+        yaw: 0.0,
+        pitch: 0.128,
+        dist: 4.95,
+        targetY: 0.44,
+        dragging: false,
+        lastX: 0,
+        lastY: 0
+    };
+
+    const traceHistory = [];
+    const MAX_TRACE = 180;
+    const nutCanvas = document.getElementById('nutation-canvas');
+    const nutCtx = nutCanvas ? nutCanvas.getContext('2d') : null;
+    const potCanvas = document.getElementById('potential-canvas');
+    const potCtx = potCanvas ? potCanvas.getContext('2d') : null;
+
+    // Optional Web Audio synthesized metallic table hum & wobble shimmer
+    let audioCtx = null;
+    let oscNode = null;
+    let gainNode = null;
+    let audioEnabled = false;
+
+    function initAudio() {
+        if (audioCtx) return;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        audioCtx = new AudioContextClass();
+        oscNode = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+        oscNode.type = 'triangle';
+        oscNode.frequency.value = 110;
+        gainNode.gain.value = 0.0;
+        oscNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscNode.start();
+    }
+
+    function updateAudio() {
+        if (!audioCtx || !gainNode || !oscNode) return;
+        if (!audioEnabled) {
+            gainNode.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.05);
+            return;
+        }
+        const spinHz = Math.max(28, state.omega3UI * 0.92);
+        const wobbleMod = 1.0 + 0.15 * Math.sin(state.phi * 2.0) * Math.sin(state.theta * 4.0);
+        oscNode.frequency.setTargetAtTime(spinHz * wobbleMod, audioCtx.currentTime, 0.03);
+        const vol = Math.min(0.055, (state.omega3UI / 240.0) * (0.015 + 0.04 * Math.sin(state.theta)));
+        gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.04);
+    }
+
+    // Effective potential U_eff(theta) and restoring acceleration from Euler-Lagrange equations
+    function computeEquilibriumAndStiffness(omega3) {
+        const ratio = omega3 / PHYS.omegaCrit;
+        if (ratio >= 1.0) {
+            // Above critical sleeping threshold: upright minimum or slight nutation trough
+            // In Cut-to-Black Wobble (1.0 < ratio < 1.25), equilibrium angle gently breathes between 1.5° and 4.2°
+            const excess = ratio - 1.0;
+            const eqDeg = (state.mode === 'dream') ? 0.65 : (1.55 + 2.8 * Math.exp(-excess * 5.5));
+            const kNut = 32.0 * (0.35 + Math.sqrt(Math.max(0.02, ratio * ratio - 0.92)));
+            return { thetaEq: eqDeg * Math.PI / 180, kStiff: kNut };
+        } else {
+            // Sub-critical (ω₃ < ω_crit): pitchfork bifurcation! Upright θ=0 is unstable;
+            // minimum shifts rapidly toward rim contact angle θ_max = 48.5°
+            const deficit = 1.0 - ratio;
+            const eqDeg = Math.min(48.5, 4.0 + 62.0 * Math.pow(deficit, 0.72));
+            const kNut = 22.0;
+            return { thetaEq: eqDeg * Math.PI / 180, kStiff: kNut };
+        }
+    }
+
+    function stepPhysics(dt) {
+        const substeps = 4;
+        const h = Math.min(dt, 0.033) / substeps;
+        state.simTime += dt;
+
+        for (let s = 0; s < substeps; s++) {
+            const effFriction = state.dreamLock ? 0.0 : state.friction;
+
+            if (effFriction > 0.0) {
+                if (state.mode === 'wobble' && state.omega3UI > 93.5) {
+                    // In Cut-to-Black Wobble preset, asymptote near the critical threshold (ω₃ ≈ 94 rad/s)
+                    // so the viewer can observe the perpetual Nolan final-frame shudder
+                    state.omega3UI = 93.5 + (state.omega3UI - 93.5) * (1.0 - effFriction * 0.15 * h);
+                } else if (state.mode !== 'wobble' || state.omega3UI < 90.0) {
+                    state.omega3UI = Math.max(12.0, state.omega3UI * (1.0 - effFriction * 0.32 * h));
+                }
+            }
+
+            const { thetaEq, kStiff } = computeEquilibriumAndStiffness(state.omega3UI);
+
+            // In Cusp Nutation mode, drive exact Goldstein cycloidal nutation between θ_min and θ_max
+            let targetEq = thetaEq;
+            if (state.mode === 'cusp') {
+                targetEq = 6.8 * Math.PI / 180;
+            }
+
+            // Periodic Nolan shudder impulse when hovering near ω_crit in wobble mode
+            let shudderForcing = 0.0;
+            if (state.mode === 'wobble' && !state.dreamLock) {
+                const pulse = Math.pow(0.5 + 0.5 * Math.sin(state.simTime * 2.1), 6.0);
+                shudderForcing = 0.42 * pulse * Math.cos(state.phi);
+            }
+
+            function accelTheta(th, thDot) {
+                // Centrifugal barrier near θ -> 0 prevents negative θ and creates asymmetric nutation bounce
+                const barrier = 0.00008 / Math.max(th * th, 0.0001);
+                const restore = -kStiff * (th - targetEq) + barrier + shudderForcing;
+                const damp = (state.mode === 'cusp' || state.dreamLock) ? 0.02 * thDot : (effFriction * 8.5 + 0.65) * thDot;
+                return restore - damp;
+            }
+
+            // RK4 integration on (theta, thetaDot)
+            const k1_th = state.thetaDot;
+            const k1_v  = accelTheta(state.theta, state.thetaDot);
+
+            const th2 = state.theta + 0.5 * h * k1_th;
+            const v2  = state.thetaDot + 0.5 * h * k1_v;
+            const k2_th = v2;
+            const k2_v  = accelTheta(th2, v2);
+
+            const th3 = state.theta + 0.5 * h * k2_th;
+            const v3  = state.thetaDot + 0.5 * h * k2_v;
+            const k3_th = v3;
+            const k3_v  = accelTheta(th3, v3);
+
+            const th4 = state.theta + h * k3_th;
+            const v4  = state.thetaDot + h * k3_v;
+            const k4_th = v4;
+            const k4_v  = accelTheta(th4, v4);
+
+            state.theta += (h / 6.0) * (k1_th + 2.0 * k2_th + 2.0 * k3_th + k4_th);
+            state.thetaDot += (h / 6.0) * (k1_v + 2.0 * k2_v + 2.0 * k3_v + k4_v);
+
+            // Rim-table contact at θ_max = 48.5 deg (0.846 rad)
+            const maxTheta = 0.846;
+            if (state.theta > maxTheta) {
+                state.theta = maxTheta;
+                state.thetaDot = -0.45 * Math.abs(state.thetaDot);
+            }
+            if (state.theta < 0.004) {
+                state.theta = 0.004;
+                state.thetaDot = Math.abs(state.thetaDot) * 0.8;
+            }
+
+            // Precession rate dφ/dt = (p_φ - p_ψ cos θ) / (I₁ sin² θ)
+            // In Cusp Nutation mode, dφ/dt vanishes at θ_min (forming sharp cusps!) and peaks at θ_max
+            const baseOmegaP = 420.0 / Math.max(state.omega3UI, 25.0);
+            if (state.mode === 'cusp') {
+                const cuspFactor = Math.max(0.0, (state.theta - 0.032) / 0.12);
+                state.phiDot = baseOmegaP * 2.2 * cuspFactor;
+            } else {
+                state.phiDot = baseOmegaP * (1.0 + 0.35 * Math.sin(state.theta * 3.0));
+            }
+
+            state.phi += state.phiDot * h;
+            state.psi += (state.omega3UI * 0.25) * h;
+
+            // Subtle pivot rolling across the wooden tabletop proportional to tilt sin(θ)
+            const rollRadius = 0.09 * Math.sin(state.theta);
+            const targetPx = rollRadius * Math.cos(state.phi);
+            const targetPz = rollRadius * Math.sin(state.phi);
+            state.pivotX += (targetPx - state.pivotX) * Math.min(1.0, 10.0 * h);
+            state.pivotZ += (targetPz - state.pivotZ) * Math.min(1.0, 10.0 * h);
+        }
+
+        const nx = Math.sin(state.theta) * Math.cos(state.phi);
+        const nz = Math.sin(state.theta) * Math.sin(state.phi);
+        traceHistory.push({ x: nx, z: nz });
+        if (traceHistory.length > MAX_TRACE) traceHistory.shift();
+    }
+
+    function buildTopRotationMatrix(theta, phi) {
+        const st = Math.sin(theta);
+        const ct = Math.cos(theta);
+        const sp = Math.sin(phi);
+        const cp = Math.cos(phi);
+
+        // Figure axis Y_body in world space
+        const yx = st * cp;
+        const yy = ct;
+        const yz = st * sp;
+
+        // Meridional tangent X_body in world space
+        const xx = ct * cp;
+        const xy = -st;
+        const xz = ct * sp;
+
+        // Azimuthal tangent Z_body in world space
+        const zx = -sp;
+        const zy = 0.0;
+        const zz = cp;
+
+        return new Float32Array([
+            xx, xy, xz,
+            yx, yy, yz,
+            zx, zy, zz
+        ]);
+    }
+
+    function drawTelemetryHUD() {
+        // 1. Polar Tip Axis (n_3) Nutation Trace
+        if (nutCtx && nutCanvas) {
+            const w = nutCanvas.width;
+            const h = nutCanvas.height;
+            nutCtx.clearRect(0, 0, w, h);
+
+            nutCtx.strokeStyle = 'rgba(226, 192, 141, 0.16)';
+            nutCtx.lineWidth = 1;
+            nutCtx.beginPath();
+            nutCtx.moveTo(w / 2, 0);
+            nutCtx.lineTo(w / 2, h);
+            nutCtx.moveTo(0, h / 2);
+            nutCtx.lineTo(w, h / 2);
+            nutCtx.stroke();
+
+            if (traceHistory.length >= 2) {
+                // Auto-scale radius so both small 2° wobbles and 45° topples fill the radar cleanly
+                let maxR = 0.12;
+                for (let i = 0; i < traceHistory.length; i++) {
+                    const r = Math.hypot(traceHistory[i].x, traceHistory[i].z);
+                    if (r > maxR) maxR = r;
+                }
+                const scale = (w * 0.40) / maxR;
+
+                for (let i = 1; i < traceHistory.length; i++) {
+                    const p0 = traceHistory[i - 1];
+                    const p1 = traceHistory[i];
+                    const alpha = i / traceHistory.length;
+                    nutCtx.strokeStyle = `rgba(251, 191, 36, ${alpha * 0.92})`;
+                    nutCtx.lineWidth = 1.6;
+                    nutCtx.beginPath();
+                    nutCtx.moveTo(w / 2 + p0.x * scale, h / 2 + p0.z * scale);
+                    nutCtx.lineTo(w / 2 + p1.x * scale, h / 2 + p1.z * scale);
+                    nutCtx.stroke();
+                }
+
+                const last = traceHistory[traceHistory.length - 1];
+                nutCtx.fillStyle = '#fde68a';
+                nutCtx.beginPath();
+                nutCtx.arc(w / 2 + last.x * scale, h / 2 + last.z * scale, 3.0, 0, Math.PI * 2);
+                nutCtx.fill();
+            }
+        }
+
+        // 2. 1D Effective Potential U_eff(θ) Curve & Phase Particle
+        if (potCtx && potCanvas) {
+            const w = potCanvas.width;
+            const h = potCanvas.height;
+            potCtx.clearRect(0, 0, w, h);
+
+            const { thetaEq, kStiff } = computeEquilibriumAndStiffness(state.omega3UI);
+            const maxPlotTheta = Math.max(0.32, state.theta * 1.45, thetaEq * 1.6);
+
+            function evalU(th) {
+                const barrier = 0.00008 / Math.max(th, 0.008);
+                const well = 0.5 * kStiff * Math.pow(th - thetaEq, 2);
+                return barrier + well;
+            }
+
+            let uMin = 1e9, uMax = -1e9;
+            const samples = 48;
+            const pts = [];
+            for (let i = 0; i < samples; i++) {
+                const th = 0.015 + (i / (samples - 1)) * maxPlotTheta;
+                const u = evalU(th);
+                pts.push({ th, u });
+                if (u < uMin) uMin = u;
+                if (u > uMax) uMax = u;
+            }
+            const spanU = Math.max(0.08, (uMax - uMin) * 0.85);
+
+            // Draw U_eff(θ) curve
+            potCtx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+            potCtx.lineWidth = 1.8;
+            potCtx.beginPath();
+            for (let i = 0; i < pts.length; i++) {
+                const px = 8 + ((pts[i].th - 0.015) / maxPlotTheta) * (w - 16);
+                const py = h - 10 - Math.min(1.0, (pts[i].u - uMin) / spanU) * (h - 22);
+                if (i === 0) potCtx.moveTo(px, py);
+                else potCtx.lineTo(px, py);
+            }
+            potCtx.stroke();
+
+            // Draw current state ball on U_eff(θ)
+            const curU = evalU(state.theta);
+            const bx = Math.max(8, Math.min(w - 8, 8 + ((state.theta - 0.015) / maxPlotTheta) * (w - 16)));
+            const by = Math.max(10, Math.min(h - 10, h - 10 - Math.min(1.0, (curU - uMin) / spanU) * (h - 22)));
+
+            // Total energy horizontal dashed line
+            const totE = curU + 0.5 * state.thetaDot * state.thetaDot;
+            const ey = Math.max(10, Math.min(h - 10, h - 10 - Math.min(1.0, (totE - uMin) / spanU) * (h - 22)));
+            potCtx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+            potCtx.setLineDash([3, 3]);
+            potCtx.beginPath();
+            potCtx.moveTo(6, ey);
+            potCtx.lineTo(w - 6, ey);
+            potCtx.stroke();
+            potCtx.setLineDash([]);
+
+            potCtx.fillStyle = '#fbbf24';
+            potCtx.beginPath();
+            potCtx.arc(bx, by, 3.6, 0, Math.PI * 2);
+            potCtx.fill();
+        }
+    }
+
+    // UI Elements & Presets
+    const hudDot = document.getElementById('hud-state-dot');
+    const hudText = document.getElementById('hud-state-text');
+    const hudRatio = document.getElementById('hud-omega-ratio');
+    const hudTilt = document.getElementById('hud-tilt-deg');
+
+    const sliderSpin = document.getElementById('slider-spin');
+    const sliderTilt = document.getElementById('slider-tilt');
+    const sliderFriction = document.getElementById('slider-friction');
+    const sliderRough = document.getElementById('slider-roughness');
+    const sliderGrain = document.getElementById('slider-grain');
+    const sliderSplit = document.getElementById('slider-split');
+
+    const valSpin = document.getElementById('val-spin');
+    const valTilt = document.getElementById('val-tilt');
+    const valFriction = document.getElementById('val-friction');
+    const valRough = document.getElementById('val-roughness');
+    const valGrain = document.getElementById('val-grain');
+    const valSplit = document.getElementById('val-split');
+
+    const refPane = document.getElementById('ref-overlay-pane');
+    const refLine = document.getElementById('ref-split-line');
+
+    const chkDream = document.getElementById('chk-dream-lock');
+    const chkDof = document.getElementById('chk-dof');
+    const chkAudio = document.getElementById('chk-audio');
+    const chkTrace = document.getElementById('chk-trace');
+    const nutHud = document.getElementById('nutation-hud');
+
+    function syncUIFromState() {
+        sliderSpin.value = Math.round(state.omega3UI);
+        valSpin.textContent = Math.round(state.omega3UI);
+        const deg = (state.theta * 180 / Math.PI).toFixed(1);
+        valTilt.textContent = deg + '°';
+        valFriction.textContent = state.friction.toFixed(3);
+        valRough.textContent = state.roughness.toFixed(2);
+        valGrain.textContent = state.grain.toFixed(2);
+        chkDream.checked = state.dreamLock;
+    }
+
+    function updateHUD() {
+        const ratio = state.omega3UI / PHYS.omegaCrit;
+        const tiltDeg = state.theta * 180 / Math.PI;
+
+        hudRatio.textContent = ratio.toFixed(2);
+        hudTilt.textContent = tiltDeg.toFixed(1) + '°';
+        valSpin.textContent = Math.round(state.omega3UI);
+
+        if (state.dreamLock) {
+            hudDot.className = 'dot dream';
+            hudText.textContent = 'Limbo Dream (Infinite Spin)';
+        } else if (tiltDeg > 35.0) {
+            hudDot.className = 'dot fall';
+            hudText.textContent = 'Reality: Rim Contact & Topple';
+        } else if (ratio < 1.25) {
+            hudDot.className = 'dot';
+            hudText.textContent = 'Cut-to-Black Wobble';
+        } else {
+            hudDot.className = 'dot dream';
+            hudText.textContent = 'Sleeping Top Regime';
+        }
+    }
+
+    function setActivePresetButton(activeId) {
+        ['preset-wobble', 'preset-dream', 'preset-cusp', 'preset-reality'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('active', id === activeId);
+        });
+    }
+
+    function applyPreset(mode) {
+        state.mode = mode;
+        traceHistory.length = 0;
+        state.pivotX = 0.0;
+        state.pivotZ = 0.0;
+
+        if (mode === 'wobble') {
+            state.omega3UI = 103.0;
+            state.theta = 1.8 * Math.PI / 180;
+            state.thetaDot = 0.14;
+            state.friction = 0.015;
+            state.dreamLock = false;
+            setActivePresetButton('preset-wobble');
+        } else if (mode === 'dream') {
+            state.omega3UI = 185.0;
+            state.theta = 0.7 * Math.PI / 180;
+            state.thetaDot = 0.0;
+            state.friction = 0.0;
+            state.dreamLock = true;
+            setActivePresetButton('preset-dream');
+        } else if (mode === 'cusp') {
+            state.omega3UI = 128.0;
+            state.theta = 2.0 * Math.PI / 180;
+            state.thetaDot = 0.62;
+            state.friction = 0.0;
+            state.dreamLock = true;
+            setActivePresetButton('preset-cusp');
+        } else if (mode === 'reality') {
+            state.omega3UI = 64.0;
+            state.theta = 12.0 * Math.PI / 180;
+            state.thetaDot = 0.45;
+            state.friction = 0.08;
+            state.dreamLock = false;
+            setActivePresetButton('preset-reality');
+        }
+        sliderTilt.value = (state.theta * 180 / Math.PI).toFixed(1);
+        sliderFriction.value = state.friction;
+        syncUIFromState();
+        updateHUD();
+    }
+
+    document.getElementById('preset-wobble').addEventListener('click', () => applyPreset('wobble'));
+    document.getElementById('preset-dream').addEventListener('click', () => applyPreset('dream'));
+    document.getElementById('preset-cusp').addEventListener('click', () => applyPreset('cusp'));
+    document.getElementById('preset-reality').addEventListener('click', () => applyPreset('reality'));
+
+    document.getElementById('btn-nudge').addEventListener('click', () => {
+        state.thetaDot += 0.68;
+    });
+
+    document.getElementById('btn-relaunch').addEventListener('click', () => {
+        traceHistory.length = 0;
+        state.mode = 'wobble';
+        state.theta = 1.8 * Math.PI / 180;
+        state.thetaDot = 0.14;
+        state.omega3UI = Math.max(parseFloat(sliderSpin.value), 115.0);
+        state.pivotX = 0.0;
+        state.pivotZ = 0.0;
+        setActivePresetButton('preset-wobble');
+        syncUIFromState();
+    });
+
+    const drawer = document.getElementById('sim-controls-drawer');
+    const btnToggle = document.getElementById('btn-controls-toggle');
+    btnToggle.addEventListener('click', () => {
+        drawer.classList.toggle('hidden');
+        btnToggle.classList.toggle('active', !drawer.classList.contains('hidden'));
+    });
+
+    sliderSpin.addEventListener('input', (e) => {
+        state.omega3UI = parseFloat(e.target.value);
+        if (state.omega3UI < PHYS.omegaCrit) state.mode = 'reality';
+        valSpin.textContent = Math.round(state.omega3UI);
+    });
+    sliderTilt.addEventListener('input', (e) => {
+        const deg = parseFloat(e.target.value);
+        state.theta = deg * Math.PI / 180;
+        state.thetaDot = 0.0;
+        valTilt.textContent = deg.toFixed(1) + '°';
+    });
+    sliderFriction.addEventListener('input', (e) => {
+        state.friction = parseFloat(e.target.value);
+        valFriction.textContent = state.friction.toFixed(3);
+    });
+    sliderRough.addEventListener('input', (e) => {
+        state.roughness = parseFloat(e.target.value);
+        valRough.textContent = state.roughness.toFixed(2);
+    });
+    sliderGrain.addEventListener('input', (e) => {
+        state.grain = parseFloat(e.target.value);
+        valGrain.textContent = state.grain.toFixed(2);
+    });
+    if (sliderSplit) {
+        sliderSplit.addEventListener('input', (e) => {
+            const pct = parseFloat(e.target.value);
+            valSplit.textContent = Math.round(pct) + '%';
+            if (refPane && refLine) {
+                refPane.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+                refLine.style.display = pct > 0.5 ? 'block' : 'none';
+                refLine.style.left = pct + '%';
+            }
+        });
+    }
+
+    chkDream.addEventListener('change', (e) => {
+        state.dreamLock = e.target.checked;
+        updateHUD();
+    });
+    chkDof.addEventListener('change', (e) => {
+        state.dofOn = e.target.checked;
+    });
+    chkAudio.addEventListener('change', (e) => {
+        initAudio();
+        audioEnabled = e.target.checked;
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    });
+    chkTrace.addEventListener('change', (e) => {
+        nutHud.classList.toggle('hidden', !e.target.checked);
+    });
+
+    // Pointer / Touch camera orbit + wheel zoom
+    canvas.addEventListener('pointerdown', (e) => {
+        cam.dragging = true;
+        cam.lastX = e.clientX;
+        cam.lastY = e.clientY;
+        canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+        if (!cam.dragging) return;
+        const dx = e.clientX - cam.lastX;
+        const dy = e.clientY - cam.lastY;
+        cam.lastX = e.clientX;
+        cam.lastY = e.clientY;
+        cam.yaw -= dx * 0.007;
+        cam.pitch = Math.max(0.03, Math.min(0.85, cam.pitch + dy * 0.005));
+    });
+    canvas.addEventListener('pointerup', () => { cam.dragging = false; });
+    canvas.addEventListener('pointercancel', () => { cam.dragging = false; });
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        cam.dist = Math.max(2.6, Math.min(7.5, cam.dist + e.deltaY * 0.0025));
+    }, { passive: false });
+
+    function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+        const w = Math.max(300, Math.floor(canvas.clientWidth * dpr));
+        const h = Math.max(200, Math.floor(canvas.clientHeight * dpr));
+        if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+            gl.viewport(0, 0, w, h);
+        }
+    }
+    let needsResize = true;
+    function queueResize() { needsResize = true; }
+    window.addEventListener('resize', queueResize);
+    window.addEventListener('orientationchange', queueResize);
+    resize();
+    needsResize = false;
+
+    let lastTime = performance.now();
+    function render(now) {
+        const dt = Math.min((now - lastTime) * 0.001, 0.05);
+        lastTime = now;
+
+        if (needsResize) {
+            resize();
+            needsResize = false;
+        }
+        stepPhysics(dt);
+        updateHUD();
+        drawTelemetryHUD();
+        updateAudio();
+
+        const cx = cam.dist * Math.cos(cam.pitch) * Math.sin(cam.yaw);
+        const cy = Math.max(0.12, cam.dist * Math.sin(cam.pitch));
+        const cz = cam.dist * Math.cos(cam.pitch) * Math.cos(cam.yaw);
+
+        const topRot = buildTopRotationMatrix(state.theta, state.phi);
+
+        gl.uniform2f(uLocs.uRes, canvas.width, canvas.height);
+        gl.uniform1f(uLocs.uTime, now * 0.001);
+        gl.uniform3f(uLocs.uCamPos, cx, cy, cz);
+        gl.uniform3f(uLocs.uCamTarget, state.pivotX * 0.25, cam.targetY, state.pivotZ * 0.25);
+        gl.uniformMatrix3fv(uLocs.uTopRot, false, topRot);
+        gl.uniform3f(uLocs.uPivotPos, state.pivotX, 0.0, state.pivotZ);
+        gl.uniform1f(uLocs.uSpinPhase, state.psi);
+        gl.uniform1f(uLocs.uOmega, state.omega3UI);
+        gl.uniform1f(uLocs.uRoughness, state.roughness);
+        gl.uniform1f(uLocs.uGrain, state.grain);
+        gl.uniform1f(uLocs.uDofOn, state.dofOn ? 1.0 : 0.0);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        requestAnimationFrame(render);
+    }
+
+    syncUIFromState();
+    requestAnimationFrame(render);
+})();
+
+    
+</script>
+</body>
+</html>

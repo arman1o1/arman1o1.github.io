@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>When Two Shadows Collide: Ray-Tracing a Binary Black Hole Merger | arman1o1 blog</title>
+    <meta name="description"
+        content="How to ray-trace an orbiting binary black hole merger in real time in the browser: the exact Majumdar–Papapetrou two-hole metric, Fermat's optical refractive index, figure-eight photon bridges, Bohn et al. eyebrow shadows, and circumbinary + mini-disk Doppler beaming in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="When Two Shadows Collide: Ray-Tracing a Binary Black Hole Merger">
+    <meta property="og:description" content="How to ray-trace an orbiting binary black hole merger in real time in the browser: the exact Majumdar–Papapetrou two-hole metric, Fermat's optical refractive index, figure-eight photon bridges, Bohn et al. eyebrow shadows, and circumbinary + mini-disk Doppler beaming in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_binary_blackhole.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-10-31">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "When Two Shadows Collide: Ray-Tracing a Binary Black Hole Merger", "description": "How to ray-trace an orbiting binary black hole merger in real time in the browser: the exact Majumdar–Papapetrou two-hole metric, Fermat's optical refractive index, figure-eight photon bridges, Bohn et al. eyebrow shadows, and circumbinary + mini-disk Doppler beaming in GLSL.", "image": "https://arman1o1.github.io/images/thumb_binary_blackhole.webp", "datePublished": "2026-10-31", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/binary-black-hole-lensing.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>When Two Shadows Collide: Ray-Tracing a Binary Black Hole Merger</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-10-31">October 31, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE SIMULATION ===== -->
+                <figure style="margin:0 0 .5rem 0">
+                    <iframe src="../../assets/binary-black-hole.html"
+                        title="Live binary black hole simulation: a Majumdar–Papapetrou two-hole relativistic ray tracer running in real time"
+                        loading="eager" allow="fullscreen"
+                        style="display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.35)"></iframe>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live Binary Black Hole Ray Tracer.</strong> Every pixel above integrates a light ray through a two-center Majumdar–Papapetrou spacetime ($M_{\text{tot}} = M_1 + M_2 = 1$). Drag to orbit, open <strong>⚙ Controls</strong> to sweep the binary separation $d/M \in [0, 5.5]$ from a wide pair down to a single merged remnant, adjust the mass ratio $q = M_2/M_1$, or click <strong>Eyebrow Bridge (d=2.4M)</strong> and <strong>Eclipsing Ring</strong> to inspect the figure-eight photon bridge and secondary eyebrow shadows.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="rendering-a-black-hole.html">Part 1 (Schwarzschild)</a>, <a href="traversable-wormhole-ray-tracer.html">Part 2 (Morris–Thorne Wormhole)</a>, and <a href="spinning-up-gargantua-kerr-black-hole.html">Part 3 (Boyer–Lindquist Kerr)</a>, every spacetime we ray-traced shared a hidden luxury: integrability. A single black hole—even a spinning one—has enough continuous symmetries (energy $E$, axial angular momentum $L_z$, and Carter's constant $Q$) to reduce every photon trajectory to decoupled 1D equations.</p>
+
+                <p>What happens when <em>two</em> black holes orbit each other on the verge of merging? All continuous spatial symmetries vanish. Light rays can skim the photon sphere of Black Hole 1, cross the gravitational saddle point between the pair, wind around Black Hole 2 in a figure-eight ($\infty$), and either escape to the camera or plunge into the companion horizon. As the Simulating eXtreme Spacetimes (SXS) collaboration and the <em>Interstellar</em> team showed (Bohn et al., 2015), a binary black hole does not just cast two circular shadows: each primary shadow is flanked by a fractal hierarchy of thin, crescent-shaped <strong>"eyebrow" shadows</strong> bridged by a glowing saddle caustic.</p>
+
+                <p>This post builds a real-time WebGL ray tracer for an orbiting binary black hole system using the exact <strong>Majumdar–Papapetrou two-hole metric</strong>, Fermat's optical refractive index formulation, and a three-zone accretion model (two tidally truncated mini-disks inside a circumbinary cavity).</p>
+
+                <hr>
+
+                <!-- ===== 0. ANATOMY OF A BINARY SPACETIME ===== -->
+                <h2>0. Anatomy of a Binary Black Hole Image</h2>
+                <p>Measuring lengths and masses in units of the total system mass $M_{\text{tot}} = M_1 + M_2 = 1$ ($G = c = 1$), the binary geometry is governed by the separation $d = |\vec x_1 - \vec x_2|$ and mass ratio $q = M_2 / M_1 \in (0, 1]$:</p>
+
+                <dl class="kv">
+                    <dt>Metric</dt>
+                    <dd>Two-center Majumdar–Papapetrou spacetime in isotropic coordinates $(t, \vec x)$, where the harmonic potential $U(\vec x) = 1 + M_1/r_1 + M_2/r_2$ satisfies $\nabla^2 U = 0$ exactly.</dd>
+                    <dt>Punctured Horizons ($\vec x_i$)</dt>
+                    <dd>In isotropic coordinates, each point $\vec x_i$ ($r_i = |\vec x - \vec x_i| \to 0$) is not a point singularity but a regular event horizon of finite surface area $A_i = 4\pi M_i^2$ (Hartle &amp; Hawking, 1972).</dd>
+                    <dt>Primary Shadows</dt>
+                    <dd>Rays captured directly by the local photon shell ($r_{\text{ph},i} \approx M_i$) of either black hole cast two facing teardrop-flattened shadows.</dd>
+                    <dt>Eyebrow Shadows</dt>
+                    <dd>Rays aimed just outside Primary Shadow 1 are deflected across the inter-hole saddle point and captured by Black Hole 2, carving thin crescent "eyebrows" outside the main shadows.</dd>
+                    <dt>Three-Zone Disks</dt>
+                    <dd>Gravitational torques clear a central cavity inside the outer <strong>circumbinary disk</strong> ($r > r_{\text{cb,in}}$) while feeding two co-moving <strong>mini-disks</strong> around $\vec x_1(t)$ and $\vec x_2(t)$.</dd>
+                </dl>
+
+                <hr>
+
+                <!-- ===== 1. MAJUMDAR-PAPAPETROU & FERMAT OPTICS ===== -->
+                <h2>1. The Majumdar–Papapetrou Metric and Fermat's Refractive Index</h2>
+                <p>In general relativity, Einstein's field equations are nonlinear: you cannot normally superpose two black hole solutions by adding their potentials. Remarkably, <strong>Majumdar (1947)</strong> and <strong>Papapetrou (1945)</strong> discovered that for extremal black holes in Einstein–Maxwell theory, the nonlinear gravitational cross-terms cancel the Maxwell stress tensor identically, reducing the entire Einstein system to the linear 3D Laplace equation $\nabla^2 U = 0$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Exact Two-Center Majumdar–Papapetrou Metric ($G = c = 1$)</div>
+                    $$ds^2 = -\frac{dt^2}{U^2(\vec x)} + U^2(\vec x)\,\big(dx^2 + dy^2 + dz^2\big), \qquad U(\vec x) = 1 + \frac{M_1}{|\vec x - \vec x_1|} + \frac{M_2}{|\vec x - \vec x_2|}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because $\lim_{r_i \to 0} U(\vec x)\,r_i = M_i$, a coordinate sphere of infinitesimal Euclidean radius $r_i = \epsilon$ around $\vec x_i$ has proper circumferential area $\lim_{\epsilon \to 0} 4\pi (U\epsilon)^2 = 4\pi M_i^2$—an event horizon of areal radius $R_{H,i} = M_i$.</p>
+                </div>
+
+                <p>For a real-time GPU ray tracer, the isotropic form of the Majumdar–Papapetrou metric offers an extraordinary simplification. Along any null geodesic ($ds^2 = 0$), the coordinate travel time $dt$ and Euclidean arc length $ds = \sqrt{dx^2 + dy^2 + dz^2}$ obey:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Fermat's Principle and Exact Optical Refractive Index $n(\vec x)$</div>
+                    $$ds^2 = 0 \quad\Longrightarrow\quad dt = U^2(\vec x)\,ds = n(\vec x)\,ds, \qquad n(\vec x) \equiv U^2(\vec x) = \left(1 + \frac{M_1}{r_1} + \frac{M_2}{r_2}\right)^2$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Null geodesics of the 4D Majumdar–Papapetrou spacetime are <strong>exact Fermat rays</strong> ($\delta\int n(\vec x)\,ds = 0$) propagating through flat 3D Euclidean space with refractive index $n(\vec x) = U^2(\vec x)$.</p>
+                </div>
+
+                <p>Applying the Euler–Lagrange equation $\frac{d}{ds}(n\hat v) = \nabla n$ to the unit tangent vector $\hat v = d\vec x/ds$ ($|\hat v| = 1$) gives the exact spatial curvature equation integrated per pixel:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Exact Unit-Tangent Ray Equation Integrated Per Pixel</div>
+                    $$\frac{d\vec x}{ds} = \hat v, \qquad \frac{d\hat v}{ds} = \nabla_\perp \ln n(\vec x) = \vec g(\vec x) - \big(\hat v \cdot \vec g(\vec x)\big)\,\hat v$$
+                    $$\vec g(\vec x) \equiv \frac{2\,\nabla U(\vec x)}{U(\vec x)} = -\frac{2}{U(\vec x)}\left(\frac{M_1(\vec x - \vec x_1)}{|\vec x - \vec x_1|^3} + \frac{M_2(\vec x - \vec x_2)}{|\vec x - \vec x_2|^3}\right)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice that $\hat v \cdot \frac{d\hat v}{ds} = \hat v \cdot \vec g - (\hat v \cdot \vec g)(\hat v \cdot \hat v) = 0$ identically: projecting $\vec g(\vec x)$ perpendicular to $\hat v$ preserves unit speed $|\hat v| = 1$ analytically at every point in the 3D volume.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Majumdar–Papapetrou Optical Field &amp; Midpoint Fermat Integrator</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Exact Majumdar-Papapetrou potential U(x) and log-index gradient g(x) = 2 * grad(U) / U
+void mpField(vec3 p, out float U, out vec3 gVec, out float r1, out float r2) {
+  vec3 d1 = p - uPos1;
+  vec3 d2 = p - uPos2;
+  r1 = length(d1);
+  r2 = length(d2);
+  float r1Safe = max(r1, 0.02);
+  float r2Safe = max(r2, 0.02);
+  U = 1.0 + uM1 / r1Safe + uM2 / r2Safe;
+  vec3 gradU = -uM1 * d1 / (r1Safe * r1Safe * r1Safe) - uM2 * d2 / (r2Safe * r2Safe * r2Safe);
+  gVec = (2.0 / U) * gradU;
+}
+
+// Inside per-pixel ray loop (pos = x(s), vel = dx/ds with |vel| = 1):
+float U; vec3 gVec;
+mpField(pos, U, gVec, r1, r2);
+if (r1 &lt; cap1 || (r2 &lt; cap2 &amp;&amp; uM2 &gt; 0.001)) { captured = true; break; }
+
+float dMin = min(r1 - cap1, r2 - cap2);
+float ds   = clamp(0.11 * max(dMin, 0.04) * (1.0 + 0.06 * rBary), 0.016, 0.75);
+
+// Second-order midpoint step on (pos, vel) preserving |vel| = 1
+vec3 acc1   = gVec - dot(vel, gVec) * vel;
+vec3 posMid = pos + 0.5 * vel * ds;
+vec3 velMid = normalize(vel + 0.5 * acc1 * ds);
+
+float UMid; vec3 gMid; float r1m, r2m;
+mpField(posMid, UMid, gMid, r1m, r2m);
+vec3 accMid = gMid - dot(velMid, gMid) * velMid;
+
+pos += velMid * ds;
+vel  = normalize(vel + accMid * ds);</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 2. EYEBROW SHADOWS & FIGURE-EIGHT ORBITS ===== -->
+                <h2>2. Figure-Eight Photon Orbits and "Eyebrow" Shadows</h2>
+                <p>Click the <strong>Eyebrow Bridge (d=2.4M)</strong> preset in the simulation above and toggle <strong>Accretion Disks</strong> off for a moment so you can see the pure silhouette against the starfield. Alongside the two large black shadows, you will see thin dark arcs curving around their outer rims, linked across the center by a bright gold-cyan caustic bridge.</p>
+
+                <p>Where do those extra shadows come from? For a single isolated Majumdar–Papapetrou black hole ($M_2 = 0$), setting the inward optical curvature $|\vec g(r)| = \frac{2M_1}{r^2(1 + M_1/r)}$ equal to the circular orbit curvature $1/r$ gives a single photon sphere at isotropic radius $r_{\text{ph}} = M_1$, casting a single circular shadow of apparent radius $b_c = U^2(M_1)\,M_1 = 4M_1$.</p>
+
+                <p>When two black holes sit at $\vec x_1$ and $\vec x_2$, the potential $U(\vec x)$ develops an unstable <strong>gravitational saddle point</strong> ($\nabla U(\vec x_{\text{saddle}}) = \vec 0$) on the axis connecting them:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Single-hole photon sphere vs. binary inter-hole saddle point ($\nabla U = \vec 0$)</div>
+                    $$r_{\text{ph}, i} = M_i \;\;\Longrightarrow\;\; b_{c, i} = 4M_i, \qquad \vec x_{\text{saddle}} = \frac{\sqrt{M_2}\,\vec x_1 + \sqrt{M_1}\,\vec x_2}{\sqrt{M_1} + \sqrt{M_2}}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">For an equal-mass binary ($M_1 = M_2 = \tfrac{1}{2}$), $\vec x_{\text{saddle}}$ sits at the origin $\vec 0$. Photons passing through this saddle can switch allegiance from Hole 1 to Hole 2 mid-flight.</p>
+                </div>
+
+                <p>Because photons can cross the saddle and trade holes, the binary shadow decomposes into a self-similar hierarchy indexed by how many times a ray switches partners before plunging through a horizon:</p>
+                <ul>
+                    <li><strong>0-switch rays (Primary Shadows):</strong> Rays aimed directly inside the local photon shell of Hole 1 or Hole 2 plunge straight into that hole, forming the two main shadows (flattened into facing teardrops by the companion's tidal pull).</li>
+                    <li><strong>1-switch rays (Primary "Eyebrows"):</strong> A narrow fan of rays aimed just outside Hole 1's shadow is bent by $\sim 180^\circ$ around Hole 1, flung across $\vec x_{\text{saddle}}$, and swallowed by Hole 2—carving a dark crescent <em>eyebrow shadow</em> belonging to Hole 2 right outside Hole 1's rim (and vice versa).</li>
+                    <li><strong>$N$-switch rays (Figure-Eight Caustic Bridge):</strong> At the boundary between escaping and captured 1-switch rays sit unstable periodic <strong>figure-eight ($\infty$) photon orbits</strong> that weave back and forth around both horizons forever. The gold-cyan <strong>Photon Bridge</strong> pill highlights rays that skim within $2.4\,M_i$ of <em>both</em> black holes (`minR1 < 2.4 && minR2 < 2.4`), illuminating this chaotic separatrix in real time.</li>
+                </ul>
+
+                <div class="callout callout-warn">
+                    <strong>Try the Eclipsing Ring preset:</strong> when the binary orbits nearly edge-on ($\theta_0 \approx 85^\circ$), the foreground black hole acts as a gravitational microscope for the background black hole. At conjunction, the far shadow is stretched into a complete <strong>binary Einstein ring</strong> wrapping all the way around the near shadow!
+                </div>
+
+                <hr>
+
+                <!-- ===== 3. THREE-ZONE ACCRETION & DOPPLER ===== -->
+                <h2>3. Circumbinary Cavities, Mini-Disks, and Binary Doppler Beaming</h2>
+                <p>General-relativistic magnetohydrodynamic (GRMHD) simulations of supermassive black hole binaries show that gas does not form a single smooth disk all the way to the horizons. Instead, gravitational torques from the orbiting pair clear out a central cavity ($r_{\text{cb,in}} = 0.80\,d + 1.50\,M_{\text{tot}}$ in the shader, smoothly approaching the single-hole inner edge as $d \to 0$) surrounded by an outer <strong>circumbinary disk</strong> with $m=2$ spiral density waves, while streams of gas feed two tidally truncated <strong>mini-disks</strong> ($r_{\text{out},i} = 0.42\,d$) around $\vec x_1(t)$ and $\vec x_2(t)$.</p>
+
+                <p>When a ray crosses the equatorial plane ($y = 0$), the shader evaluates this three-zone geometry and computes the total velocity $\vec\beta(\vec x)$ of the emitting plasma by superposing the binary orbital velocity $\vec v_i = \vec\Omega_{\text{orb}} \times \vec x_i$ with the local circular orbital speed around Hole $i$. In a single-center Majumdar–Papapetrou metric ($U = 1 + M_i/r_i$), the physical circular-orbit speed measured by a local static observer is $\beta_{\text{circ}}(r_i) = \sqrt{-r_i U' / (U + r_i U')} = \sqrt{M_i / r_i}$ exactly (reaching $c$ at the photon sphere $r_{\text{ph},i} = M_i$). Combining the static lapse redshift $\sqrt{-g_{tt}} = U^{-1}(\vec x)$ with the special-relativistic boost gives:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Combined Majumdar–Papapetrou Lapse &amp; Binary-Plus-Disk Doppler Factor</div>
+                    $$\vec\beta(\vec x) = \vec v_i + \sqrt{\frac{M_i}{r_i}}\,\hat e_{\varphi,i}, \qquad g(\vec x, \vec\beta) = \underbrace{\frac{1}{U(\vec x)}}_{\text{MP lapse }\sqrt{-g_{tt}}} \cdot \underbrace{\frac{\sqrt{1 - \beta^2}}{1 - \vec\beta \cdot \hat d_{\text{obs}}}}_{\text{orbital + disk Doppler}}, \qquad I_{\text{obs}} \propto g^{\,3.2}\,I_{\text{emit}}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because $\vec v_1$ and $\vec v_2$ point in opposite directions on opposite sides of the barycenter, the entire mini-disk of the approaching black hole receives a coherent relativistic boost on top of its internal rotation—making the two mini-disks alternate in brightness twice per binary orbit.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Three-Zone Binary Disk &amp; Relativistic Doppler Shift</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Mini-disk 1 around BH 1 (tidally truncated at rOut1 = 0.42 * d)
+if (uSep &gt; 0.9 &amp;&amp; d1 &gt; rIn1 &amp;&amp; d1 &lt; rOut1) {
+  float x = d1 / rIn1;
+  env = smoothstep(rIn1, rIn1 * 1.12, d1) * (1.0 - smoothstep(rOut1 * 0.68, rOut1, d1));
+  emitFlux = 2.8 * pow(1.0 / x, 2.1) * env;
+  baseTemp = 9200.0 * pow(x, -0.55);
+  vec3 tang1 = normalize(vec3(-rel1.z, 0.0, rel1.x));
+  vGas = uVel1 + clamp(sqrt(uM1 / max(d1, 0.25)), 0.0, 0.65) * tang1;
+}
+// ... (Mini-disk 2 around BH 2 and outer Circumbinary Disk with m=2 spiral arm) ...
+
+// Exact MP lapse redshift (1 / U) * special-relativistic Doppler boost
+float Uhit     = 1.0 + uM1 / max(d1, 0.15) + uM2 / max(d2, 0.15);
+float grav     = 1.0 / Uhit;
+float beta2    = clamp(dot(vGas, vGas), 0.0, 0.78);
+float betaCosT = dot(vGas, -vel); // beta * cos(theta), since |vel| = 1 and |vGas| = beta
+float dop      = sqrt(1.0 - beta2) / max(1.0 - betaCosT, 0.16);
+float g        = clamp(grav * mix(1.0, dop, uDoppler), 0.18, 3.0);
+
+vec3 bb = blackbody(baseTemp * g);
+accumCol += T * bb * emitFlux * pow(g, 3.2) * (0.35 + 1.25 * turb) * 3.8;</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 4. RENDER PIPELINE ===== -->
+                <h2>4. The Binary Ray-Tracing Pipeline</h2>
+                <p>Each frame updates the Keplerian barycentric positions $(\vec x_1(t), \vec x_2(t))$ on the CPU, hands them as uniforms to the fullscreen fragment shader, and integrates the Fermat optical curvature across the two-center potential:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="Binary black hole ray-tracing pipeline">
+                        <rect x="5" y="25" width="135" height="54" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="72" y="48" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-weight="600">Binary state</text>
+                        <text x="72" y="65" text-anchor="middle" fill="var(--text-muted)" font-size="10">x₁(t), x₂(t), M₁, M₂</text>
+                        <polygon points="148,42 168,52 148,62" fill="var(--text-muted)"/>
+
+                        <rect x="176" y="25" width="165" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="258" y="48" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">Fermat MP integrator</text>
+                        <text x="258" y="65" text-anchor="middle" fill="#bae6fd" font-size="10">v' = g − (v·g)v, n = U²</text>
+                        <polygon points="349,42 369,52 349,62" fill="var(--text-muted)"/>
+
+                        <rect x="377" y="25" width="145" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="449" y="48" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">Saddle &amp; eyebrows</text>
+                        <text x="449" y="65" text-anchor="middle" fill="#ddd6fe" font-size="10">minR₁, minR₂ caustics</text>
+                        <polygon points="530,42 550,52 530,62" fill="var(--text-muted)"/>
+
+                        <rect x="558" y="25" width="145" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="630" y="48" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">3-Zone disks</text>
+                        <text x="630" y="65" text-anchor="middle" fill="#d1fae5" font-size="10">2 mini + circumbinary</text>
+                        <polygon points="711,42 731,52 711,62" fill="var(--text-muted)"/>
+
+                        <rect x="739" y="28" width="76" height="48" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="777" y="49" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600">ACES +</text>
+                        <text x="777" y="66" text-anchor="middle" fill="#fcd34d" font-size="10">Bloom</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Fermat's optical metric $n(\vec x) = U^2(\vec x)$ turns 3D multi-black-hole ray tracing into a unit-tangent ODE with zero coordinate chart switches.</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 5. COMPARISON ACROSS THE SERIES ===== -->
+                <h2>5. Across the Series: Single vs. Spinning vs. Binary Black Holes</h2>
+                <p>Looking back across all three black hole ray tracers shows how symmetry—and its breaking—shapes the optical appearance of curved spacetime:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th style="color:#38bdf8">Schwarzschild ($a=0$)</th>
+                            <th style="color:#a78bfa">Boyer–Lindquist Kerr ($a\to 1$)</th>
+                            <th style="color:#f59e0b">Majumdar–Papapetrou Binary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Spatial symmetry</strong></td>
+                            <td>Spherical ($SO(3)$)</td>
+                            <td>Axisymmetric ($SO(2)$ + Killing tensor)</td>
+                            <td>None in 3D (2-center $U(\vec x)$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Integrability</strong></td>
+                            <td>Planar 1D Binet orbit ($h^2$)</td>
+                            <td>Integrable via Carter's constant ($Q$)</td>
+                            <td>Non-integrable; chaotic figure-8 orbits</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shadow topology</strong></td>
+                            <td>Single circle ($b_c = 3\sqrt{3}M$)</td>
+                            <td>Single shifted D-shadow</td>
+                            <td>2 primary shadows + fractal "eyebrows"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Accretion structure</strong></td>
+                            <td>Single disk ($r_{\text{in}} = 6M$)</td>
+                            <td>Single disk ($r_{\text{in}} \to 1M$ or $9M$)</td>
+                            <td>2 mini-disks + cleared cavity + circumbinary ring</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Quasi-static approximation</strong></td>
+                            <td>Exact static vacuum</td>
+                            <td>Exact stationary vacuum</td>
+                            <td>Exact static MP snapshot per orbital phase ("fast-light")</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Drag the <strong>Binary Separation · $d/M$</strong> slider in the live demo slowly from $4.0M$ down to $0.0M$: watching the two mini-disks merge into the circumbinary ring while the twin shadows and their outer eyebrows coalesce into a single horizon is a front-row view of the final seconds of a binary black hole inspiral.</p>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

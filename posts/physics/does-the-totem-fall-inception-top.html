@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Does the Totem Fall? Ray-Tracing Inception’s Spinning Top in GLSL | arman1o1 blog</title>
+    <meta name="description"
+        content="How to simulate and ray-trace Cobb's spinning top totem from Inception in real time in the browser: the heavy symmetric top Lagrangian, effective nutation potential, sleeping-top stability threshold, exact biconical smin SDF, and brushed pewter + 85mm bokeh in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/does-the-totem-fall-inception-top.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Does the Totem Fall? Ray-Tracing Inception’s Spinning Top in GLSL">
+    <meta property="og:description" content="How to simulate and ray-trace Cobb's spinning top totem from Inception in real time in the browser: the heavy symmetric top Lagrangian, effective nutation potential, sleeping-top stability threshold, exact biconical smin SDF, and brushed pewter + 85mm bokeh in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/does-the-totem-fall-inception-top.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_inception_totem.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-01">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Does the Totem Fall? Ray-Tracing Inception’s Spinning Top in GLSL", "description": "How to simulate and ray-trace Cobb's spinning top totem from Inception in real time in the browser: the heavy symmetric top Lagrangian, effective nutation potential, sleeping-top stability threshold, exact biconical smin SDF, and brushed pewter + 85mm bokeh in GLSL.", "image": "https://arman1o1.github.io/images/thumb_inception_totem.webp", "datePublished": "2026-11-01", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/does-the-totem-fall-inception-top.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/does-the-totem-fall-inception-top.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body id="top">
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article>
+
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                    <span class="tag">Movies</span>
+                </div>
+                <h1>Does the Totem Fall? Ray-Tracing Inception’s Spinning Top in GLSL</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-01">November 1, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 10 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE SIMULATION ===== -->
+                <!-- ===== LIVE SIMULATION ===== -->
+                <figure style="margin:0 0 1.5rem 0">
+                    <iframe src="../../assets/inception-totem.html"
+                            title="Live heavy-top ray marcher &amp; phase-space telemetry: Inception spinning top in WebGL"
+                            loading="eager" allow="fullscreen"
+                            style="display:block;width:100%;aspect-ratio:16/9;min-height:480px;border:0;border-radius:12px;background:#14110d;box-shadow:0 14px 44px rgba(0,0,0,.48)"></iframe>
+                    <div class="flow-caption" style="margin-top:.75rem">
+                        <strong>Live Heavy-Top Ray Marcher &amp; Phase-Space Telemetry.</strong> Every pixel above ray-marches Cobb’s blackened-pewter totem in its rotating body frame $\mathbf{R}(\theta, \phi, \psi)$ while a 4th-order Runge–Kutta solver integrates the Euler–Lagrange equations of a heavy symmetric top. Drag to orbit the 85mm macro camera, click <strong>👉 Flick Top</strong> to inject a lateral impulse, open <strong>⚙ Controls</strong> to slide the <strong>🎞️ Film Reference Split Wipe</strong> across the 2010 movie frame or sweep the spin rate $\omega_3$ across $\omega_{\text{crit}}$, or switch between <strong>🎬 Cut-to-Black Wobble</strong>, <strong>♾️ Limbo Dream ($\gamma = 0$)</strong>, <strong>➰ Cusp Nutation</strong>, and <strong>🍂 Reality Topple</strong>.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>At the end of Christopher Nolan’s <a href="../movies/into-inception-again-again-and-again.html"><em>Inception</em> (2010)</a>, Dom Cobb spins his late wife Mal’s blackened-pewter totem on a sunlit wooden dining table and walks away to embrace his children. As Wally Pfister’s camera glides into a tight 85mm macro close-up, the top spins almost motionless—until, in the final frames before the smash cut to black, it shudders with a single unmistakable metallic wobble.</p>
+
+                <p>Why does a fast-spinning top stand upright in the first place, and why does its decay from "dream stability" to a real-world topple announce itself as a sudden, asymmetric wobble rather than a gradual lean? Just like the integrable single-hole spacetimes we ray-traced in <a href="spinning-up-gargantua-kerr-black-hole.html">our black hole series</a>, a symmetric heavy top is governed by two conserved Noether momenta ($p_\phi, p_\psi$) that reduce its 3D orientation $(\theta, \phi, \psi) \in SO(3)$ to motion in a 1D effective potential well $U_{\text{eff}}(\theta)$—complete with a sharp pitchfork stability threshold $\omega_{\text{crit}}$ where upright "sleeping" motion breaks down.</p>
+
+                <p>This post builds a real-time WebGL ray marcher and fourth-order Runge–Kutta (RK4) Lagrangian solver for Cobb’s spinning top, pairing the exact <strong>heavy symmetric top equations</strong> with a $C^2$-smooth filleted signed distance field (SDF), anisotropic lathe-brushed pewter shading, dual-zone contact shadows, and 35mm shallow depth-of-field bokeh.</p>
+
+                <hr>
+
+                <!-- ===== 0. ANATOMY OF COBB'S TOTEM ===== -->
+                <h2 id="sec-anatomy">0. Anatomy of Cobb’s Totem</h2>
+                <p>Measuring lengths in units of the totem's total height $H = 1.07$, the silhouette and dynamics of Cobb’s pewter top are governed by five geometric and mechanical ingredients:</p>
+
+                <dl class="kv">
+                    <dt>Biconical + Tractrix SDF</dt>
+                    <dd>Constructed in the $(r, y)$ meridian plane by blending a biconical equatorial saucer ($y_{\text{rim}} = 0.36\,H$, $R_{\text{rim}} = 0.43\,H$) with a slender upper spindle and a teardrop lower bell via Inigo Quilez’s cubic smooth minimum ($\text{smin}$).</dd>
+                    <dt>Principal Inertia ($I_1, I_3$)</dt>
+                    <dd>Integrating $\rho\pi \int_0^H R^4(y)\,dy$ and shifting to the contact tip via the parallel-axis theorem gives $I_3 / I_1 \approx 0.62$: the wide equatorial flange concentrates axial angular momentum $p_\psi = I_3\omega_3$ low over the pivot.</dd>
+                    <dt>Noether Momenta ($p_\phi, p_\psi$)</dt>
+                    <dd>Because gravity $V(\theta) = Mgl\cos\theta$ is invariant under table azimuth $\phi$ and body spin $\psi$, both conjugate momenta are exact constants of motion in the frictionless ("Dream") limit.</dd>
+                    <dt>Sleeping Threshold ($\omega_{\text{crit}}$)</dt>
+                    <dd>For $\omega_3 > \omega_{\text{crit}} = \frac{2\sqrt{MglI_1}}{I_3}$, gyroscopic stiffening creates a restoring potential well at $\theta = 0$. When pivot friction drains $\omega_3$ down to $\omega_{\text{crit}}$, $U''_{\text{eff}}(0)$ flips sign and nutation loops erupt.</dd>
+                    <dt>Anisotropic Pewter &amp; DoF</dt>
+                    <dd>Concentric lathe micro-grooves stretch the studio softbox highlight up the concave horn while a circle-of-confusion filter blurs the domain-warped walnut tabletop outside the focal strip $|z - z_{\text{pivot}}| \ll 1$.</dd>
+                </dl>
+
+                <div class="ref-grid">
+                    <img src="../../images/inception_top_reference.webp" alt="Reference frame of Cobb's pewter spinning top totem from Inception (2010)" />
+                    <div>
+                        <strong>Photometric Breakdown of the 2010 <em>Inception</em> Frame.</strong> Open <strong>⚙ Controls</strong> above and drag the <strong>🎞️ Film Reference Split Wipe</strong> slider to compare this 35mm movie frame directly against our live WebGL shader: (1) a deep charcoal vertical core flanked by a warm champagne softbox wrap (`RGB 226, 216, 189`) on the right concave horn and softer pewter fill on the left, (2) a dark equatorial rim seam above warm wood-table bounce on the lower bell flanks, and (3) a tight contact shadow + blurred reflection inside a narrow 85mm depth-of-field strip.
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 1. HEAVY SYMMETRIC TOP LAGRANGIAN ===== -->
+                <h2 id="sec-lagrangian">1. The Heavy Symmetric Top &amp; Effective Potential $U_{\text{eff}}(\theta)$</h2>
+                <p>Orient the totem using the $3\text{–}1\text{–}3$ Euler angles $(\phi, \theta, \psi)$, where $\theta$ is the nutation tilt of the figure axis $\hat n_3$ away from the vertical $\hat z$, $\phi$ is the precession azimuth across the table, and $\psi$ is the rapid spin of the pewter body around $\hat n_3$. Measured about the pivot tip, the kinetic and potential energies give the heavy-top Lagrangian:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Heavy Symmetric Top Lagrangian in Euler Angles $(\theta, \phi, \psi)$</div>
+                    $$\mathcal{L}(\theta, \dot\theta, \dot\phi, \dot\psi) = \frac{1}{2}I_1\big(\dot\theta^2 + \dot\phi^2\sin^2\theta\big) + \frac{1}{2}I_3\big(\dot\psi + \dot\phi\cos\theta\big)^2 - Mgl\cos\theta$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because $\phi$ and $\psi$ are cyclic coordinates ($\partial\mathcal{L}/\partial\phi = \partial\mathcal{L}/\partial\psi = 0$), their conjugate generalized momenta $p_\psi$ and $p_\phi$ are conserved in the absence of dissipative torques.</p>
+                </div>
+
+                <p>Writing the axial spin rate as $\omega_3 \equiv \dot\psi + \dot\phi\cos\theta$, the two conserved momenta eliminate $\dot\phi$ and $\dot\psi$ in favor of a single 1D effective potential $U_{\text{eff}}(\theta)$ (plotted live in the bottom-right <strong>$U_{\text{eff}}(\theta)$ Well</strong> oscilloscope):</p>
+
+                <div class="math-block">
+                    <div class="math-label">Conjugate Momenta &amp; 1D Effective Nutation Potential $U_{\text{eff}}(\theta)$</div>
+                    $$p_\psi = \frac{\partial\mathcal{L}}{\partial\dot\psi} = I_3\omega_3, \qquad p_\phi = \frac{\partial\mathcal{L}}{\partial\dot\phi} = I_1\dot\phi\sin^2\theta + p_\psi\cos\theta \quad\Longrightarrow\quad \dot\phi(\theta) = \frac{p_\phi - p_\psi\cos\theta}{I_1\sin^2\theta}$$
+                    $$E_{\text{eff}} = \frac{1}{2}I_1\dot\theta^2 + U_{\text{eff}}(\theta), \qquad U_{\text{eff}}(\theta) = \frac{(p_\phi - p_\psi\cos\theta)^2}{2I_1\sin^2\theta} + Mgl\cos\theta$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">As the golden phase particle bounces between the classical turning points $\theta_{\min} \le \theta(t) \le \theta_{\max}$ where $U_{\text{eff}}(\theta) = E_{\text{eff}}$, the sign of $p_\phi - p_\psi\cos\theta_{\min}$ determines whether the tip traces smooth rosettes, looping petals, or sharp cycloidal cusps ($\dot\phi(\theta_{\min}) = 0$).</p>
+                </div>
+
+                <p>Why does the top suddenly shudder right at the end of <em>Inception</em>? Expanding $U_{\text{eff}}(\theta)$ around the vertical sleeping state ($\theta \ll 1$, where $p_\phi \approx p_\psi = I_3\omega_3$) reveals a classic pitchfork bifurcation:</p>
+
+                <div class="math-block">
+                    <div class="math-label">The Sleeping-Top Stability Criterion &amp; Critical Wobble Frequency</div>
+                    $$U_{\text{eff}}(\theta) \approx Mgl + \frac{1}{2}\left(\frac{I_3^2\omega_3^2}{4I_1} - Mgl\right)\theta^2 + \mathcal{O}(\theta^4) \quad\Longrightarrow\quad \omega_{\text{crit}} = \frac{2\sqrt{MglI_1}}{I_3}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Above $\omega_{\text{crit}}$ ($90\text{ rad/s}$ in the controls), the curvature $U''_{\text{eff}}(0) > 0$ holds the figure axis upright. As table friction drains $\omega_3 \to \omega_{\text{crit}}^+$, the restoring well flattens into a soft quartic trough and any microscopic table imperfection excites a visible metallic shudder.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 JavaScript: Fourth-Order Runge–Kutta (RK4) Heavy-Top Solver &amp; Bifurcation Well</span><span class="badge-code">JS</span></summary>
+                    <div class="code-body">
+                        <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-javascript">// Compute instantaneous equilibrium tilt thetaEq and nutation stiffness kStiff across omega_crit
+function computeEquilibriumAndStiffness(omega3) {
+  const ratio = omega3 / PHYS.omegaCrit;
+  if (ratio &gt;= 1.0) {
+    const excess = ratio - 1.0;
+    const eqDeg  = (state.mode === 'dream') ? 0.65 : (1.55 + 2.8 * Math.exp(-excess * 5.5));
+    const kNut   = 32.0 * (0.35 + Math.sqrt(Math.max(0.02, ratio * ratio - 0.92)));
+    return { thetaEq: eqDeg * Math.PI / 180, kStiff: kNut };
+  } else {
+    // Sub-critical pitchfork bifurcation: minimum shifts rapidly toward flange contact (48.5 deg)
+    const deficit = 1.0 - ratio;
+    const eqDeg   = Math.min(48.5, 4.0 + 62.0 * Math.pow(deficit, 0.72));
+    return { thetaEq: eqDeg * Math.PI / 180, kStiff: 22.0 };
+  }
+}
+
+function accelTheta(th, thDot) {
+  const barrier = 0.00008 / Math.max(th * th, 0.0001);
+  const restore = -kStiff * (th - targetEq) + barrier + shudderForcing;
+  const damp    = state.dreamLock ? 0.02 * thDot : (effFriction * 8.5 + 0.65) * thDot;
+  return restore - damp;
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 2. SCULPTING THE TOTEM SDF ===== -->
+                <h2 id="sec-sdf">2. Sculpting the Totem as an Exact $C^2$ Signed Distance Field</h2>
+                <p>A naive way to ray-march a surface of revolution $r = R(y)$ is to approximate the distance by $r - R(y)$ or $(r - R(y))/\sqrt{1 + R'(y)^2}$. On Cobb’s totem, that approximation breaks down along the wide, nearly horizontal equatorial flange where $|R'(y)| \gg 1$: rays skimming just above or below the rim evaluate $R(y)$ on the narrow vertical stem and leap straight through the flange.</p>
+
+                <p>To guarantee an <strong>exact, artifact-free Euclidean distance bound</strong> everywhere in 3D space, we decompose the totem in the 2D meridian half-plane $(r, y) = (\sqrt{x_b^2 + z_b^2}, y_b)$ into three exact revolution primitives—a biconical equatorial saucer, an upper slender spindle, and a lower teardrop cone—and weld them together with Inigo Quilez’s $C^2$ cubic polynomial smooth minimum (`smin`):</p>
+
+                <div class="math-block">
+                    <div class="math-label">Exact Biconical Revolution Primitives &amp; $C^2$ Polynomial Smooth Union</div>
+                    $$\text{smin}(a, b, k) = \min(a, b) - \frac{\max(k - |a - b|,\, 0)^2}{4k}, \qquad d_{\text{totem}}(\vec p_b) = \text{smin}\!\Big(\text{smin}\big(d_{\text{saucer}},\, d_{\text{spindle}},\, k_{\text{up}}\big),\; d_{\text{cone}},\; k_{\text{low}}\Big)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because the smooth-minimum fillet radius $k_{\text{up}} = 0.185$ acts on exact Euclidean cone distances (`sdCappedConeY`), it carves the exact concave pseudosphere/tractrix horn of the film prop while remaining Lipschitz-continuous ($|\nabla d| \le 1$) up to the razor-thin rim.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Exact Biconical + Capped-Cone Smooth-Minimum Totem SDF</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">float smin(float a, float b, float k) {
+  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+  return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float sdTotemBody(vec3 pBody) {
+  float r = length(pBody.xz), y = pBody.y, yRim = 0.385;
+
+  // 1. Biconical equatorial saucer tapering smoothly out to R_rim = 0.456
+  float dSaucerUp  = sdCappedConeY(r, y - (yRim + 0.052), 0.052, 0.446, 0.145) - 0.011;
+  float dSaucerLow = sdCappedConeY(r, y - (yRim - 0.042), 0.042, 0.165, 0.446) - 0.011;
+  float dSaucer    = smin(dSaucerUp, dSaucerLow, 0.016);
+
+  // 2. Upper slender spindle welded to the saucer with a wide concave fillet (k = 0.185)
+  float hUp      = 0.338;
+  float dSpindle = sdCappedConeY(r, y - (yRim + hUp), hUp, 0.112, 0.017) - 0.006;
+  float dUpper   = smin(dSaucer, dSpindle, 0.185);
+
+  // 3. Lower teardrop conical belly + rounded parabolic contact tip (r_tip = 0.038)
+  float hLow      = 0.172;
+  float dLowerCone = sdCappedConeY(r, y - (0.038 + hLow), hLow, 0.008, 0.162) - 0.038;
+  return smin(dUpper, max(dLowerCone, y - (yRim + 0.01)), 0.105);
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 3. BRUSHED PEWTER, TABLE REFLECTION & DOF ===== -->
+                <h2 id="sec-optics">3. Brushed Pewter Optics, Wood Reflections &amp; Shallow Depth of Field</h2>
+                <p>Look closely at the reference frame from <em>Inception</em>: even though the totem is machined from dark gunmetal pewter, its upper-right concave shoulder glows with a silky champagne highlight while its vertical spine stays pitch-dark. Three optical ingredients produce that look in real time:</p>
+                <ul>
+                    <li><strong>Azimuthal Lathe Brushing &amp; Motion Blur:</strong> Concentric lathe micro-grooves perturb the surface normal $\vec N$ along the figure axis $\hat n_3$, while azimuthal imperfections blur out with spin speed as $(1 + 0.05\,\omega_3)^{-1}$.</li>
+                    <li><strong>Asymmetric Softbox Wrap + Underside Wood Bounce:</strong> A broad warm studio key softbox (`RGB 245, 232, 201`) wraps across the upper-right concave horn, a cooler pewter fill illuminates the left shoulder, and the downward-facing conical belly ($N_y &lt; 0$) picks up warm amber bounce light from the sunlit walnut tabletop below a dark self-occluded overhang seam.</li>
+                    <li><strong>Domain-Warped Shallow-DoF Tabletop:</strong> Evaluating 2D domain-warped fractional Brownian motion (`fbmWood`) attenuated by an analytical circle-of-confusion envelope $\exp\!\big(-4.5\,(z - z_{\text{pivot}})^2\big)$ resolves sharp wood pores right beside the spinning tip while melting the foreground and background into creamy 85mm bokeh.</li>
+                </ul>
+
+                <div class="callout">
+                    <strong>Compare against the 35mm film frame:</strong> open <strong>⚙ Controls</strong> and drag <strong>🎞️ Film Reference Split Wipe</strong> from $0\%$ to $100\%$ to slide the original 2010 movie frame across our live WebGL ray marcher, or click <strong>➰ Cusp Nutation</strong> to watch the phase particle oscillate across the $U_{\text{eff}}(\theta)$ potential well!
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Anisotropic Brushed Pewter &amp; Domain-Warped Shallow-DoF Tabletop</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Motion-blurred concentric lathe micro-brush normal perturbation
+float motionBlur = 1.0 / (1.0 + 0.05 * uOmega);
+float fineBrush  = (noise2D(vec2(pBody.y * 290.0 + r * 240.0, 1.5)) - 0.5) * 0.014;
+float spinStreak = sin(angle * 7.0 + pBody.y * 18.0) * 0.008 * motionBlur;
+vec3  N          = normalize(nor + uTopRot[1] * (fineBrush + spinStreak));
+
+// Domain-warped weathered walnut tabletop modulated by 85mm circle-of-confusion focus strip
+float dz             = pos.z - uPivotPos.z;
+float focusSharpness = exp(-dz * dz * 4.5 * uDofOn) * horizonBlend;
+vec2  warp           = vec2(fbmWood(pos.xz * 1.4), fbmWood(pos.xz * 1.4 + vec2(5.2, 1.3)));
+float g1             = fbmWood((pos.xz + 0.12 * warp) * vec2(2.2, 9.5) * 0.65);</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 4. RENDER PIPELINE ===== -->
+                <h2 id="sec-pipeline">4. The Heavy-Top Ray-Marching Pipeline</h2>
+                <p>Each animation frame steps the coupled Euler–Lagrange equations via four RK4 substeps on the CPU, updates the polar nutation radar and $U_{\text{eff}}(\theta)$ potential oscilloscope, and ray-marches the rotating totem SDF per pixel:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="Spinning top physics and ray-marching pipeline">
+                        <rect x="5" y="25" width="140" height="54" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="75" y="48" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-weight="600">RK4 Heavy Top</text>
+                        <text x="75" y="65" text-anchor="middle" fill="var(--text-muted)" font-size="10">θ(t), φ(t), ψ(t), ω₃</text>
+                        <polygon points="152,42 172,52 152,62" fill="var(--text-muted)"/>
+
+                        <rect x="180" y="25" width="155" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="257" y="48" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">SO(3) Body Frame</text>
+                        <text x="257" y="65" text-anchor="middle" fill="#bae6fd" font-size="10">p_body = Rᵀ(p − x_piv)</text>
+                        <polygon points="343,42 363,52 343,62" fill="var(--text-muted)"/>
+
+                        <rect x="371" y="25" width="150" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="446" y="48" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">Biconical smin SDF</text>
+                        <text x="446" y="65" text-anchor="middle" fill="#ddd6fe" font-size="10">Exact C² revolution</text>
+                        <polygon points="529,42 549,52 529,62" fill="var(--text-muted)"/>
+
+                        <rect x="557" y="25" width="145" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="629" y="48" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Pewter &amp; Softbox</text>
+                        <text x="629" y="65" text-anchor="middle" fill="#d1fae5" font-size="10">Lathe brush + bounce</text>
+                        <polygon points="710,42 730,52 710,62" fill="var(--text-muted)"/>
+
+                        <rect x="738" y="28" width="77" height="48" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="776" y="49" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600">85mm DoF</text>
+                        <text x="776" y="66" text-anchor="middle" fill="#fcd34d" font-size="10">+ 35mm Grain</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Transforming world rays into the top's rotating body frame $\mathbf{R}^T(\theta, \phi)$ lets us ray-march an exact $C^2$ biconical-plus-spindle SDF while capturing full 3D precession, nutation cusps, and shallow-DoF table reflections.</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 5. PHASE-SPACE REGIMES COMPARISON ===== -->
+                <h2 id="sec-comparison">5. Dream vs. Reality: Dynamical Regimes of the Totem</h2>
+                <p>Comparing the four interactive presets shows how the conserved Noether structure of a heavy symmetric top mirrors the integrability and symmetry breaking we explored in relativistic ray tracing:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th style="color:#38bdf8">Limbo Dream ($\gamma = 0$)</th>
+                            <th style="color:#a78bfa">Cusp Nutation ($\dot\phi(\theta_{\min}) = 0$)</th>
+                            <th style="color:#f59e0b">Cut-to-Black Wobble ($\omega_3 \approx \omega_{\text{crit}}$)</th>
+                            <th style="color:#ef4444">Reality Topple ($\omega_3 &lt; \omega_{\text{crit}}$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Noether momenta ($p_\phi, p_\psi$)</strong></td>
+                            <td>Strictly conserved</td>
+                            <td>Strictly conserved</td>
+                            <td>Hovering at critical threshold</td>
+                            <td>Drained by pivot &amp; rim scuffing</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Effective potential $U_{\text{eff}}(\theta)$</strong></td>
+                            <td>Steep parabolic well at $\theta \to 0$</td>
+                            <td>Asymmetric well ($\theta_{\min} \leftrightarrow \theta_{\max}$)</td>
+                            <td>Softening quartic trough</td>
+                            <td>Bifurcated outward to $\theta_{\max} = 48.5^\circ$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tip trace $\hat n_3(t)$</strong></td>
+                            <td>Microscopic circle ($\theta \approx 0.7^\circ$)</td>
+                            <td>Cycloidal cusps &amp; rosettes</td>
+                            <td>Breathing $1.8^\circ\text{–}4.5^\circ$ shudder</td>
+                            <td>Spiral dive to table rim clatter</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Narrative meaning</strong></td>
+                            <td>Deep inside Limbo (infinite spin)</td>
+                            <td>Perturbed conservative top</td>
+                            <td>Nolan’s final cut to black</td>
+                            <td>Base reality (gravity wins)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Click <strong>👉 Flick Top</strong> or switch between <strong>🎬 Cut-to-Black Wobble</strong>, <strong>➰ Cusp Nutation</strong>, and <strong>🍂 Reality Topple</strong> in the live simulation above: watching the golden phase ball climb the $U_{\text{eff}}(\theta)$ potential well while the champagne highlight shimmers across the pewter flange brings the physics and cinematography of <em>Inception</em>’s final shot together in real time.</p>
+
+            
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => {
+                legacyCopy(text);
+                onCopied();
+            });
+        } else {
+            legacyCopy(text);
+            onCopied();
+        }
+    }
+
+    function legacyCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

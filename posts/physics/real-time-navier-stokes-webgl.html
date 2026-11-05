@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solving Navier–Stokes at 60 FPS: Stable Fluids &amp; Helmholtz–Hodge Projection in WebGL | arman1o1 blog</title>
+    <meta name="description"
+        content="How to build a real-time incompressible Navier–Stokes fluid solver in WebGL: Jos Stam's semi-Lagrangian Stable Fluids, Helmholtz–Hodge pressure projection via Jacobi ping-pong FBOs, Fedkiw vorticity confinement, and von Kármán vortex streets in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/real-time-navier-stokes-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Solving Navier–Stokes at 60 FPS: Stable Fluids &amp; Helmholtz–Hodge Projection in WebGL">
+    <meta property="og:description" content="How to build a real-time incompressible Navier–Stokes fluid solver in WebGL: Jos Stam's semi-Lagrangian Stable Fluids, Helmholtz–Hodge pressure projection via Jacobi ping-pong FBOs, Fedkiw vorticity confinement, and von Kármán vortex streets in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/real-time-navier-stokes-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_navier_stokes.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-10-31">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Solving Navier–Stokes at 60 FPS: Stable Fluids & Helmholtz–Hodge Projection in WebGL", "description": "How to build a real-time incompressible Navier–Stokes fluid solver in WebGL: Jos Stam's semi-Lagrangian Stable Fluids, Helmholtz–Hodge pressure projection via Jacobi ping-pong FBOs, Fedkiw vorticity confinement, and von Kármán vortex streets in GLSL.", "image": "https://arman1o1.github.io/images/thumb_navier_stokes.webp", "datePublished": "2026-10-31", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/real-time-navier-stokes-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/real-time-navier-stokes-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Fluid Dynamics</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Solving Navier–Stokes at 60 FPS: Stable Fluids &amp; Helmholtz–Hodge Projection in WebGL</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-10-31">October 31, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE SIMULATION ===== -->
+                <figure style="margin:0 0 .5rem 0">
+                    <iframe src="../../assets/navier-stokes-fluids.html"
+                        title="Live incompressible Navier–Stokes WebGL simulation: Jos Stam's Stable Fluids running in real time"
+                        loading="eager" allow="fullscreen"
+                        style="display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.35)"></iframe>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live GPU Navier–Stokes solver.</strong> Drag across the canvas to inject momentum and dye, or open <strong>⚙ Controls</strong> to switch the field view between <strong>Dye ($q$)</strong>, <strong>Vorticity ($\omega = \nabla \times \vec u$)</strong>, <strong>Pressure ($p$)</strong>, and <strong>Velocity ($\vec u$)</strong>. Click <strong>Kármán Street</strong> to drop a solid cylinder into a wind tunnel and watch an alternating von Kármán vortex street shed in real time.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In our previous posts on <a href="rendering-a-black-hole.html">Schwarzschild Gargantua</a>, <a href="traversable-wormhole-ray-tracer.html">Morris–Thorne Wormholes</a>, <a href="spinning-up-gargantua-kerr-black-hole.html">Kerr Spacetime</a>, and <a href="binary-black-hole-lensing.html">Binary Black Hole Mergers</a>, the GPU was stateless: every pixel integrated its own independent ordinary differential equation from the camera to infinity and forgot the result on the next frame.</p>
+
+                <p>Simulating a turbulent fluid flips that paradigm upside down. Instead of tracing independent rays through a fixed metric, the GPU must evolve a coupled system of nonlinear partial differential equations (PDEs) where every grid cell talks to its neighbors across time. Using <strong>ping-pong floating-point Framebuffer Objects (FBOs)</strong>, Jos Stam's <em>Stable Fluids</em> (1999) method, and Fedkiw, Stam &amp; Jensen's <em>Vorticity Confinement</em> (2001), a single HTML file can execute ~30 full-grid shader passes per frame at 60 fps—turning your browser into a real-time computational fluid dynamics (CFD) wind tunnel.</p>
+
+                <hr>
+
+                <!-- ===== 0. ANATOMY OF THE SOLVER ===== -->
+                <h2>0. Anatomy of a Real-Time GPU Fluid Solver</h2>
+                <p>The simulation above solves the 2D <strong>incompressible Euler / Navier–Stokes equations</strong> coupled to a passive scalar dye concentration $q(\vec x, t)$:</p>
+
+                <dl class="kv">
+                    <dt>Momentum PDE</dt>
+                    <dd>$\partial_t \vec u + (\vec u \cdot \nabla)\vec u = -\frac{1}{\rho}\nabla p - \nu_d \vec u + \vec f_{\text{ext}} + \vec f_{\text{vort}}$, evolving the 2D velocity field $\vec u = (u_x, u_y)$.</dd>
+                    <dt>Incompressibility</dt>
+                    <dd>$\nabla \cdot \vec u = \partial_x u_x + \partial_y u_y = 0$ everywhere—fluid volume is neither created nor compressed.</dd>
+                    <dt>Ping-Pong FBOs</dt>
+                    <dd>Because WebGL cannot read from and write to the same texture simultaneously, <code>velocityFBO</code>, <code>dyeFBO</code>, and <code>pressureFBO</code> each hold a <code>read</code> and <code>write</code> <code>RGBA16F</code> texture pair swapped after every pass.</dd>
+                    <dt>Advection</dt>
+                    <dd>Semi-Lagrangian backward-characteristic lookup $\vec x_{\text{back}} = \vec x - \Delta t\,\vec u(\vec x)$, unconditionally stable for any Courant number $\text{CFL} = |\vec u|\Delta t/\Delta x$.</dd>
+                    <dt>Pressure Projection</dt>
+                    <dd>26 Jacobi relaxation passes per frame solving the Poisson equation $\nabla^2 p = \frac{\rho}{\Delta t}\nabla \cdot \vec u^*$, followed by subtracting $\frac{\Delta t}{\rho}\nabla p$.</dd>
+                </dl>
+
+                <hr>
+
+                <!-- ===== 1. OPERATOR SPLITTING ===== -->
+                <h2>1. Operator Splitting the Navier–Stokes Equations</h2>
+                <p>Written out in full, an incompressible fluid with velocity $\vec u(\vec x, t)$, pressure $p(\vec x, t)$, and passive dye concentration $q(\vec x, t)$ obeys:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Incompressible Navier–Stokes + Passive Scalar Transport</div>
+                    $$\frac{\partial \vec u}{\partial t} + (\vec u \cdot \nabla)\vec u = -\frac{1}{\rho}\nabla p + \nu \nabla^2 \vec u + \vec f, \qquad \nabla \cdot \vec u = 0, \qquad \frac{\partial q}{\partial t} + (\vec u \cdot \nabla)q = -\gamma_q q + S_q$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice that there is no time-derivative equation $\partial_t p$ for pressure! In an incompressible flow, the speed of sound is infinite: pressure acts as an instantaneous global Lagrange multiplier that adjusts itself everywhere at once to keep $\nabla \cdot \vec u = 0$.</p>
+                </div>
+
+                <p>Instead of integrating all terms simultaneously, Jos Stam's <strong>operator-splitting</strong> pipeline advances the state across each time step $\Delta t$ through a sequence of simpler fractional steps, where the output texture of each shader pass becomes the input texture of the next:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Fractional-Step Operator Splitting Pipeline per Frame $\Delta t$</div>
+                    $$\vec u^{(0)} \;\xrightarrow{\text{1. Splat + Vorticity}}\; \vec u^{(1)} \;\xrightarrow{\text{2. Self-Advect}}\; \vec u^* \;\xrightarrow{\text{3. Poisson } \nabla^2\tilde p = \nabla\cdot\vec u^*}\; \vec u^{(n+1)} = \vec u^* - \nabla\tilde p \;\xrightarrow{\text{4. Dye Advect}}\; q^{(n+1)}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Crucially, the Helmholtz–Hodge pressure projection (Step 3) runs <em>after</em> velocity self-advection (Step 2) and <em>before</em> passive dye advection (Step 4), guaranteeing that the dye is transported by a freshly projected, strictly divergence-free velocity field.</p>
+                </div>
+
+                <hr>
+
+                <!-- ===== 2. SEMI-LAGRANGIAN ADVECTION ===== -->
+                <h2>2. Semi-Lagrangian Advection: Why Backward Rays Beat the CFL Limit</h2>
+                <p>If you discretize the nonlinear advection term $(\vec u \cdot \nabla)\vec u$ with standard forward finite differences, explicit Euler blows up whenever a fluid parcel crosses more than one grid cell per time step ($\text{CFL} = |\vec u|\Delta t/\Delta x > 1$). Fast mouse swipes or high-velocity jets would instantly NaN the simulation.</p>
+
+                <p>Stam's key insight was to use the method of characteristics backward in time. The advection equation $\frac{Dq}{Dt} = \partial_t q + (\vec u \cdot \nabla)q = 0$ states that $q$ is constant along particle trajectories $\frac{d\vec x}{dt} = \vec u$. To find the value arriving at grid cell center $\vec x$ at time $t + \Delta t$, we ask: <em>where was this fluid parcel at time $t$?</em></p>
+
+                <div class="math-block">
+                    <div class="math-label">Unconditionally Stable Backward-Characteristic Advection (with Implicit Damping)</div>
+                    $$\vec x_{\text{back}} = \vec x - \Delta t\,\vec u(\vec x, t), \qquad q(\vec x, t + \Delta t) = \frac{\mathrm{bilerp}\big(q(\cdot, t),\; \vec x_{\text{back}}\big)}{1 + \gamma\,\Delta t}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because bilinear interpolation is a convex combination of four grid neighbors ($w_k \ge 0$, $\sum_{k=1}^4 w_k = 1$), the new value is strictly bounded by $\min q(\cdot, t) \le q(\vec x, t+\Delta t) \le \max q(\cdot, t)$ for <strong>any</strong> $\Delta t > 0$. Dividing by $1 + \gamma\Delta t$ applies an unconditionally stable backward-Euler decay.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Semi-Lagrangian Backward-Characteristic Advection Pass</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">void main() {
+  // Zero velocity and dye inside the solid Kármán cylinder obstacle
+  if (uObstacle &gt; 0.5) {
+    vec2 dp = vUv - uObsPos;
+    dp.x *= uAspect;
+    if (length(dp) &lt; uObsRad) {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+      return;
+    }
+  }
+
+  // Absorb dye near walls in closed mode, or fade near outlet in wind-tunnel mode
+  float wallFade = smoothstep(0.0, 0.025, vUv.x)
+                 * (uObstacle &gt; 0.5 ? smoothstep(1.0, 0.94, vUv.x) : smoothstep(1.0, 0.975, vUv.x))
+                 * smoothstep(0.0, 0.025, vUv.y) * smoothstep(1.0, 0.975, vUv.y);
+
+  // Trace characteristic backward in time: x_back = x - dt * u(x)
+  vec2 vel   = sampleBilerp(uVelocity, vUv, uVelTexel).xy;
+  vec2 coord = clamp(vUv - uDt * vel * uVelTexel, uSourceTexel * 0.5, 1.0 - uSourceTexel * 0.5);
+
+  // Hardware linear texture fetch (with 4-tap manual bilerp fallback) + nonlinear decay
+  vec4 result = sampleBilerp(uSource, coord, uSourceTexel);
+  float peak  = max(result.r, max(result.g, result.b));
+  float decay = 1.0 + (uDissipation + 0.55 * peak) * uDt;
+
+  gl_FragColor = vec4((result.rgb / decay) * mix(1.0, wallFade, 0.15), 1.0);
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 3. VORTICITY CONFINEMENT ===== -->
+                <h2>3. Vorticity Confinement: Defeating Numerical Viscosity</h2>
+                <p>Unconditional stability comes with a catch: bilinear interpolation averages four neighboring texels on every single frame. Taylor-expanding that interpolation reveals an artificial numerical viscosity $\nu_{\text{num}} \sim \frac{\Delta x^2}{\Delta t}$ that damps out small-scale rotational eddies. Drag the <strong>Vorticity Confinement · $\varepsilon_{\text{curl}}$</strong> slider in the controls down to <code>0</code> and watch how quickly the fine Kelvin–Helmholtz billows smooth out into laminar syrup.</p>
+
+                <p>To restore crisp sub-grid turbulence without giving up an Eulerian grid, <strong>Fedkiw, Stam &amp; Jensen (2001)</strong> introduced <em>vorticity confinement</em>. In 2D, the curl of the velocity field is a scalar signed vorticity $\omega = (\nabla \times \vec u)_z = \partial_x u_y - \partial_y u_x$. The shader locates vortex cores by computing the unit gradient of vorticity magnitude $\hat N = \nabla|\omega| / |\nabla|\omega||$ (which points radially inward toward each vortex center) and injects a tangential paddle-wheel force $\vec f_{\text{vort}} \propto \hat N \times \vec\omega$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">2D Scalar Vorticity $\omega$ and Fedkiw–Stam–Jensen Vorticity Confinement Force</div>
+                    $$\omega = \frac{\partial u_y}{\partial x} - \frac{\partial u_x}{\partial y}, \qquad \hat N = \frac{\nabla |\omega|}{\big|\nabla |\omega|\big| + \epsilon}, \qquad \vec f_{\text{vort}} = \varepsilon_{\text{curl}}\,\Delta x\,\big(\hat N \times \vec\omega\big) = \varepsilon_{\text{curl}}\,\Delta x\,\begin{pmatrix} \hat N_y\,\omega \\ -\hat N_x\,\omega \end{pmatrix}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Switch the field visualization pill to <strong>Vorticity ($\omega$)</strong> in the controls above: counter-clockwise eddies ($\omega > 0$) glow fiery orange-white, while clockwise eddies ($\omega < 0$) glow electric cyan.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Scalar Curl Pass &amp; Vorticity Confinement Force</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">/* --- Pass A: Scalar Vorticity omega = du_y/dx - du_x/dy --- */
+float L = texture2D(uVelocity, vUv - vec2(uTexel.x, 0.0)).y;
+float R = texture2D(uVelocity, vUv + vec2(uTexel.x, 0.0)).y;
+float B = texture2D(uVelocity, vUv - vec2(0.0, uTexel.y)).x;
+float T = texture2D(uVelocity, vUv + vec2(0.0, uTexel.y)).x;
+float vorticity = 0.5 * ((R - L) - (T - B));
+
+/* --- Pass B: Paddle-Wheel Confinement Force f = eps * (N x omega) --- */
+float wL = abs(texture2D(uCurl, vUv - vec2(uTexel.x, 0.0)).x);
+float wR = abs(texture2D(uCurl, vUv + vec2(uTexel.x, 0.0)).x);
+float wB = abs(texture2D(uCurl, vUv - vec2(0.0, uTexel.y)).x);
+float wT = abs(texture2D(uCurl, vUv + vec2(0.0, uTexel.y)).x);
+float wC = texture2D(uCurl, vUv).x;
+
+vec2 gradMag = 0.5 * vec2(wR - wL, wT - wB);
+vec2 N       = gradMag / (length(gradMag) + 1e-4);
+vec2 force   = uCurlStrength * vec2(N.y * wC, -N.x * wC);
+vec2 vel     = texture2D(uVelocity, vUv).xy + force * uDt;</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 4. HELMHOLTZ-HODGE PROJECTION ===== -->
+                <h2>4. Helmholtz–Hodge Decomposition &amp; the Poisson Pressure Solver</h2>
+                <p>After force injection and nonlinear self-advection, the intermediate velocity field $\vec u^*$ has non-zero divergence ($\nabla \cdot \vec u^* \neq 0$): some cells have net inflow, others net outflow. How do we strip out the compressible part while keeping every bit of the swirl?</p>
+
+                <p>The answer is the <strong>Helmholtz–Hodge Decomposition Theorem</strong>: any smooth vector field $\vec u^*$ decomposes uniquely into the sum of a divergence-free (solenoidal) vector field $\vec u$ ($\nabla \cdot \vec u = 0$) and a curl-free scalar gradient $\nabla \tilde p$ ($\nabla \times \nabla \tilde p = \vec 0$):</p>
+
+                <div class="math-block">
+                    <div class="math-label">Helmholtz–Hodge Decomposition &amp; Discrete Jacobi Poisson Iteration</div>
+                    $$\vec u^* = \vec u + \nabla \tilde p \quad\xrightarrow{\;\nabla\cdot(\dots)\;}\quad \nabla^2 \tilde p = \nabla \cdot \vec u^*, \qquad \vec u = \vec u^* - \nabla \tilde p$$
+                    $$\tilde p^{(k+1)}_{i,j} = \frac{\tilde p^{(k)}_{i+1,j} + \tilde p^{(k)}_{i-1,j} + \tilde p^{(k)}_{i,j+1} + \tilde p^{(k)}_{i,j-1} - D_{i,j}}{4}, \qquad D_{i,j} = \frac{u^*_{x,i+1,j} - u^*_{x,i-1,j} + u^*_{y,i,j+1} - u^*_{y,i,j-1}}{2}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Here $\tilde p \equiv \frac{\Delta t}{\rho h}p$ absorbs the grid spacing $h$ and time step $\Delta t$. Warm-starting $\tilde p^{(0)}$ from the previous frame's pressure field allows 26 Jacobi ping-pong passes per frame to converge smoothly across the entire grid.</p>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Seeing pressure and vortex streets in action:</strong> click the <strong>Kármán Street</strong> preset, then switch the view pill to <strong>Pressure ($p$)</strong>. You will see a bright golden high-pressure stagnation zone piled up against the front face of the cylinder ($\partial p/\partial n = 0$) and a trail of blue low-pressure pockets marking the cores of the alternating vortices shedding behind it!
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Jacobi Poisson Iteration &amp; Gradient Projection (with Neumann Obstacles)</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">/* --- Jacobi Iteration Pass (run N = 26 times per frame via ping-pong FBO swap) --- */
+float pC = texture2D(uPressure, vUv).x;
+// Pure Neumann boundary condition (dp/dn = 0): solid obstacle neighbors mirror center pressure pC
+float L  = isSolid(uvL) ? pC : texture2D(uPressure, uvL).x;
+float R  = (uObstacle &gt; 0.5 &amp;&amp; uvR.x &gt; 1.0) ? 0.0 : (isSolid(uvR) ? pC : texture2D(uPressure, uvR).x);
+float B  = isSolid(uvB) ? pC : texture2D(uPressure, uvB).x;
+float T  = isSolid(uvT) ? pC : texture2D(uPressure, uvT).x;
+float div = texture2D(uDivergence, vUv).x;
+
+float pNew = (L + R + B + T - div) * 0.25;
+
+/* --- Helmholtz-Hodge Gradient Subtraction Pass: u = u* - grad(p) --- */
+vec2 vel = texture2D(uVelocity, vUv).xy - 0.5 * vec2(R - L, T - B);</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 5. PIPELINE DIAGRAM ===== -->
+                <h2>5. The Multi-Pass Ping-Pong FBO Pipeline</h2>
+                <p>Unlike a single-pass ray tracer, each animation frame orchestrates 31 sequential WebGL draw calls across five offscreen framebuffers before compositing to the screen:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="Multi-pass WebGL Stable Fluids pipeline">
+                        <rect x="5" y="25" width="135" height="54" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="72" y="48" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-weight="600">1. Splat + Curl</text>
+                        <text x="72" y="65" text-anchor="middle" fill="var(--text-muted)" font-size="10">f_ext + ε(N̂ × ω)</text>
+                        <polygon points="148,42 168,52 148,62" fill="var(--text-muted)"/>
+
+                        <rect x="176" y="25" width="155" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="253" y="48" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">2. Self-Advect u*</text>
+                        <text x="253" y="65" text-anchor="middle" fill="#bae6fd" font-size="10">u(x − Δt·u(x))</text>
+                        <polygon points="339,42 359,52 339,62" fill="var(--text-muted)"/>
+
+                        <rect x="367" y="25" width="165" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="449" y="48" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">3. Poisson ×26</text>
+                        <text x="449" y="65" text-anchor="middle" fill="#ddd6fe" font-size="10">∇²p = ∇·u* (Jacobi)</text>
+                        <polygon points="540,42 560,52 540,62" fill="var(--text-muted)"/>
+
+                        <rect x="568" y="25" width="145" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="640" y="48" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">4. Project &amp; Dye</text>
+                        <text x="640" y="65" text-anchor="middle" fill="#d1fae5" font-size="10">u = u* − ∇p, advect q</text>
+                        <polygon points="721,42 741,52 721,62" fill="var(--text-muted)"/>
+
+                        <rect x="749" y="28" width="66" height="48" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="782" y="49" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600">Composite</text>
+                        <text x="782" y="66" text-anchor="middle" fill="#fcd34d" font-size="10">+ Bloom</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Each frame executes 5 advection/calculus passes plus $N_{\text{iter}} = 26$ Jacobi relaxation passes on <code>RGBA16F</code> ping-pong FBOs before rendering the final field.</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 6. COMPARISON TABLE ===== -->
+                <h2>6. Two Paradigms of GPU Physics: Ray-Tracing vs. Ping-Pong PDEs</h2>
+                <p>Stepping back to compare the relativistic ray tracers from Parts 1–4 with this Navier–Stokes solver shows the two fundamental ways to use a fragment shader as a physics engine:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th style="color:#38bdf8">Relativistic Ray Tracers (Black Holes / Wormhole)</th>
+                            <th style="color:#f59e0b">Eulerian PDE Solver (Stable Fluids)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Mathematical problem</strong></td>
+                            <td>Initial-value ODEs ($d^2 x^\mu / d\lambda^2 + \Gamma^\mu_{\alpha\beta} \dot x^\alpha \dot x^\beta = 0$)</td>
+                            <td>Coupled nonlinear PDEs + elliptic boundary-value problem ($\nabla^2 p = \nabla\cdot\vec u^*$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Frame-to-frame state</strong></td>
+                            <td>Stateless (pure function of time uniform <code>uTime</code> and camera pose)</td>
+                            <td>Stateful (<code>RGBA16F</code> ping-pong FBO textures persist and evolve across frames)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Draw calls per frame</strong></td>
+                            <td>1 fullscreen geodesic pass + 1 bloom pass</td>
+                            <td>5 operator passes + $N_{\text{iter}}$ (26–48) Jacobi Poisson passes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pixel coupling</strong></td>
+                            <td>Embarrassingly parallel (pixels never communicate)</td>
+                            <td>Tightly coupled via 5-point finite-difference stencils ($L, R, B, T, C$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Key stability trick</strong></td>
+                            <td>Symplectic Velocity-Verlet + Mino time / Fermat unit tangent</td>
+                            <td>Backward-characteristic advection + Helmholtz–Hodge projection</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Try dragging the <strong>Poisson Jacobi Iterations · $N_{\text{iter}}$</strong> slider down to <code>2</code> while in <strong>Kármán Street</strong> mode, then slide it back up to <code>40</code>—watching the flow transition from a compressible, leaky gas back into a tight, incompressible vortex street shows why Helmholtz–Hodge projection is the heartbeat of computational fluid dynamics.</p>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

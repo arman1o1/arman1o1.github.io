@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser | arman1o1 blog</title>
+    <meta name="description"
+        content="How to ray-trace a spinning Kerr black hole in real time in the browser: Boyer–Lindquist null geodesics in Mino time, Carter's constant, frame dragging, the ergosphere, and Bardeen's D-shaped shadow in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser">
+    <meta property="og:description" content="How to ray-trace a spinning Kerr black hole in real time in the browser: Boyer–Lindquist null geodesics in Mino time, Carter's constant, frame dragging, the ergosphere, and Bardeen's D-shaped shadow in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_kerr_blackhole.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-10-31">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser", "description": "How to ray-trace a spinning Kerr black hole in real time in the browser: Boyer–Lindquist null geodesics in Mino time, Carter's constant, frame dragging, the ergosphere, and Bardeen's D-shaped shadow in GLSL.", "image": "https://arman1o1.github.io/images/thumb_kerr_blackhole.webp", "datePublished": "2026-10-31", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/spinning-up-gargantua-kerr-black-hole.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Astrophysics</span>
+                    <span class="tag">Physics</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-10-31">October 31, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE SIMULATION ===== -->
+                <figure style="margin:0 0 .5rem 0">
+                    <iframe src="../../assets/kerr-black-hole.html"
+                        title="Live Kerr black hole simulation: a Boyer–Lindquist general-relativistic ray tracer running in real time"
+                        loading="eager" allow="fullscreen"
+                        style="display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.35)"></iframe>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live Boyer–Lindquist Kerr ray tracer.</strong> Every pixel above integrates a null geodesic in Mino time through a spinning Kerr spacetime ($a/M = 0.990$ by default). Drag to orbit, open <strong>⚙ Controls</strong> to sweep spin $a/M \in [0, 0.998]$, flip between <strong>Prograde (+a)</strong> and <strong>Retrograde (-a)</strong> disks, toggle the <strong>Ergosphere</strong> static-limit shell, turn on the <strong>D-Shadow Guide</strong> to compare Bardeen's shifted D-shadow against the dashed Schwarzschild circle, or <a href="../../assets/kerr-black-hole.html" target="_blank" rel="noopener">open the simulation full-screen</a>.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="rendering-a-black-hole.html">Part 1 (Rendering Gargantua)</a>, we built a real-time ray tracer for a Schwarzschild black hole and left an honest caveat in the table at the end: the real Gargantua in <em>Interstellar</em> is not Schwarzschild. To keep Miller's planet surviving on a stable orbit with a 60,000-to-1 time-dilation factor, Kip Thorne had to spin Gargantua up to within $10^{-14}$ of the speed-of-light limit ($a/M \approx 1 - 10^{-14}$).</p>
+
+                <p>When a black hole spins, spacetime itself is dragged into a relentless whirlpool. Spherical symmetry breaks down to axial symmetry; the event horizon shrinks from $2M$ down toward $1M$; an oblate <strong>ergosphere</strong> bulges outside the horizon where nothing—not even light—can stand still against the spin; the innermost stable circular orbit (ISCO) plunges from $6M$ all the way down to the horizon for co-rotating gas while being flung out to $9M$ for counter-rotating gas; and the circular shadow flattens on its approaching edge into James Bardeen's famous <strong>D-shaped silhouette</strong>.</p>
+
+                <p>This post upgrades the fullscreen WebGL shader to the exact <strong>Kerr metric in Boyer–Lindquist coordinates</strong>, using Brandon Carter's fourth constant of motion and Mino time to integrate turning-point-free polynomial geodesics at 60 fps right in the canvas above.</p>
+
+                <hr>
+
+                <!-- ===== 0. ANATOMY OF KERR SPACETIME ===== -->
+                <h2>0. What Changes When Spacetime Spins</h2>
+                <p>Working in geometric units $G = c = M = 1$, a rotating black hole is completely characterized by a single dimensionless spin parameter $a \equiv J/M^2 \in [0, 1)$, where $J$ is angular momentum:</p>
+
+                <dl class="kv">
+                    <dt>Outer Horizon ($r_+$)</dt>
+                    <dd>Located where $\Delta(r) \equiv r^2 - 2r + a^2 = 0$, giving $r_+ = 1 + \sqrt{1 - a^2}$. As $a$ increases from $0$ to $1$, the horizon radius shrinks from $2M$ to $1M$.</dd>
+                    <dt>Ergosphere ($r_{\text{ergo}}(\theta)$)</dt>
+                    <dd>The static limit where $g_{tt} = 0$, given by $r_{\text{ergo}}(\theta) = 1 + \sqrt{1 - a^2\cos^2\theta}$. It touches the horizon at the poles ($\theta = 0, \pi$) and bulges out to $2M$ at the equator ($\theta = \pi/2$).</dd>
+                    <dt>Frame Dragging ($\omega$)</dt>
+                    <dd>Even a zero-angular-momentum observer ($L_z = 0$) is swept around the spin axis at coordinate angular velocity $\omega(r, \theta) = -g_{t\varphi}/g_{\varphi\varphi} = 2ar / A$.</dd>
+                    <dt>Split ISCO ($r_{\text{ISCO}}$)</dt>
+                    <dd>Co-rotating (prograde) orbits ride the frame dragging down to $r_{\text{ISCO}} \to 1M$ as $a \to 1$, while counter-rotating (retrograde) orbits are destabilized inside $r_{\text{ISCO}} \to 9M$.</dd>
+                    <dt>Carter's Constant ($Q$)</dt>
+                    <dd>A hidden Killing-tensor symmetry discovered by Brandon Carter (1968) that supplies the missing fourth conserved quantity, keeping 3D Kerr trajectories completely integrable without chaotic scattering.</dd>
+                </dl>
+
+                <hr>
+
+                <!-- ===== 1. BOYER-LINDQUIST METRIC & ERGOSPHERE ===== -->
+                <h2>1. The Boyer–Lindquist Metric and the Ergosphere</h2>
+                <p>In Boyer–Lindquist coordinates $(t, r, \theta, \varphi)$ with $G = c = M = 1$, the Kerr line element takes the form:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Boyer–Lindquist Kerr line element ($G = c = M = 1$)</div>
+                    $$ds^2 = -\left(1 - \frac{2r}{\Sigma}\right)dt^2 - \frac{4ar\sin^2\theta}{\Sigma}\,dt\,d\varphi + \frac{\Sigma}{\Delta}\,dr^2 + \Sigma\,d\theta^2 + \frac{A\sin^2\theta}{\Sigma}\,d\varphi^2$$
+                    $$\Sigma = r^2 + a^2\cos^2\theta, \qquad \Delta = r^2 - 2r + a^2, \qquad A = (r^2 + a^2)^2 - a^2\Delta\sin^2\theta$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Setting $a = 0$ immediately gives $\Sigma = r^2$, $\Delta = r(r - 2)$, $A = r^4$, and zeroes out the off-diagonal $dt\,d\varphi$ cross term, recovering the Schwarzschild metric of Part 1.</p>
+                </div>
+
+                <p>Everything physically new in Kerr comes from two places in this metric: the off-diagonal cross term $g_{t\varphi} = -2ar\sin^2\theta/\Sigma$, which couples time to azimuthal rotation, and the separation between the roots of $g_{tt} = 0$ and $\Delta = 0$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Static limit (ergosphere) vs. event horizon and frame-dragging rate</div>
+                    $$r_{\text{ergo}}(\theta) = 1 + \sqrt{1 - a^2\cos^2\theta}, \qquad r_+ = 1 + \sqrt{1 - a^2}, \qquad \omega(r, \theta) = -\frac{g_{t\varphi}}{g_{\varphi\varphi}} = \frac{2ar}{(r^2+a^2)^2 - a^2\Delta\sin^2\theta}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Inside the ergosphere ($r_+ < r < r_{\text{ergo}}(\theta)$), $g_{tt} > 0$: the coordinate vector $\partial_t$ becomes spacelike, forcing every timelike particle and photon to rotate with $d\varphi/dt > 0$. Toggle the gold <strong>Ergosphere</strong> pill in the simulation above to render this oblate static-limit surface directly around the shadow.</p>
+                </div>
+
+                <hr>
+
+                <!-- ===== 2. CARTER'S CONSTANT & MINO TIME ===== -->
+                <h2>2. Carter's Constant &amp; Polynomial Geodesics in Mino Time</h2>
+                <p>In Schwarzschild spacetime, spherical symmetry meant every light ray lived in a flat 2D plane through the origin. In Kerr spacetime, frame dragging twists trajectories out of their initial plane—rays wobble across latitude $\theta$ while corkscrewing in azimuth $\varphi$.</p>
+
+                <p>Fortunately, Kerr spacetime possesses not just energy $E = -p_t$ and axial angular momentum $L_z = p_\varphi$, but also <strong>Carter's constant</strong> $Q$, associated with a rank-2 Killing tensor. Dividing by $E$, two conserved impact parameters label every pixel's ray from the moment it leaves the camera:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Conserved impact parameters per pixel ($\xi, \eta, K$)</div>
+                    $$\xi \equiv \frac{L_z}{E}, \qquad \eta \equiv \frac{Q}{E^2} = p_\theta^2 + \cos^2\theta\left(\xi^2\csc^2\theta - a^2\right), \qquad K \equiv \eta + (\xi - a)^2 \ge 0$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Here $\xi$ measures impact distance perpendicular to the spin axis, while $\eta$ controls how high in latitude the photon can climb before turning back toward the equatorial plane.</p>
+                </div>
+
+                <p>If you write the first-order geodesic equations in affine parameter $\lambda$, both $\dot r$ and $\dot\theta$ are coupled through $\Sigma = r^2 + a^2\cos^2\theta$, and worse: $\dot\theta$ contains a $\xi^2\cot^2\theta$ pole singularity while both equations hit square-root singularities ($\pm\sqrt{R(r)}$ and $\pm\sqrt{\Theta(\theta)}$) at every radial or polar turning point. Two classic coordinate transformations eliminate both headaches at once:</p>
+                <ol>
+                    <li><strong>Mino time ($\tau$):</strong> Reparameterize the ray by $d\tau = d\lambda / \Sigma$. This absorbs the $\Sigma$ coupling factor so $r(\tau)$ and $\theta(\tau)$ evolve as completely independent 1D oscillators.</li>
+                    <li><strong>Polar cosine ($\mu \equiv \cos\theta$):</strong> Since $d\mu/d\tau = -\sin\theta\,(d\theta/d\tau)$, multiplying the polar potential $\Theta(\theta)$ by $\sin^2\theta = 1 - \mu^2$ cancels the $\cot^2\theta$ singularity analytically, turning both potentials into smooth quartic polynomials $R(r)$ and $M(\mu)$!</li>
+                </ol>
+
+                <div class="math-block">
+                    <div class="math-label">Decoupled polynomial potentials and turning-point-free 2nd-order Mino ODEs</div>
+                    $$\left(\frac{dr}{d\tau}\right)^2 = R(r) = \big(r^2 + a^2 - a\xi\big)^2 - \Delta K, \qquad \left(\frac{d\mu}{d\tau}\right)^2 = M(\mu) = \eta - (\eta + \xi^2 - a^2)\mu^2 - a^2\mu^4$$
+                    $$\frac{d^2 r}{d\tau^2} = \frac{1}{2}R'(r) = 2r\big(r^2 + a^2 - a\xi\big) - (r - 1)\,K, \qquad \frac{d^2\mu}{d\tau^2} = \frac{1}{2}M'(\mu) = -(\eta + \xi^2 - a^2)\mu - 2a^2\mu^3$$
+                    $$\frac{d\varphi}{d\tau} = \frac{a(2r - a\xi)}{\Delta} + \frac{\xi}{1 - \mu^2}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Look at $\ddot r(\tau)$ and $\ddot\mu(\tau)$: there are <strong>no square roots and no divisions</strong> in either acceleration! Radial bounces and polar oscillations pass smoothly through $v_r = 0$ and $v_\mu = 0$ under a 2nd-order midpoint step, and testing whether a ray crossed the equatorial accretion disk is just checking whether $\mu = \cos\theta$ changed sign (<code>prevMu * mu &lt;= 0.0</code>).</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Per-Pixel Mino-Time Kerr Geodesic Integrator</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Conserved impact parameters (xi = L_z/E, eta = Q/E^2) from camera ray (nr, nTheta, nPhi)
+float bScale = sqrt(r0 * r0 + a2);
+float xi     = -bScale * sin0 * nPhi;
+float dth0   = bScale * nTheta;
+float cot0   = cos0 / max(sin0, 1e-4);
+float eta    = dth0 * dth0 + xi * xi * cot0 * cot0 - a2 * cos0 * cos0;
+float K      = max(eta + (xi - a) * (xi - a), 0.0);
+
+// Exact initial Mino velocities satisfying vr^2 = R(r0) and vmu^2 = M(mu0)
+float Delta0 = r0 * r0 - 2.0 * r0 + a2;
+float R0     = (r0 * r0 + a2 - a * xi) * (r0 * r0 + a2 - a * xi) - Delta0 * K;
+float vr     = sign(nr) * sqrt(max(R0, 0.0));
+float vmu    = -sin0 * dth0;
+
+for (int i = 0; i &lt; MAX_STEPS; i++) {
+  if (r &lt;= uRp * 1.015) { captured = true; break; }
+  if (r &gt; 30.0 &amp;&amp; vr &gt; 0.0) break;
+
+  float distH = max(r - uRp, 0.025);
+  float ds    = clamp(0.15 * distH, 0.018, 0.85);
+  float dtau  = ds / (r * r + a2);
+
+  // Polynomial Mino accelerations: d2r/dtau2 = 0.5*R'(r), d2mu/dtau2 = 0.5*M'(mu)
+  float accR1  = 2.0 * r * (r * r + a2 - a * xi) - (r - 1.0) * K;
+  float accMu1 = -(eta + xi * xi - a2) * mu - 2.0 * a2 * mu * mu * mu;
+
+  float vr_mid  = vr  + 0.5 * accR1  * dtau;
+  float vmu_mid = vmu + 0.5 * accMu1 * dtau;
+  float r_mid   = max(r + 0.5 * vr * dtau, uRp * 1.005);
+  float mu_mid  = clamp(mu + 0.5 * vmu * dtau, -0.9995, 0.9995);
+
+  float accR_mid  = 2.0 * r_mid * (r_mid * r_mid + a2 - a * xi) - (r_mid - 1.0) * K;
+  float accMu_mid = -(eta + xi * xi - a2) * mu_mid - 2.0 * a2 * mu_mid * mu_mid * mu_mid;
+
+  r   += vr_mid  * dtau;
+  vr  += accR_mid  * dtau;
+  mu  = clamp(mu + vmu_mid * dtau, -0.9998, 0.9998);
+  vmu += accMu_mid * dtau;
+
+  // Azimuthal twist including frame-dragging term (negated for backward ray integration)
+  float Delta_mid = max(r_mid * r_mid - 2.0 * r_mid + a2, 0.025);
+  float sin2_mid  = max(1.0 - mu_mid * mu_mid, 0.002);
+  phi -= ((a * (2.0 * r_mid - a * xi)) / Delta_mid + xi / sin2_mid) * dtau;
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 3. BARDEEN'S D-SHAPED SHADOW ===== -->
+                <h2>3. Why Gargantua's Shadow is D-Shaped</h2>
+                <p>Click the <strong>D-Shadow Guide</strong> pill in the controls above and drag the <strong>Kerr Spin · $a/M$</strong> slider from $0.000$ up to $0.998$. At $a = 0$, the black shadow sits centered inside the dashed cyan circle of radius $\sqrt{27}M \approx 5.196M$. As you spin the hole up, the entire black silhouette slides to the right (receding side) while its left (prograde, approaching) edge flattens into a vertical gold chord.</p>
+
+                <p>Why? In a non-rotating hole, unstable photon orbits all live at a single sphere $r_{\text{ph}} = 3M$. In Kerr spacetime, frame dragging helps photons orbiting <em>with</em> the spin stay aloft much closer to the horizon, while photons fighting <em>against</em> the spin must stay much farther out. The single photon sphere splits into a continuous shell of spherical photon orbits bounded by the prograde ($r_{\text{ph}}^-$) and retrograde ($r_{\text{ph}}^+$) equatorial photon rings:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Prograde &amp; retrograde photon-sphere radii and Bardeen's critical curve ($R(r_0) = R'(r_0) = 0$)</div>
+                    $$r_{\text{ph}}^\mp = 2M\left[1 + \cos\!\left(\frac{2}{3}\arccos(\mp |a|)\right)\right] \quad\Longrightarrow\quad r_{\text{ph}}^- \xrightarrow{a\to 1} 1M, \quad r_{\text{ph}}^+ \xrightarrow{a\to 1} 4M$$
+                    $$\xi_c(r_0) = \frac{r_0^2(r_0 - 3) + a^2(r_0 + 1)}{a(1 - r_0)}, \qquad \eta_c(r_0) = \frac{r_0^3\big(4a^2 - r_0(r_0 - 3)^2\big)}{a^2(1 - r_0)^2}, \qquad r_0 \in [r_{\text{ph}}^-, r_{\text{ph}}^+]$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Each spherical photon orbit radius $r_0 \in [r_{\text{ph}}^-, r_{\text{ph}}^+]$ contributes one point $(\alpha, \beta) = (-\xi_c/\sin\theta_0,\, \pm\sqrt{\Theta(\theta_0)})$ on the shadow rim. As $a \to 1$, the prograde family collapses onto $r_0 \to 1M$ with constant $\xi_c = +2M$, carving the vertical flat side of the "D".</p>
+                </div>
+
+                <hr>
+
+                <!-- ===== 4. ISCO & CUNNINGHAM REDSHIFT ===== -->
+                <h2>4. Prograde vs. Retrograde Disks &amp; Cunningham's Exact Redshift</h2>
+                <p>In Part 1, our "Spin" slider was an honest stand-in that moved the inner disk edge manually inside a static Schwarzschild metric. Here, the inner edge of the accretion disk is locked to the exact general-relativistic <strong>Innermost Stable Circular Orbit ($r_{\text{ISCO}}$)</strong> derived by Bardeen, Press, and Teukolsky (1972):</p>
+
+                <div class="math-block">
+                    <div class="math-label">Exact Kerr ISCO radius (Bardeen–Press–Teukolsky 1972)</div>
+                    $$Z_1 = 1 + (1 - a^2)^{1/3}\left[(1 + a)^{1/3} + (1 - a)^{1/3}\right], \qquad Z_2 = \sqrt{3a^2 + Z_1^2}$$
+                    $$r_{\text{ISCO}}(a) = M\left(3 + Z_2 \mp \sqrt{(3 - Z_1)(3 + Z_1 + 2Z_2)}\right) \quad \begin{cases} \to 1M & \text{prograde }(-) \\ \to 9M & \text{retrograde }(+) \end{cases}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Click the <strong>Prograde (+a)</strong> pill in the controls to flip the disk to <strong>Retrograde (-a)</strong> at $a = 0.990$: the live telemetry HUD immediately jumps from $r_{\text{ISCO}} = 1.454M$ to $r_{\text{ISCO}} = 8.972M$, opening a cavernous dark gap around the shadow while reversing the Doppler-bright side of the disk.</p>
+                </div>
+
+                <p>Even better, computing the exact general-relativistic frequency shift $g = \nu_{\text{obs}}/\nu_{\text{emit}}$ (combining gravitational redshift, frame dragging, transverse orbital dilation, and directional Doppler beaming) is <em>simpler</em> in Boyer–Lindquist coordinates than in approximate Euclidean vectors. Because disk plasma on an equatorial circular orbit has four-velocity $u^\mu = u^t(1, 0, 0, \Omega_K)$ with Kerr Keplerian angular velocity $\Omega_K = \frac{\pm 1}{r^{3/2} \pm a}$, and because $E = -p_t$ and $L_z = p_\varphi$ are conserved all the way to the camera, Cunningham's (1975) exact formula evaluates $g$ directly from the crossing radius $r$ and the ray's conserved $\xi = L_z/E$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Exact Kerr Keplerian angular velocity and Cunningham (1975) frequency shift factor $g(r, \xi)$</div>
+                    $$\Omega_K(r) = \frac{\pm 1}{r^{3/2} \pm a}, \qquad g(r, \xi) = \frac{-p_\mu u^\mu_{\text{obs}}}{-p_\nu u^\nu_{\text{emit}}} = \frac{1}{u^t\big(1 - \Omega_K\,\xi\big)} = \frac{\sqrt{1 - \frac{3}{r} \pm \frac{2a}{r^{3/2}}}}{1 + \frac{\pm a - \xi}{r^{3/2}}}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice that at $a = 0$, this reduces to $g = \frac{\sqrt{1 - 3/r}}{1 - \xi/r^{3/2}}$, automatically avoiding the double-counted $\sqrt{1-\beta^2}$ pitfall of naive special-relativistic decompositions.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Exact Cunningham Kerr Redshift &amp; Disk Emission</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Equatorial disk plane crossing (prevMu * mu &lt;= 0.0) at Boyer-Lindquist radius rr
+if (rr &gt; uIsco &amp;&amp; rr &lt; rOutDisk) {
+  float x      = rr / uIsco;
+  float tprof  = pow(x, -0.75) * pow(max(1.0 - inversesqrt(x), 0.0), 0.25) * 2.05;
+  float Tb     = uTpeak * tprof;
+
+  float edge = max(1.0 - sqrt(uIsco / max(rr, uIsco + 1e-4)), 0.0);
+  float flux = 2.6 * pow(uIsco / rr, 2.85) * pow(edge, 0.78);
+
+  // Signed spin (+a for prograde, -a for retrograde) and r^(3/2)
+  float aSigned = a * uPrograde;
+  float r32     = rr * sqrt(rr);
+
+  // Exact Cunningham (1975) Kerr redshift + frame-dragging + Doppler factor g(r, xi)
+  float numG = sqrt(max(1.0 - 3.0 / rr + 2.0 * aSigned / r32, 0.015));
+  float denG = max(1.0 + (aSigned - xi * uPrograde) / r32, 0.14);
+  float g    = mix(numG / max(1.0 + aSigned / r32, 0.2), numG / denG, uDoppler);
+
+  vec3 bb = blackbody(Tb * clamp(g, 0.28, 3.4));
+  bb = mix(bb, bb * vec3(1.14, 0.99, 0.75), 0.58);
+  accumCol += T * bb * flux * pow(clamp(g, 0.08, 18.0), 3.6) * (0.32 + 1.32 * n) * 6.2 * env;
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 5. RENDER PIPELINE ===== -->
+                <h2>5. The Kerr Render Pipeline</h2>
+                <p>Putting the pieces together, each pixel converts its view-plane ray into conserved Carter constants $(\xi, \eta)$, integrates the polynomial Mino-time equations across the ergosphere and equatorial plane, and accumulates exact Cunningham-shifted blackbody emission:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="Kerr ray-tracing pipeline from Carter constants to ACES tone map">
+                        <rect x="5" y="25" width="135" height="54" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="72" y="48" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-weight="600">Camera ray</text>
+                        <text x="72" y="65" text-anchor="middle" fill="var(--text-muted)" font-size="10">(ξ = Lz/E, η = Q/E²)</text>
+                        <polygon points="148,42 168,52 148,62" fill="var(--text-muted)"/>
+
+                        <rect x="176" y="25" width="165" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="258" y="48" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">Mino Verlet integrator</text>
+                        <text x="258" y="65" text-anchor="middle" fill="#bae6fd" font-size="10">r̈ = ½R'(r), μ̈ = ½M'(μ)</text>
+                        <polygon points="349,42 369,52 349,62" fill="var(--text-muted)"/>
+
+                        <rect x="377" y="25" width="145" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="449" y="48" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">Ergosphere &amp; φ</text>
+                        <text x="449" y="65" text-anchor="middle" fill="#ddd6fe" font-size="10">frame-dragging twist</text>
+                        <polygon points="530,42 550,52 530,62" fill="var(--text-muted)"/>
+
+                        <rect x="558" y="25" width="145" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="630" y="48" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Cunningham disk</text>
+                        <text x="630" y="65" text-anchor="middle" fill="#d1fae5" font-size="10">r_ISCO(a) · g(r, ξ)</text>
+                        <polygon points="711,42 731,52 711,62" fill="var(--text-muted)"/>
+
+                        <rect x="739" y="28" width="76" height="48" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="777" y="49" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600">ACES +</text>
+                        <text x="777" y="66" text-anchor="middle" fill="#fcd34d" font-size="10">Bloom</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Replacing affine parameter $\lambda$ with Mino time $\tau$ decouples the Kerr geodesic into polynomial radial and polar oscillators with exact conserved impact parameters $(\xi, \eta)$.</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 6. COMPARISON TABLE ===== -->
+                <h2>6. Schwarzschild vs. True Kerr: What Changed</h2>
+                <p>Comparing the static spacetime of <a href="rendering-a-black-hole.html">Part 1</a> against the spinning Kerr spacetime built here highlights how much physics hides inside that single spin parameter $a/M$:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th style="color:#38bdf8">Part 1: Schwarzschild ($a = 0$)</th>
+                            <th style="color:#f59e0b">Part 3: Boyer–Lindquist Kerr ($a \to 1$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Event horizon $r_+$</strong></td>
+                            <td>Fixed at $r_s = 2M$</td>
+                            <td>Shrinks with spin: $r_+ = M(1 + \sqrt{1 - a^2}) \to 1M$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ergosphere</strong></td>
+                            <td>None ($r_{\text{ergo}} = r_+$ everywhere)</td>
+                            <td>Oblate static-limit shell $r_{\text{ergo}}(\theta) = M(1 + \sqrt{1 - a^2\cos^2\theta})$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ray plane</strong></td>
+                            <td>Planar great-circle motion ($\vec h = \vec r \times \dot{\vec r}$)</td>
+                            <td>3D non-planar twisting governed by Carter's constant $Q$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shadow silhouette</strong></td>
+                            <td>Centered circle of radius $\sqrt{27}M \approx 5.20M$</td>
+                            <td>Shifted, prograde-flattened Bardeen D-curve $(\xi_c, \eta_c)$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ISCO radius $r_{\text{ISCO}}$</strong></td>
+                            <td>Fixed at $6M$ ($3\,r_s$)</td>
+                            <td>Shrinks to $1M$ (prograde $+a$) or expands to $9M$ (retrograde $-a$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Frequency shift $g$</strong></td>
+                            <td>Local special-relativistic + static redshift</td>
+                            <td>Exact Cunningham factor $g(r,\xi) = [u^t(1 - \Omega_K\xi)]^{-1}$</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Try clicking the <strong>Gargantua (a=0.998)</strong> and <strong>Schwarzschild (a=0)</strong> preset buttons back-to-back in the live simulation at the top of the page—watching the horizon contract, the prograde disk plunge inward to $1.24M$, and the shadow snap into Bardeen's D-profile brings five decades of general-relativistic black hole optics into a single browser tab.</p>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

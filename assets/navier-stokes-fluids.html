@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stable Fluids — Real-Time Navier–Stokes Solver in WebGL</title>
+<style>
+  :root {
+    --bg: #05060a;
+    --panel: rgba(12, 15, 24, 0.85);
+    --border: rgba(148, 163, 184, 0.20);
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --gold: #f59e0b;
+    --violet: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  #glCanvas {
+    display: block; width: 100%; height: 100%;
+    cursor: crosshair; touch-action: none;
+  }
+
+  .hud-bar {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    pointer-events: none; z-index: 10; gap: 10px;
+  }
+  .telemetry {
+    pointer-events: auto;
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 12px;
+    font-size: 11.5px; line-height: 1.48; color: var(--muted);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  }
+  .telemetry strong { color: var(--text); font-weight: 600; }
+  .telemetry .math { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #cbd5e1; }
+  .telemetry .val { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .telemetry .val-gold { color: var(--gold); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .ctrl-wrap {
+    pointer-events: auto;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .toggle-panel-btn {
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; font-weight: 600;
+    padding: 7px 13px; border-radius: 9px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .toggle-panel-btn:hover { border-color: var(--accent); }
+
+  .panel {
+    width: 300px; max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 70px); overflow-y: auto;
+    background: var(--panel);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 16px 44px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; gap: 10px;
+    font-size: 12px;
+  }
+  .panel.hidden { display: none; }
+  .row { display: flex; flex-direction: column; gap: 4px; }
+  .row-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11.5px; }
+  .row-head span.v { color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; }
+  input[type="range"] {
+    width: 100%; accent-color: var(--accent); cursor: pointer; height: 5px;
+  }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .pill {
+    background: rgba(30, 41, 59, 0.72);
+    border: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill.active {
+    background: rgba(56, 189, 248, 0.20);
+    border-color: var(--accent); color: #e0f2fe;
+  }
+  .pill.gold.active {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: var(--gold); color: #fef3c7;
+  }
+  .presets { display: flex; gap: 5px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 8px; }
+  .preset-btn {
+    flex: 1 1 auto; background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border); color: var(--text);
+    font-size: 10.5px; padding: 5px 7px; border-radius: 6px; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .preset-btn:hover { border-color: var(--accent); }
+  @media (max-width: 560px) {
+    .telemetry { font-size: 10.5px; padding: 6px 9px; }
+    .panel { width: 255px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="glCanvas"></canvas>
+
+<div class="hud-bar">
+  <div class="telemetry" id="telemetryBox">
+    <div><strong>Incompressible Navier–Stokes</strong> · <span class="math">∇·<b>u</b> = 0</span></div>
+    <div>Vel Grid: <span class="val" id="hudGrid">340×192</span> · Dye: <span class="val" id="hudDyeGrid">1024×576</span></div>
+    <div>Confinement <span class="math">ε</span>: <span class="val-gold" id="hudCurl">32.0</span> · Jacobi: <span class="val" id="hudJacobi">26 iters</span></div>
+    <div>View: <span class="val" id="hudView">Dye + Bloom</span> · <span id="hudFps">-- fps</span></div>
+  </div>
+
+  <div class="ctrl-wrap">
+    <button class="toggle-panel-btn" id="togglePanelBtn" type="button">⚙ Controls</button>
+    <div class="panel hidden" id="ctrlPanel">
+      <div class="row">
+        <div class="row-head"><span>Vorticity Confinement · <i>ε</i><sub>curl</sub></span><span class="v" id="valCurl">32.0</span></div>
+        <input type="range" id="slCurl" min="0" max="55" step="1" value="32" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Poisson Jacobi Iterations · <i>N</i><sub>iter</sub></span><span class="v" id="valJacobi">26</span></div>
+        <input type="range" id="slJacobi" min="2" max="48" step="2" value="26" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Dye Dissipation · <i>γ</i><sub>q</sub></span><span class="v" id="valDiss">0.85 /s</span></div>
+        <input type="range" id="slDiss" min="0.10" max="2.50" step="0.05" value="0.85" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Velocity Damping · <i>ν</i><sub>d</sub></span><span class="v" id="valVisc">0.08 /s</span></div>
+        <input type="range" id="slVisc" min="0.00" max="1.20" step="0.02" value="0.08" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Solver Grid Resolution</span><span class="v" id="valScale">192p</span></div>
+        <input type="range" id="slScale" min="128" max="320" step="64" value="192" />
+      </div>
+
+      <div class="row">
+        <div class="row-head"><span>Field Visualization Mode</span></div>
+        <div class="pills">
+          <button type="button" class="pill active" id="viewDye">Dye (q)</button>
+          <button type="button" class="pill" id="viewVort">Vorticity (ω)</button>
+          <button type="button" class="pill" id="viewPress">Pressure (p)</button>
+          <button type="button" class="pill" id="viewVel">Velocity (u)</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-head"><span>Flow Generators &amp; Boundaries</span></div>
+        <div class="pills">
+          <button type="button" class="pill active" id="pillJets">Auto-Jets</button>
+          <button type="button" class="pill gold" id="pillObstacle">Kármán Cylinder</button>
+          <button type="button" class="pill active" id="pillBloom">Glow Bloom</button>
+        </div>
+      </div>
+
+      <div class="presets">
+        <button type="button" class="preset-btn" id="preCollide">Colliding Plumes</button>
+        <button type="button" class="preset-btn" id="preKarman">Kármán Street</button>
+        <button type="button" class="preset-btn" id="preBurst">Vortex Burst</button>
+        <button type="button" class="preset-btn" id="preClear">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('glCanvas');
+  let gl = canvas.getContext('webgl2', { alpha: false, depth: false, stencil: false, antialias: false });
+  const isWebGL2 = !!gl;
+  if (!gl) {
+    gl = canvas.getContext('webgl', { alpha: false, depth: false, stencil: false, antialias: false });
+  }
+  if (!gl) {
+    document.body.innerHTML = '<div style="padding:2rem;color:#fff">WebGL is required to run this simulation.</div>';
+    return;
+  }
+
+  // Ensure byte alignment for arbitrary texture resolutions
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+  let internalFormat = gl.RGBA;
+  let format = gl.RGBA;
+  let texType = gl.UNSIGNED_BYTE;
+  let supportLinear = false;
+
+  // Probe half-float and float FBO support reliably
+  if (isWebGL2) {
+    const extFloat = gl.getExtension('EXT_color_buffer_float');
+    const extLinear = gl.getExtension('OES_texture_float_linear');
+    if (extFloat) {
+      internalFormat = gl.RGBA16F;
+      texType = gl.HALF_FLOAT;
+      supportLinear = !!extLinear;
+    }
+  } else {
+    const halfFloat = gl.getExtension('OES_texture_half_float');
+    const halfFloatColor = gl.getExtension('EXT_color_buffer_half_float');
+    const halfLinear = gl.getExtension('OES_texture_half_float_linear');
+    if (halfFloat && halfFloatColor) {
+      texType = halfFloat.HALF_FLOAT_OES;
+      supportLinear = !!halfLinear;
+    } else {
+      const fullFloat = gl.getExtension('OES_texture_float');
+      const fullFloatColor = gl.getExtension('WEBGL_color_buffer_float');
+      const fullLinear = gl.getExtension('OES_texture_float_linear');
+      if (fullFloat && fullFloatColor) {
+        texType = gl.FLOAT;
+        supportLinear = !!fullLinear;
+      }
+    }
+  }
+
+  // Verify renderable framebuffer support upfront with a 2x2 test FBO
+  (function verifyFBO() {
+    const testTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, testTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, 2, 2, 0, format, texType, null);
+    const testFBO = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, testFBO);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, testTex, 0);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+      internalFormat = gl.RGBA;
+      format = gl.RGBA;
+      texType = gl.UNSIGNED_BYTE;
+      supportLinear = true;
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(testFBO);
+    gl.deleteTexture(testTex);
+  })();
+
+  const baseVs = `
+    precision highp float;
+    attribute vec2 aPos;
+    varying vec2 vUv;
+    void main() {
+      vUv = aPos * 0.5 + 0.5;
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }
+  `;
+
+  // Splat pass: linear momentum addition for velocity; soft-saturating chromatic injection for dye
+  const splatFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uTarget;
+    uniform float uAspect;
+    uniform vec2  uPoint;
+    uniform vec3  uColor;
+    uniform float uRadius;
+    uniform float uIsVelocity;
+    uniform float uObstacle;
+    uniform vec2  uObsPos;
+    uniform float uObsRad;
+
+    void main() {
+      vec2 p = vUv - uPoint;
+      p.x *= uAspect;
+      float w = exp(-dot(p, p) / max(uRadius, 1e-6));
+      vec3 base = texture2D(uTarget, vUv).xyz;
+      vec3 res;
+      if (uIsVelocity > 0.5) {
+        res = base + w * uColor;
+      } else {
+        res = mix(base, uColor, clamp(w * 0.75, 0.0, 0.92));
+      }
+
+      if (uObstacle > 0.5) {
+        vec2 dp = vUv - uObsPos;
+        dp.x *= uAspect;
+        if (length(dp) < uObsRad) res = vec3(0.0);
+      }
+      gl_FragColor = vec4(res, 1.0);
+    }
+  `;
+
+  // Scalar 2D curl (vorticity): omega = du_y/dx - du_x/dy
+  const curlFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity;
+    uniform vec2 uTexel;
+
+    void main() {
+      float L = texture2D(uVelocity, vUv - vec2(uTexel.x, 0.0)).y;
+      float R = texture2D(uVelocity, vUv + vec2(uTexel.x, 0.0)).y;
+      float B = texture2D(uVelocity, vUv - vec2(0.0, uTexel.y)).x;
+      float T = texture2D(uVelocity, vUv + vec2(0.0, uTexel.y)).x;
+      float vorticity = 0.5 * ((R - L) - (T - B));
+      gl_FragColor = vec4(vorticity, 0.0, 0.0, 1.0);
+    }
+  `;
+
+  // Fedkiw-Stam-Jensen vorticity confinement: f_vort = eps * (N_y * omega, -N_x * omega)
+  const vorticityFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity;
+    uniform sampler2D uCurl;
+    uniform vec2  uTexel;
+    uniform float uCurlStrength;
+    uniform float uDt;
+
+    void main() {
+      float L = abs(texture2D(uCurl, vUv - vec2(uTexel.x, 0.0)).x);
+      float R = abs(texture2D(uCurl, vUv + vec2(uTexel.x, 0.0)).x);
+      float B = abs(texture2D(uCurl, vUv - vec2(0.0, uTexel.y)).x);
+      float T = abs(texture2D(uCurl, vUv + vec2(0.0, uTexel.y)).x);
+      float C = texture2D(uCurl, vUv).x;
+
+      vec2 grad = 0.5 * vec2(R - L, T - B);
+      vec2 N = grad / (length(grad) + 1e-4);
+      vec2 force = uCurlStrength * vec2(N.y * C, -N.x * C);
+
+      vec2 vel = texture2D(uVelocity, vUv).xy;
+      vel += force * uDt;
+      gl_FragColor = vec4(vel, 0.0, 1.0);
+    }
+  `;
+
+  // Discrete divergence of intermediate velocity u*
+  const divergenceFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity;
+    uniform vec2  uTexel;
+    uniform float uObstacle;
+    uniform float uAspect;
+    uniform vec2  uObsPos;
+    uniform float uObsRad;
+
+    bool isSolid(vec2 uv) {
+      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return true;
+      if (uObstacle > 0.5) {
+        vec2 dp = uv - uObsPos;
+        dp.x *= uAspect;
+        if (length(dp) < uObsRad) return true;
+      }
+      return false;
+    }
+
+    void main() {
+      vec2 C = texture2D(uVelocity, vUv).xy;
+      vec2 uvL = vUv - vec2(uTexel.x, 0.0);
+      vec2 uvR = vUv + vec2(uTexel.x, 0.0);
+      vec2 uvB = vUv - vec2(0.0, uTexel.y);
+      vec2 uvT = vUv + vec2(0.0, uTexel.y);
+
+      float L = isSolid(uvL) ? -C.x : texture2D(uVelocity, uvL).x;
+      float R = (uObstacle > 0.5 && uvR.x > 1.0) ? C.x : (isSolid(uvR) ? -C.x : texture2D(uVelocity, uvR).x);
+      float B = isSolid(uvB) ? -C.y : texture2D(uVelocity, uvB).y;
+      float T = isSolid(uvT) ? -C.y : texture2D(uVelocity, uvT).y;
+
+      float div = 0.5 * ((R - L) + (T - B));
+      gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
+    }
+  `;
+
+  // Jacobi Poisson pressure iteration: p_new = (p_L + p_R + p_B + p_T - div) * 0.25
+  const jacobiFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uPressure;
+    uniform sampler2D uDivergence;
+    uniform vec2  uTexel;
+    uniform float uObstacle;
+    uniform float uAspect;
+    uniform vec2  uObsPos;
+    uniform float uObsRad;
+
+    bool isSolid(vec2 uv) {
+      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return true;
+      if (uObstacle > 0.5) {
+        vec2 dp = uv - uObsPos;
+        dp.x *= uAspect;
+        if (length(dp) < uObsRad) return true;
+      }
+      return false;
+    }
+
+    void main() {
+      float pC = texture2D(uPressure, vUv).x;
+      vec2 uvL = vUv - vec2(uTexel.x, 0.0);
+      vec2 uvR = vUv + vec2(uTexel.x, 0.0);
+      vec2 uvB = vUv - vec2(0.0, uTexel.y);
+      vec2 uvT = vUv + vec2(0.0, uTexel.y);
+
+      float L = isSolid(uvL) ? pC : texture2D(uPressure, uvL).x;
+      float R = (uObstacle > 0.5 && uvR.x > 1.0) ? 0.0 : (isSolid(uvR) ? pC : texture2D(uPressure, uvR).x);
+      float B = isSolid(uvB) ? pC : texture2D(uPressure, uvB).x;
+      float T = isSolid(uvT) ? pC : texture2D(uPressure, uvT).x;
+      float div = texture2D(uDivergence, vUv).x;
+
+      gl_FragColor = vec4((L + R + B + T - div) * 0.25, 0.0, 0.0, 1.0);
+    }
+  `;
+
+  // Helmholtz-Hodge gradient subtraction: u = u* - grad(p)
+  const gradientSubtractFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uPressure;
+    uniform sampler2D uVelocity;
+    uniform vec2  uTexel;
+    uniform float uObstacle;
+    uniform float uAspect;
+    uniform vec2  uObsPos;
+    uniform float uObsRad;
+
+    bool isSolid(vec2 uv) {
+      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return true;
+      if (uObstacle > 0.5) {
+        vec2 dp = uv - uObsPos;
+        dp.x *= uAspect;
+        if (length(dp) < uObsRad) return true;
+      }
+      return false;
+    }
+
+    void main() {
+      if (uObstacle > 0.5) {
+        vec2 dp = vUv - uObsPos;
+        dp.x *= uAspect;
+        if (length(dp) < uObsRad) {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+          return;
+        }
+      }
+      float pC = texture2D(uPressure, vUv).x;
+      vec2 uvL = vUv - vec2(uTexel.x, 0.0);
+      vec2 uvR = vUv + vec2(uTexel.x, 0.0);
+      vec2 uvB = vUv - vec2(0.0, uTexel.y);
+      vec2 uvT = vUv + vec2(0.0, uTexel.y);
+
+      float L = isSolid(uvL) ? pC : texture2D(uPressure, uvL).x;
+      float R = (uObstacle > 0.5 && uvR.x > 1.0) ? 0.0 : (isSolid(uvR) ? pC : texture2D(uPressure, uvR).x);
+      float B = isSolid(uvB) ? pC : texture2D(uPressure, uvB).x;
+      float T = isSolid(uvT) ? pC : texture2D(uPressure, uvT).x;
+
+      vec2 vel = texture2D(uVelocity, vUv).xy - 0.5 * vec2(R - L, T - B);
+
+      // Boundary no-penetration clamping
+      if (vUv.x < uTexel.x) vel.x = max(vel.x, 0.0);
+      if (uObstacle < 0.5 && vUv.x > 1.0 - uTexel.x) vel.x = min(vel.x, 0.0);
+      if (vUv.y < uTexel.y) vel.y = max(vel.y, 0.0);
+      if (vUv.y > 1.0 - uTexel.y) vel.y = min(vel.y, 0.0);
+
+      gl_FragColor = vec4(vel, 0.0, 1.0);
+    }
+  `;
+
+  // Semi-Lagrangian backward-characteristic advection on decoupled grid sizes
+  const advectionFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity;
+    uniform sampler2D uSource;
+    uniform vec2  uVelTexel;    // 1 / velocityGridSize
+    uniform vec2  uSourceTexel; // 1 / sourceGridSize (high-res for dye!)
+    uniform float uDt;
+    uniform float uDissipation;
+    uniform float uManualBilerp;
+    uniform float uObstacle;
+    uniform float uAspect;
+    uniform vec2  uObsPos;
+    uniform float uObsRad;
+
+    vec4 sampleBilerp(sampler2D tex, vec2 uv, vec2 texel) {
+      if (uManualBilerp < 0.5) {
+        return texture2D(tex, uv);
+      }
+      vec2 st = uv / texel - 0.5;
+      vec2 iuv = floor(st);
+      vec2 fuv = fract(st);
+      vec4 a = texture2D(tex, (iuv + vec2(0.5, 0.5)) * texel);
+      vec4 b = texture2D(tex, (iuv + vec2(1.5, 0.5)) * texel);
+      vec4 c = texture2D(tex, (iuv + vec2(0.5, 1.5)) * texel);
+      vec4 d = texture2D(tex, (iuv + vec2(1.5, 1.5)) * texel);
+      return mix(mix(a, b, fuv.x), mix(c, d, fuv.x), fuv.y);
+    }
+
+    void main() {
+      if (uObstacle > 0.5) {
+        vec2 dp = vUv - uObsPos;
+        dp.x *= uAspect;
+        if (length(dp) < uObsRad) {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+          return;
+        }
+      }
+      // Absorb dye near walls in closed mode, or fade near outlet in wind-tunnel mode
+      float wallFade = smoothstep(0.0, 0.025, vUv.x)
+                     * (uObstacle > 0.5 ? smoothstep(1.0, 0.94, vUv.x) : smoothstep(1.0, 0.975, vUv.x))
+                     * smoothstep(0.0, 0.025, vUv.y) * smoothstep(1.0, 0.975, vUv.y);
+      vec2 vel   = sampleBilerp(uVelocity, vUv, uVelTexel).xy;
+      vec2 coord = clamp(vUv - uDt * vel * uVelTexel, uSourceTexel * 0.5, 1.0 - uSourceTexel * 0.5);
+      vec4 result = sampleBilerp(uSource, coord, uSourceTexel);
+      float peak = max(result.r, max(result.g, result.b));
+      // Nonlinear self-limiting decay: bright peaks damp faster so long runs stay high-contrast
+      float decay = 1.0 + (uDissipation + 0.55 * peak) * uDt;
+      gl_FragColor = vec4((result.rgb / decay) * mix(1.0, wallFade, 0.15), 1.0);
+    }
+  `;
+
+  // Final composite display shader with soft radial bloom and crisp filament contrast
+  const displayFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uDye;
+    uniform sampler2D uVelocity;
+    uniform sampler2D uCurl;
+    uniform sampler2D uPressure;
+    uniform vec2  uDyeTexel;
+    uniform int   uViewMode;    // 0 = Dye, 1 = Vorticity, 2 = Pressure, 3 = Velocity
+    uniform float uBloom;
+    uniform float uObstacle;
+    uniform float uAspect;
+    uniform vec2  uObsPos;
+    uniform float uObsRad;
+
+    void main() {
+      vec3 col = vec3(0.0);
+
+      if (uViewMode == 0) {
+        vec3 c = texture2D(uDye, vUv).rgb;
+        if (uBloom > 0.5) {
+          vec2 r1 = uDyeTexel * 3.5;
+          vec2 r2 = uDyeTexel * 8.5;
+          vec3 glow = 0.12 * (
+            texture2D(uDye, vUv + vec2( r1.x,  0.0)).rgb +
+            texture2D(uDye, vUv + vec2(-r1.x,  0.0)).rgb +
+            texture2D(uDye, vUv + vec2( 0.0,  r1.y)).rgb +
+            texture2D(uDye, vUv + vec2( 0.0, -r1.y)).rgb
+          ) + 0.06 * (
+            texture2D(uDye, vUv + vec2( r2.x,  r2.y)).rgb +
+            texture2D(uDye, vUv + vec2(-r2.x,  r2.y)).rgb +
+            texture2D(uDye, vUv + vec2( r2.x, -r2.y)).rgb +
+            texture2D(uDye, vUv + vec2(-r2.x, -r2.y)).rgb
+          );
+          c += glow * 0.28;
+        }
+        // Saturation-preserving chroma curve: prevent grey/pastel washout when plumes mix
+        float luma = dot(c, vec3(0.299, 0.587, 0.114));
+        c = max(mix(vec3(luma), c, 1.38), vec3(0.0));
+        float peak = max(c.r, max(c.g, max(c.b, 1e-4)));
+        float mappedPeak = (peak * (2.2 * peak + 0.02)) / (peak * (2.1 * peak + 0.75) + 0.18);
+        vec3 chroma = c / peak;
+        col = chroma * mappedPeak;
+        // Subtle hot core highlight only on intense filaments
+        col += vec3(0.18, 0.20, 0.25) * pow(clamp(peak - 0.75, 0.0, 1.0), 2.0);
+        vec3 bg = vec3(0.016, 0.020, 0.035) * (1.0 - 0.35 * length(vUv - 0.5));
+        col = pow(clamp(col + bg, 0.0, 1.0), vec3(1.0 / 2.1));
+      } else if (uViewMode == 1) {
+        float w = texture2D(uCurl, vUv).x * 0.06;
+        vec3 posCol = vec3(1.0, 0.44, 0.12) * clamp(w, 0.0, 1.0);
+        vec3 negCol = vec3(0.10, 0.68, 1.0) * clamp(-w, 0.0, 1.0);
+        float core  = pow(clamp(abs(w) * 0.65, 0.0, 1.0), 2.0);
+        col = posCol + negCol + vec3(0.95, 0.96, 1.0) * core * 0.55 + vec3(0.025, 0.03, 0.055);
+      } else if (uViewMode == 2) {
+        float p = texture2D(uPressure, vUv).x * 0.015;
+        vec3 hi = vec3(0.98, 0.70, 0.18) * clamp(p, 0.0, 1.0);
+        vec3 lo = vec3(0.24, 0.56, 0.98) * clamp(-p, 0.0, 1.0);
+        float iso = smoothstep(0.90, 0.985, abs(cos(p * 22.0)));
+        col = hi + lo + vec3(0.20, 0.26, 0.36) * iso * 0.40 + vec3(0.03, 0.04, 0.07);
+      } else {
+        vec2 v = texture2D(uVelocity, vUv).xy * 0.004;
+        float mag = clamp(length(v), 0.0, 1.0);
+        float ang = atan(v.y, v.x);
+        vec3 dirCol = 0.5 + 0.5 * cos(ang + vec3(0.0, 2.094, 4.188));
+        col = dirCol * pow(mag, 0.62) + vec3(0.025, 0.03, 0.05);
+      }
+
+      if (uObstacle > 0.5) {
+        vec2 dp = vUv - uObsPos;
+        dp.x *= uAspect;
+        float dist = length(dp);
+        if (dist < uObsRad) {
+          float rim = smoothstep(uObsRad * 0.84, uObsRad, dist);
+          col = mix(vec3(0.08, 0.10, 0.16), vec3(0.96, 0.68, 0.22), rim);
+        }
+      }
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  // Compile shader program and pre-cache uniform locations
+  function createProgram(fsSource) {
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vs, baseVs);
+    gl.compileShader(vs);
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, fsSource);
+    gl.compileShader(fs);
+    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(fs));
+    }
+    const p = gl.createProgram();
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
+    gl.linkProgram(p);
+
+    p.u = {};
+    const numUniforms = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < numUniforms; i++) {
+      const info = gl.getActiveUniform(p, i);
+      p.u[info.name] = gl.getUniformLocation(p, info.name);
+    }
+    p.aPos = gl.getAttribLocation(p, 'aPos');
+    return p;
+  }
+
+  const progSplat   = createProgram(splatFs);
+  const progCurl    = createProgram(curlFs);
+  const progVort    = createProgram(vorticityFs);
+  const progDiv     = createProgram(divergenceFs);
+  const progJacobi  = createProgram(jacobiFs);
+  const progGradSub = createProgram(gradientSubtractFs);
+  const progAdvect  = createProgram(advectionFs);
+  const progDisplay = createProgram(displayFs);
+
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+
+  function bindQuad(prog) {
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.enableVertexAttribArray(prog.aPos);
+    gl.vertexAttribPointer(prog.aPos, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  function createFBO(w, h, filterParam) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filterParam);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filterParam);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, texType, null);
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    gl.viewport(0, 0, w, h);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    return { tex, fbo, width: w, height: h };
+  }
+
+  function destroyFBO(fbo) {
+    if (!fbo) return;
+    if (fbo.tex) gl.deleteTexture(fbo.tex);
+    if (fbo.fbo) gl.deleteFramebuffer(fbo.fbo);
+  }
+
+  function createDoubleFBO(w, h, filterParam) {
+    let fbo1 = createFBO(w, h, filterParam);
+    let fbo2 = createFBO(w, h, filterParam);
+    return {
+      width: w, height: h,
+      get read() { return fbo1; },
+      get write() { return fbo2; },
+      swap() { const tmp = fbo1; fbo1 = fbo2; fbo2 = tmp; },
+      destroy() { destroyFBO(fbo1); destroyFBO(fbo2); }
+    };
+  }
+
+  const state = {
+    curl: 32.0,
+    jacobiIters: 26,
+    dyeDiss: 0.85,
+    velDiss: 0.08,
+    simBaseH: 192,
+    viewMode: 0,
+    autoJets: true,
+    obstacle: 0.0,
+    bloom: 1.0,
+    obsPos: [0.24, 0.50],
+    obsRad: 0.062
+  };
+
+  let simW = 340, simH = 192;
+  let dyeW = 1024, dyeH = 576;
+  let velocityFBO, dyeFBO, pressureFBO, divergenceFBO, curlFBO;
+
+  function initFBOs() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+    canvas.width  = Math.max(Math.floor(window.innerWidth * dpr), 256);
+    canvas.height = Math.max(Math.floor(window.innerHeight * dpr), 256);
+
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    simH = state.simBaseH;
+    simW = Math.max((Math.round(simH * aspect) + 1) & ~1, 128);
+
+    dyeH = Math.min(Math.max(Math.floor(canvas.height * 0.90), 512), 1080);
+    dyeW = Math.max((Math.round(dyeH * aspect) + 1) & ~1, 512);
+
+    // Clean up existing FBO allocations before reallocating
+    if (velocityFBO) velocityFBO.destroy();
+    if (dyeFBO) dyeFBO.destroy();
+    if (pressureFBO) pressureFBO.destroy();
+    if (divergenceFBO) destroyFBO(divergenceFBO);
+    if (curlFBO) destroyFBO(curlFBO);
+
+    const filter = supportLinear ? gl.LINEAR : gl.NEAREST;
+    velocityFBO   = createDoubleFBO(simW, simH, filter);
+    dyeFBO        = createDoubleFBO(dyeW, dyeH, filter);
+    pressureFBO   = createDoubleFBO(simW, simH, gl.NEAREST);
+    divergenceFBO = createFBO(simW, simH, gl.NEAREST);
+    curlFBO       = createFBO(simW, simH, gl.NEAREST);
+    updateHUD();
+  }
+
+  function updateHUD() {
+    const viewNames = ['Dye + Bloom', 'Vorticity (ω)', 'Pressure (p)', 'Velocity (u)'];
+    document.getElementById('hudGrid').textContent = simW + '×' + simH;
+    document.getElementById('hudDyeGrid').textContent = dyeW + '×' + dyeH;
+    document.getElementById('hudJacobi').textContent = state.jacobiIters + ' iters';
+    document.getElementById('hudCurl').textContent = state.curl.toFixed(1);
+    document.getElementById('hudView').textContent = viewNames[state.viewMode];
+
+    document.getElementById('valCurl').textContent = state.curl.toFixed(1);
+    document.getElementById('valJacobi').textContent = String(state.jacobiIters);
+    document.getElementById('valDiss').textContent = state.dyeDiss.toFixed(2) + ' /s';
+    document.getElementById('valVisc').textContent = state.velDiss.toFixed(2) + ' /s';
+    document.getElementById('valScale').textContent = state.simBaseH + 'p';
+  }
+
+  function blit(targetFBO) {
+    if (targetFBO) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, targetFBO.fbo);
+      gl.viewport(0, 0, targetFBO.width, targetFBO.height);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  // Inject momentum and dye into the flow
+  function splat(x, y, ux, uy, color, radius) {
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    bindQuad(progSplat);
+    gl.uniform1f(progSplat.u['uAspect'], aspect);
+    gl.uniform2f(progSplat.u['uPoint'], x, y);
+    gl.uniform1f(progSplat.u['uRadius'], radius);
+    gl.uniform1f(progSplat.u['uObstacle'], state.obstacle);
+    gl.uniform2fv(progSplat.u['uObsPos'], state.obsPos);
+    gl.uniform1f(progSplat.u['uObsRad'], state.obsRad);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progSplat.u['uTarget'], 0);
+    gl.uniform3f(progSplat.u['uColor'], ux * simW, uy * simH, 0.0);
+    gl.uniform1f(progSplat.u['uIsVelocity'], 1.0);
+    blit(velocityFBO.write);
+    velocityFBO.swap();
+
+    gl.bindTexture(gl.TEXTURE_2D, dyeFBO.read.tex);
+    gl.uniform3f(progSplat.u['uColor'], color[0], color[1], color[2]);
+    gl.uniform1f(progSplat.u['uIsVelocity'], 0.0);
+    blit(dyeFBO.write);
+    dyeFBO.swap();
+  }
+
+  // Multi-stage colliding vortex plumes
+  function seedBurst() {
+    const palette = [
+      [0.06, 0.88, 1.38], // electric cyan
+      [1.38, 0.54, 0.08], // fiery amber-gold
+      [1.18, 0.18, 0.88], // neon magenta
+      [0.12, 1.18, 0.68], // emerald-teal
+      [0.56, 0.30, 1.35]  // ultraviolet
+    ];
+    for (let step = 0; step < 3; step++) {
+      const rStart = 0.22 - step * 0.055;
+      for (let ring = 0; ring < 5; ring++) {
+        const ang = (ring * Math.PI * 2.0 / 5.0) + 0.25 + step * 0.06;
+        const x = 0.5 + rStart * Math.cos(ang);
+        const y = 0.5 + rStart * Math.sin(ang);
+        const aim = ang + Math.PI + 0.22 * (ring % 2 === 0 ? 1 : -1);
+        const speed = 3.2 + step * 0.8;
+        splat(x, y, Math.cos(aim) * speed, Math.sin(aim) * speed, palette[ring], 0.0032);
+      }
+    }
+  }
+
+  initFBOs();
+  seedBurst();
+
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { initFBOs(); seedBurst(); }, 120);
+  });
+
+  // UI bindings
+  document.getElementById('togglePanelBtn').addEventListener('click', () => {
+    document.getElementById('ctrlPanel').classList.toggle('hidden');
+  });
+
+  document.getElementById('slCurl').addEventListener('input', (e) => {
+    state.curl = parseFloat(e.target.value); updateHUD();
+  });
+  document.getElementById('slJacobi').addEventListener('input', (e) => {
+    state.jacobiIters = parseInt(e.target.value, 10); updateHUD();
+  });
+  document.getElementById('slDiss').addEventListener('input', (e) => {
+    state.dyeDiss = parseFloat(e.target.value); updateHUD();
+  });
+  document.getElementById('slVisc').addEventListener('input', (e) => {
+    state.velDiss = parseFloat(e.target.value); updateHUD();
+  });
+  document.getElementById('slScale').addEventListener('input', (e) => {
+    state.simBaseH = parseInt(e.target.value, 10);
+    initFBOs();
+    seedBurst();
+  });
+
+  const viewBtnIds = ['viewDye', 'viewVort', 'viewPress', 'viewVel'];
+  viewBtnIds.forEach((id, idx) => {
+    document.getElementById(id).addEventListener('click', () => {
+      state.viewMode = idx;
+      viewBtnIds.forEach((bid, bidx) => {
+        document.getElementById(bid).classList.toggle('active', bidx === idx);
+      });
+      updateHUD();
+    });
+  });
+
+  document.getElementById('pillJets').addEventListener('click', (e) => {
+    state.autoJets = !state.autoJets;
+    e.currentTarget.classList.toggle('active', state.autoJets);
+  });
+  document.getElementById('pillObstacle').addEventListener('click', (e) => {
+    state.obstacle = state.obstacle > 0.5 ? 0.0 : 1.0;
+    e.currentTarget.classList.toggle('active', state.obstacle > 0.5);
+    updateHUD();
+  });
+  document.getElementById('pillBloom').addEventListener('click', (e) => {
+    state.bloom = state.bloom > 0.5 ? 0.0 : 1.0;
+    e.currentTarget.classList.toggle('active', state.bloom > 0.5);
+    updateHUD();
+  });
+
+  document.getElementById('preCollide').addEventListener('click', () => {
+    state.obstacle = 0.0; state.autoJets = true; state.curl = 32.0; state.dyeDiss = 0.85;
+    document.getElementById('pillObstacle').classList.remove('active');
+    document.getElementById('pillJets').classList.add('active');
+    document.getElementById('slCurl').value = state.curl;
+    document.getElementById('slDiss').value = state.dyeDiss;
+    seedBurst();
+    updateHUD();
+  });
+  document.getElementById('preKarman').addEventListener('click', () => {
+    state.obstacle = 1.0; state.autoJets = true; state.curl = 34.0; state.dyeDiss = 0.60;
+    document.getElementById('pillObstacle').classList.add('active');
+    document.getElementById('pillJets').classList.add('active');
+    document.getElementById('slCurl').value = state.curl;
+    document.getElementById('slDiss').value = state.dyeDiss;
+    initFBOs();
+    updateHUD();
+  });
+  document.getElementById('preBurst').addEventListener('click', () => {
+    seedBurst();
+  });
+  document.getElementById('preClear').addEventListener('click', () => {
+    initFBOs();
+  });
+
+  let activePointerId = null;
+  let lastX = 0.5, lastY = 0.5;
+  let huePhase = 0.0;
+
+  function hsvToRgb(h, s, v) {
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s);
+    const q = v * (1 - f * s);
+    const t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+      case 0: return [v, t, p];
+      case 1: return [q, v, p];
+      case 2: return [p, v, t];
+      case 3: return [p, q, v];
+      case 4: return [t, p, v];
+      default: return [v, p, q];
+    }
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (activePointerId !== null) return;
+    activePointerId = e.pointerId;
+    const rect = canvas.getBoundingClientRect();
+    lastX = (e.clientX - rect.left) / rect.width;
+    lastY = 1.0 - (e.clientY - rect.top) / rect.height;
+    huePhase = (huePhase + 0.19) % 1.0;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== activePointerId) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = 1.0 - (e.clientY - rect.top) / rect.height;
+    const ux = (x - lastX) * 28.0;
+    const uy = (y - lastY) * 28.0;
+    lastX = x; lastY = y;
+    const col = hsvToRgb(huePhase, 0.85, 1.20);
+    splat(x, y, ux, uy, col, 0.0014);
+  });
+  const releasePointer = (e) => {
+    if (e.pointerId === activePointerId) activePointerId = null;
+  };
+  canvas.addEventListener('pointerup', releasePointer);
+  canvas.addEventListener('pointercancel', releasePointer);
+
+  let frames = 0, lastFpsTime = performance.now();
+  let simTime = 0.0;
+  let animId = null;
+
+  function stepSimulation(now) {
+    const dt = 0.016;
+    simTime += dt;
+    const t = simTime;
+    const velTexelX = 1.0 / simW;
+    const velTexelY = 1.0 / simH;
+    const dyeTexelX = 1.0 / dyeW;
+    const dyeTexelY = 1.0 / dyeH;
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+
+    frames++;
+    if (now - lastFpsTime >= 600) {
+      const fps = Math.round((frames * 1000) / (now - lastFpsTime));
+      document.getElementById('hudFps').textContent = fps + ' fps';
+      frames = 0;
+      lastFpsTime = now;
+    }
+
+    // 1. Continuous colliding ribbon streams or Kármán wind-tunnel inflow
+    if (state.autoJets) {
+      if (state.obstacle > 0.5) {
+        const yw = 0.50 + 0.012 * Math.sin(t * 4.5);
+        splat(0.08, yw + 0.038, 0.95, 0.0, [0.06, 0.82, 1.25], 0.0009);
+        splat(0.08, yw - 0.038, 0.95, 0.0, [1.25, 0.55, 0.08], 0.0009);
+        splat(0.08, yw,         0.95, 0.0, [0.95, 0.18, 0.82], 0.0006);
+      } else {
+        const pulse = 0.72 + 0.28 * Math.sin(t * 2.4);
+        const y1 = 0.47 + 0.08 * Math.sin(t * 1.1);
+        const ang1 = 0.28 * Math.sin(t * 1.6);
+        splat(0.22, y1, 1.75 * Math.cos(ang1), 1.75 * Math.sin(ang1), [0.02, 0.75 * pulse, 1.10 * pulse], 0.00065);
+
+        const y2 = 0.53 - 0.08 * Math.sin(t * 1.1);
+        const ang2 = Math.PI + 0.28 * Math.cos(t * 1.5);
+        splat(0.78, y2, 1.75 * Math.cos(ang2), 1.75 * Math.sin(ang2), [1.10 * pulse, 0.42 * pulse, 0.02], 0.00065);
+
+        const x3 = 0.50 + 0.09 * Math.sin(t * 0.95);
+        const ang3 = Math.PI * 0.5 + 0.30 * Math.sin(t * 1.3);
+        splat(x3, 0.20, 1.55 * Math.cos(ang3), 1.55 * Math.sin(ang3), [0.92 * pulse, 0.08, 0.75 * pulse], 0.00055);
+      }
+    }
+
+    // 2. Compute scalar curl (vorticity omega = du_y/dx - du_x/dy)
+    bindQuad(progCurl);
+    gl.uniform2f(progCurl.u['uTexel'], velTexelX, velTexelY);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progCurl.u['uVelocity'], 0);
+    blit(curlFBO);
+
+    // 3. Apply vorticity confinement force
+    bindQuad(progVort);
+    gl.uniform2f(progVort.u['uTexel'], velTexelX, velTexelY);
+    gl.uniform1f(progVort.u['uCurlStrength'], state.curl);
+    gl.uniform1f(progVort.u['uDt'], dt);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progVort.u['uVelocity'], 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, curlFBO.tex);
+    gl.uniform1i(progVort.u['uCurl'], 1);
+    blit(velocityFBO.write);
+    velocityFBO.swap();
+
+    // 4. Semi-Lagrangian self-advection of velocity field
+    bindQuad(progAdvect);
+    gl.uniform2f(progAdvect.u['uVelTexel'], velTexelX, velTexelY);
+    gl.uniform2f(progAdvect.u['uSourceTexel'], velTexelX, velTexelY);
+    gl.uniform1f(progAdvect.u['uDt'], dt);
+    gl.uniform1f(progAdvect.u['uDissipation'], state.velDiss);
+    gl.uniform1f(progAdvect.u['uManualBilerp'], supportLinear ? 0.0 : 1.0);
+    gl.uniform1f(progAdvect.u['uObstacle'], state.obstacle);
+    gl.uniform1f(progAdvect.u['uAspect'], aspect);
+    gl.uniform2fv(progAdvect.u['uObsPos'], state.obsPos);
+    gl.uniform1f(progAdvect.u['uObsRad'], state.obsRad);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progAdvect.u['uVelocity'], 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progAdvect.u['uSource'], 1);
+    blit(velocityFBO.write);
+    velocityFBO.swap();
+
+    // 5. Compute divergence of advected intermediate velocity div(u*)
+    bindQuad(progDiv);
+    gl.uniform2f(progDiv.u['uTexel'], velTexelX, velTexelY);
+    gl.uniform1f(progDiv.u['uObstacle'], state.obstacle);
+    gl.uniform1f(progDiv.u['uAspect'], aspect);
+    gl.uniform2fv(progDiv.u['uObsPos'], state.obsPos);
+    gl.uniform1f(progDiv.u['uObsRad'], state.obsRad);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progDiv.u['uVelocity'], 0);
+    blit(divergenceFBO);
+
+    // 6. Solve Poisson pressure equation laplacian(p) = div(u*) via Jacobi relaxation
+    bindQuad(progJacobi);
+    gl.uniform2f(progJacobi.u['uTexel'], velTexelX, velTexelY);
+    gl.uniform1f(progJacobi.u['uObstacle'], state.obstacle);
+    gl.uniform1f(progJacobi.u['uAspect'], aspect);
+    gl.uniform2fv(progJacobi.u['uObsPos'], state.obsPos);
+    gl.uniform1f(progJacobi.u['uObsRad'], state.obsRad);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, divergenceFBO.tex);
+    gl.uniform1i(progJacobi.u['uDivergence'], 1);
+    gl.uniform1i(progJacobi.u['uPressure'], 0);
+
+    for (let i = 0; i < state.jacobiIters; i++) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, pressureFBO.read.tex);
+      blit(pressureFBO.write);
+      pressureFBO.swap();
+    }
+
+    // 7. Helmholtz-Hodge projection: subtract pressure gradient from u*
+    bindQuad(progGradSub);
+    gl.uniform2f(progGradSub.u['uTexel'], velTexelX, velTexelY);
+    gl.uniform1f(progGradSub.u['uObstacle'], state.obstacle);
+    gl.uniform1f(progGradSub.u['uAspect'], aspect);
+    gl.uniform2fv(progGradSub.u['uObsPos'], state.obsPos);
+    gl.uniform1f(progGradSub.u['uObsRad'], state.obsRad);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, pressureFBO.read.tex);
+    gl.uniform1i(progGradSub.u['uPressure'], 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progGradSub.u['uVelocity'], 1);
+    blit(velocityFBO.write);
+    velocityFBO.swap();
+
+    // 8. High-resolution semi-Lagrangian advection of passive dye field
+    bindQuad(progAdvect);
+    gl.uniform2f(progAdvect.u['uVelTexel'], velTexelX, velTexelY);
+    gl.uniform2f(progAdvect.u['uSourceTexel'], dyeTexelX, dyeTexelY);
+    gl.uniform1f(progAdvect.u['uDt'], dt);
+    gl.uniform1f(progAdvect.u['uDissipation'], state.dyeDiss);
+    gl.uniform1f(progAdvect.u['uManualBilerp'], supportLinear ? 0.0 : 1.0);
+    gl.uniform1f(progAdvect.u['uObstacle'], state.obstacle);
+    gl.uniform1f(progAdvect.u['uAspect'], aspect);
+    gl.uniform2fv(progAdvect.u['uObsPos'], state.obsPos);
+    gl.uniform1f(progAdvect.u['uObsRad'], state.obsRad);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progAdvect.u['uVelocity'], 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, dyeFBO.read.tex);
+    gl.uniform1i(progAdvect.u['uSource'], 1);
+    blit(dyeFBO.write);
+    dyeFBO.swap();
+
+    // 9. Final composite display pass
+    bindQuad(progDisplay);
+    gl.uniform2f(progDisplay.u['uDyeTexel'], dyeTexelX, dyeTexelY);
+    gl.uniform1i(progDisplay.u['uViewMode'], state.viewMode);
+    gl.uniform1f(progDisplay.u['uBloom'], state.bloom);
+    gl.uniform1f(progDisplay.u['uObstacle'], state.obstacle);
+    gl.uniform1f(progDisplay.u['uAspect'], aspect);
+    gl.uniform2fv(progDisplay.u['uObsPos'], state.obsPos);
+    gl.uniform1f(progDisplay.u['uObsRad'], state.obsRad);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, dyeFBO.read.tex);
+    gl.uniform1i(progDisplay.u['uDye'], 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, velocityFBO.read.tex);
+    gl.uniform1i(progDisplay.u['uVelocity'], 1);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, curlFBO.tex);
+    gl.uniform1i(progDisplay.u['uCurl'], 2);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, pressureFBO.read.tex);
+    gl.uniform1i(progDisplay.u['uPressure'], 3);
+    blit(null);
+
+    animId = requestAnimationFrame(stepSimulation);
+  }
+
+  // Handle context loss & restoration gracefully
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    if (animId) cancelAnimationFrame(animId);
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    initFBOs();
+    seedBurst();
+    animId = requestAnimationFrame(stepSimulation);
+  });
+
+  animId = requestAnimationFrame(stepSimulation);
+})();
+</script>
+</body>
+</html>
