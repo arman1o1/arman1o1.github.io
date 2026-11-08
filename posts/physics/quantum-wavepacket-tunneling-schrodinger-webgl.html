@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quantum Tunneling in Your Browser: Solving the 2D Schrödinger Equation in WebGL | arman1o1 blog</title>
+    <meta name="description"
+        content="How to solve the 2D time-dependent Schrödinger equation in real time in WebGL: Visscher's unitary symplectic leapfrog integrator, complex domain coloring, evanescent barrier tunneling, and Young's double-slit diffraction in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/quantum-wavepacket-tunneling-schrodinger-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Quantum Tunneling in Your Browser: Solving the 2D Schrödinger Equation in WebGL">
+    <meta property="og:description" content="How to solve the 2D time-dependent Schrödinger equation in real time in WebGL: Visscher's unitary symplectic leapfrog integrator, complex domain coloring, evanescent barrier tunneling, and Young's double-slit diffraction in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/quantum-wavepacket-tunneling-schrodinger-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-08">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Quantum Tunneling in Your Browser: Solving the 2D Schrödinger Equation in WebGL", "description": "How to solve the 2D time-dependent Schrödinger equation in real time in WebGL: Visscher's unitary symplectic leapfrog integrator, complex domain coloring, evanescent barrier tunneling, and Young's double-slit diffraction in GLSL.", "image": "https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp", "datePublished": "2026-11-08", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/quantum-wavepacket-tunneling-schrodinger-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/quantum-wavepacket-tunneling-schrodinger-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Quantum Mechanics</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Quantum Tunneling in Your Browser: Solving the 2D Schrödinger Equation in WebGL</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-08">November 8, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE SIMULATION ===== -->
+                <figure style="margin:0 0 .5rem 0">
+                    <iframe src="../../assets/quantum-wavepacket-schrodinger.html"
+                        title="Live 2D time-dependent Schrödinger solver: quantum wavepacket tunneling and double-slit diffraction in WebGL"
+                        loading="eager" allow="fullscreen"
+                        style="display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.35)"></iframe>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live 2D Quantum Wavepacket Solver.</strong> Click or drag anywhere on the canvas to launch a coherent Gaussian wavepacket $\psi(\vec x, t)$, or open <strong>⚙ Controls</strong> to switch between <strong>Double Slit</strong>, <strong>Tunneling Wall</strong>, <strong>Resonant Ring</strong>, and <strong>Bragg Lattice</strong>. Drag the <strong>Barrier Ratio $V_0/E_0$</strong> slider across $1.0$ to watch the wavepacket transition from classical transmission to evanescent quantum tunneling.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>After simulating classical continuum mechanics with <a href="real-time-navier-stokes-webgl.html">incompressible Navier–Stokes fluids</a> and <a href="turing-morphogenesis-reaction-diffusion-webgl.html">Turing reaction–diffusion morphogenesis</a>, we can push the same ping-pong WebGL Framebuffer architecture into the quantum regime: evolving a complex probability amplitude $\psi(\vec x, t) \in \mathbb{C}$ governed by the <strong>2D time-dependent Schrödinger equation</strong>.</p>
+
+                <p>Where a reaction–diffusion PDE is purely dissipative and damps out oscillations, the Schrödinger equation is <strong>unitary</strong>: total probability $\int |\psi(\vec x, t)|^2\,d^2x = 1$ must be conserved forever. Naive forward-Euler time stepping fails catastrophically here – its amplification factor $|\lambda| = \sqrt{1 + (\Delta t E)^2} \gt 1$ pumps artificial energy into every mode until the wavefunction explodes to infinity in a dozen frames. Using <strong>Visscher's (1991) staggered symplectic leapfrog</strong> integrator, we can evolve the real and imaginary parts $(\psi_R, \psi_I)$ in alternating half-steps with exact unitarity ($|\lambda| \equiv 1$), running 32 shader passes per frame at 60 fps.</p>
+
+                <hr>
+
+                <!-- ===== 0. ANATOMY OF THE SOLVER ===== -->
+                <h2>0. Anatomy of a GPU Quantum Wavepacket Solver</h2>
+                <p>Working in natural grid units $\hbar = m = \Delta x = 1$, each texel of our floating-point <code>RGBA16F</code> FBO stores the real and imaginary components of the matter wave $\psi(\vec x, t) = \psi_R(\vec x, t) + i\,\psi_I(\vec x, t + \tfrac{1}{2}\Delta t)$:</p>
+
+                <dl class="kv">
+                    <dt>Governing PDE</dt>
+                    <dd>$i\partial_t \psi = \hat H\psi = \big(-\tfrac{1}{2}\nabla^2 + V(\vec x)\big)\psi$, coupling the curvature of $\psi_R$ to the time derivative of $\psi_I$ and vice versa.</dd>
+                    <dt>Wavepacket State</dt>
+                    <dd>Coherent minimum-uncertainty Gaussian $\psi(\vec x, 0) = e^{-|\vec x - \vec x_0|^2 / 2\sigma^2} e^{i\vec k_0 \cdot (\vec x - \vec x_0)}$ with carrier kinetic energy $E_0 = \tfrac{1}{2}|\vec k_0|^2$.</dd>
+                    <dt>Symplectic Leapfrog</dt>
+                    <dd>Alternating explicit updates to $\psi_R^n$ and $\psi_I^{n+1/2}$ keep the time-evolution eigenvalues strictly on the complex unit circle $|\lambda| = 1$ for all $\Delta t \lt 2 / E_{\max}$.</dd>
+                    <dt>Domain Coloring</dt>
+                    <dd>Maps complex phase $\arg\psi = \mathrm{atan2}(\psi_I, \psi_R) \in [-\pi, \pi]$ to the HSV hue wheel and probability density $|\psi|^2$ to luminance.</dd>
+                    <dt>Evanescent Tunneling</dt>
+                    <dd>Inside a classically forbidden barrier ($V_0 \gt E_0$), the wavenumber becomes imaginary ($k = i\kappa = i\sqrt{2(V_0 - E_0)}$), decaying exponentially as $e^{-\kappa x}$ before emerging on the far side.</dd>
+                </dl>
+
+                <hr>
+
+                <!-- ===== 1. STAGGERED SYMPLECTIC LEAPFROG ===== -->
+                <h2>1. Why Forward Euler Explodes – and How Visscher's Symplectic Leapfrog Fixes It</h2>
+                <p>In natural units ($\hbar = m = 1$), the 2D time-dependent Schrödinger equation is a first-order complex PDE that splits cleanly into two coupled real equations for $\psi(\vec x, t) = \psi_R(\vec x, t) + i\,\psi_I(\vec x, t)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Coupled Real-Imaginary Decomposition of the Schrödinger Equation</div>
+                    $$i\frac{\partial \psi}{\partial t} = \hat H\psi = \left(-\frac{1}{2}\nabla^2 + V(\vec x)\right)\psi \quad\Longleftrightarrow\quad \frac{\partial \psi_R}{\partial t} = +\hat H\psi_I, \qquad \frac{\partial \psi_I}{\partial t} = -\hat H\psi_R$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice that the Schrödinger equation is literally a Hamiltonian oscillator at every spatial eigenmode: $\psi_R$ plays the role of position $q$, and $\psi_I$ plays the role of conjugate momentum $p$.</p>
+                </div>
+
+                <p>Because $\dot\psi_R = +\hat H\psi_I$ and $\dot\psi_I = -\hat H\psi_R$ have the exact structure of Hamilton's canonical equations, applying forward Euler to both components at the same timestamp $t_n$ spirals outward in phase space ($|\lambda|^2 = 1 + E^2\Delta t^2 \gt 1$). Instead, <strong>Visscher (1991)</strong> staggered $\psi_R$ at integer steps $t_n$ and $\psi_I$ at half-integer steps $t_{n+1/2}$, updating them in two alternating ping-pong passes per substep:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Visscher's Unitary Staggered Leapfrog Scheme</div>
+                    $$\text{Pass A:}\quad \psi_R^{n+1} = \psi_R^n + \Delta t\,\hat H\psi_I^{n+1/2} = \psi_R^n + \Delta t\left(-\frac{1}{2}\nabla^2 \psi_I^{n+1/2} + V(\vec x)\,\psi_I^{n+1/2}\right)$$
+                    $$\text{Pass B:}\quad \psi_I^{n+3/2} = \psi_I^{n+1/2} - \Delta t\,\hat H\psi_R^{n+1} = \psi_I^{n+1/2} - \Delta t\left(-\frac{1}{2}\nabla^2 \psi_R^{n+1} + V(\vec x)\,\psi_R^{n+1}\right)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">For any eigenmode with energy $E$, the characteristic polynomial of this two-pass update is $\lambda^2 - (2 - E^2\Delta t^2)\lambda + 1 = 0$. Whenever $\Delta t \le 2/E_{\max}$, the roots are complex conjugates with $|\lambda|^2 \equiv 1$ – meaning zero numerical damping and zero artificial energy growth!</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Two-Pass Staggered Symplectic Leapfrog Shader</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Exact unit-grid isotropic 9-point Laplacian: (10/3) * (0.20*cardinal + 0.05*diagonal - center)
+vec2 lap = (10.0 / 3.0) * (0.20 * (N + S + E + W) + 0.05 * (NE + NW + SE + SW) - C);
+float V  = evalPotential(vUv);
+
+float psiR = C.r;
+float psiI = C.g;
+
+if (uPassType == 0) {
+  // Pass A: advance Real part psi_R^(n+1) using H * psi_I^(n+1/2)
+  float hPsiI = -0.5 * lap.g + V * psiI;
+  psiR = (psiR + uDt * hPsiI) * damp;
+} else {
+  // Pass B: advance Imag part psi_I^(n+3/2) using H * psi_R^(n+1)
+  float hPsiR = -0.5 * lap.r + V * psiR;
+  psiI = (psiI - uDt * hPsiR) * damp;
+}
+gl_FragColor = vec4(psiR, psiI, 0.0, 1.0);</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 2. WAVEPACKET DISPERSION & TUNNELING ===== -->
+                <h2>2. Coherent Wavepackets, Group Velocity, and Evanescent Tunneling</h2>
+                <p>When you click or drag on the canvas, the shader injects a minimum-uncertainty 2D Gaussian wavepacket centered at $\vec x_0$ with spatial width $\sigma$ and carrier wavevector $\vec k_0 = (k_x, k_y)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Gaussian Wavepacket &amp; de Broglie Group Velocity ($\hbar = m = 1$)</div>
+                    $$\psi(\vec x, 0) = \exp\!\left(-\frac{|\vec x - \vec x_0|^2}{2\sigma^2}\right)\Big[\cos\big(\vec k_0 \cdot (\vec x - \vec x_0)\big) + i\sin\big(\vec k_0 \cdot (\vec x - \vec x_0)\big)\Big]$$
+                    $$E_0 = \frac{|\vec k_0|^2}{2}, \qquad \vec v_g = \nabla_{\vec k} E(\vec k)\Big|_{\vec k_0} = \vec k_0, \qquad \lambda_{\text{dB}} = \frac{2\pi}{|\vec k_0|}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice that the phase crests inside the wavepacket move at the <em>phase velocity</em> $v_p = E_0 / k_0 = \tfrac{1}{2}k_0$, which is exactly half the <em>group velocity</em> $v_g = k_0$ of the probability envelope!</p>
+                </div>
+
+                <p>What happens when this wavepacket hits a potential barrier of height $V_0$ and thickness $L$ (click the <strong>Tunneling Wall</strong> preset in Controls)? Classical mechanics says that if $V_0 \gt E_0$, 100% of the particles bounce back. Quantum mechanics disagrees: inside the barrier, the effective kinetic energy $E_0 - V_0$ is negative, turning the oscillatory wave $e^{ikx}$ into a real exponential decay $e^{-\kappa x}$ with $\kappa = \sqrt{2(V_0 - E_0)}$. If the barrier thickness $L$ is comparable to $1/\kappa$, the evanescent tail reaches the far face with non-zero amplitude and reconverts into a propagating wave:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Planar Barrier Transmission Coefficient $T(E_0, V_0, L)$</div>
+                    $$T = \left[1 + \frac{V_0^2\,\sinh^2(\kappa L)}{4 E_0(V_0 - E_0)}\right]^{-1}, \qquad \kappa = \sqrt{2(V_0 - E_0)} \quad (V_0 \gt E_0)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Drag the <strong>Barrier Ratio · $V_0/E_0$</strong> slider from $0.50$ up to $1.80$ while watching the barrier: on the left side, the incident and reflected waves overlap to form high-contrast standing-wave fringes, while on the right side a dimmer but coherent transmitted packet emerges and glides away.</p>
+                </div>
+
+                <hr>
+
+                <!-- ===== 3. DOMAIN COLORING ===== -->
+                <h2>3. Visualizing a Complex Field: Phase Wheels vs. Probability Density</h2>
+                <p>A quantum wavefunction has two degrees of freedom at every point in space: amplitude $|\psi(\vec x, t)| = \sqrt{\psi_R^2 + \psi_I^2}$ and phase angle $\varphi(\vec x, t) = \mathrm{atan2}(\psi_I, \psi_R) \in [-\pi, \pi]$. Plotting $|\psi|^2$ alone hides the momentum $\vec k = \nabla\varphi$ that tells you which way the wave is moving. Using <strong>complex domain coloring</strong>, the display pass encodes both quantities at once:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Complex Domain Coloring ($\arg\psi \to \text{Hue},\; |\psi| \to \text{Value}$)</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">vec2 psi  = texture2D(uState, vUv).rg;
+float prob = dot(psi, psi);                  // Born probability density |psi|^2 = psi_R^2 + psi_I^2
+float amp  = sqrt(probSmooth);
+
+// Map complex phase angle arg(psi) in [-pi, pi] to [0, 1] HSV hue cycle
+float phase = atan(psi.g, psi.r);
+float hue   = phase / 6.2831853 + 0.5;
+float val   = smoothstep(0.0, 0.85, pow(amp * 1.45, 0.78));
+vec3 waveCol = hsv2rgb(vec3(hue, 0.82, val));</code></pre>
+                    </div>
+                </details>
+
+                <div class="callout callout-warn">
+                    <strong>Reading the rainbow phase stripes:</strong> in <strong>Phase Wheel ($\psi$)</strong> mode, closely spaced rainbow bands mean high momentum $|\vec k|$ (short de Broglie wavelength $\lambda_{\text{dB}} = 2\pi/k$), whereas wide color bands inside a potential barrier reveal the stretched wavelength where kinetic energy $E_0 - V(\vec x)$ drops toward zero!
+                </div>
+
+                <hr>
+
+                <!-- ===== 4. PIPELINE DIAGRAM ===== -->
+                <h2>4. The Staggered Leapfrog GPU Pipeline</h2>
+                <p>Each animation frame runs 16 symplectic leapfrog cycles (32 alternating <code>Pass A</code> / <code>Pass B</code> draw calls) on the <code>RGBA16F</code> wavefunction FBO before rendering the domain-colored phase wheel and potential barrier contours:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="2D Schrödinger WebGL pipeline">
+                        <rect x="5" y="25" width="135" height="54" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="72" y="48" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-weight="600">Wavepacket ψ₀</text>
+                        <text x="72" y="65" text-anchor="middle" fill="var(--text-muted)" font-size="10">e^(−r²/2σ²) · e^(ik₀·r)</text>
+                        <polygon points="148,42 168,52 148,62" fill="var(--text-muted)"/>
+
+                        <rect x="176" y="25" width="165" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="258" y="48" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">Pass A: Advance ψ_R</text>
+                        <text x="258" y="65" text-anchor="middle" fill="#bae6fd" font-size="10">ψ_R += Δt (−½∇² + V)ψ_I</text>
+                        <polygon points="349,42 369,52 349,62" fill="var(--text-muted)"/>
+
+                        <rect x="377" y="25" width="165" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="459" y="48" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">Pass B: Advance ψ_I</text>
+                        <text x="459" y="65" text-anchor="middle" fill="#ddd6fe" font-size="10">ψ_I −= Δt (−½∇² + V)ψ_R</text>
+                        <polygon points="550,42 570,52 550,62" fill="var(--text-muted)"/>
+
+                        <rect x="578" y="25" width="135" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="645" y="48" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Repeat ×16</text>
+                        <text x="645" y="65" text-anchor="middle" fill="#d1fae5" font-size="10">|λ| = 1 unitary loop</text>
+                        <polygon points="721,42 741,52 721,62" fill="var(--text-muted)"/>
+
+                        <rect x="749" y="28" width="66" height="48" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="782" y="49" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">Domain</text>
+                        <text x="782" y="66" text-anchor="middle" fill="#fcd34d" font-size="10">Phase</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Staggering $\psi_R^n$ and $\psi_I^{n+1/2}$ across two ping-pong passes per substep makes explicit time evolution strictly unitary ($|\lambda| = 1$).</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 5. SCATTERING PRESETS TABLE ===== -->
+                <h2>5. Four Quantum Scattering Experiments in One Shader</h2>
+                <p>Each preset button in the control panel swaps the analytical potential $V(\vec x)$ evaluated inside the leapfrog stencil:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Experiment Preset</th>
+                            <th style="color:#38bdf8">Potential Geometry $V(x, y)$</th>
+                            <th style="color:#f59e0b">Quantum Phenomenon Observed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Double Slit</strong></td>
+                            <td>Planar barrier with two apertures at $y = \pm d/2$</td>
+                            <td>Huygens wavelets from both slits interfere into hyperbolic constructive/destructive fringes, plus partial tunneling through the center island</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tunneling Wall</strong></td>
+                            <td>Uniform potential slab $V_0$ of thickness $L$</td>
+                            <td>Evanescent exponential decay inside the barrier ($V_0 \approx E_0$) and reflected standing-wave interference fringes on the left</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Resonant Ring</strong></td>
+                            <td>Circular quantum corral $r = R_0$ with entry/exit ports</td>
+                            <td>Quasi-bound whisper-gallery eigenstates trapped inside the ring cavity that leak out over time</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bragg Lattice</strong></td>
+                            <td>2D periodic array of Gaussian atomic potentials</td>
+                            <td>Coherent multiple scattering and Bragg diffraction channels at discrete crystal angles</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Switch to <strong>Resonant Ring</strong> or <strong>Bragg Lattice</strong> in the controls above, then click-and-drag at different angles on the canvas to fire aimed wavepackets into the target – watching a matter wave diffract around a crystal lattice in real time makes wave-particle duality tangible at 60 frames per second.</p>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

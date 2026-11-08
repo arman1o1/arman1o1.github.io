@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quantum Wavepacket Tunneling – Real-Time 2D Schrödinger Solver in WebGL</title>
+<style>
+  :root {
+    --bg: #05060a;
+    --panel: rgba(12, 15, 24, 0.84);
+    --border: rgba(148, 163, 184, 0.20);
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --gold: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  #glCanvas {
+    display: block; width: 100%; height: 100%;
+    cursor: crosshair; touch-action: none;
+  }
+
+  .hud-bar {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    pointer-events: none; z-index: 10; gap: 10px;
+  }
+  .telemetry {
+    pointer-events: auto;
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 12px;
+    font-size: 11.5px; line-height: 1.48; color: var(--muted);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  }
+  .telemetry strong { color: var(--text); font-weight: 600; }
+  .telemetry .math { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #cbd5e1; }
+  .telemetry .val { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .telemetry .val-gold { color: var(--gold); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .ctrl-wrap {
+    pointer-events: auto;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .toggle-panel-btn {
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; font-weight: 600;
+    padding: 7px 13px; border-radius: 9px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    transition: border-color 0.15s;
+  }
+  .toggle-panel-btn:hover { border-color: var(--accent); }
+
+  .panel {
+    width: 305px; max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 70px); overflow-y: auto;
+    background: var(--panel);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 16px 44px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; gap: 10px;
+    font-size: 12px;
+  }
+  .panel.hidden { display: none; }
+  .row { display: flex; flex-direction: column; gap: 4px; }
+  .row-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11.5px; }
+  .row-head span.v { color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; }
+  input[type="range"] {
+    width: 100%; accent-color: var(--accent); cursor: pointer; height: 5px;
+  }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .pill {
+    background: rgba(30, 41, 59, 0.72);
+    border: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill.active {
+    background: rgba(56, 189, 248, 0.20);
+    border-color: var(--accent); color: #e0f2fe;
+  }
+  .pill.gold.active {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: var(--gold); color: #fef3c7;
+  }
+  .presets { display: flex; gap: 5px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 8px; }
+  .preset-btn {
+    flex: 1 1 auto; background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border); color: var(--text);
+    font-size: 10.5px; padding: 5px 7px; border-radius: 6px; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .preset-btn:hover { border-color: var(--accent); }
+  @media (max-width: 560px) {
+    .telemetry { font-size: 10.5px; padding: 6px 9px; }
+    .panel { width: 260px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="glCanvas"></canvas>
+
+<div class="hud-bar">
+  <div class="telemetry" id="telemetryBox">
+    <div><strong>2D Schrödinger Solver</strong> · <span class="math">iℏ∂<sub>t</sub>ψ = (−ℏ²/2m ∇² + V)ψ</span></div>
+    <div>Barrier <span class="math">V<sub>0</sub>/E<sub>0</sub></span>: <span class="val-gold" id="hudV0">0.95</span> · Momentum <span class="math">k<sub>0</sub></span>: <span class="val" id="hudK0">0.68</span></div>
+    <div>Setup: <span class="val" id="hudSetup">Double Slit + Tunneling</span> · Grid: <span class="val" id="hudGrid">480×270</span></div>
+    <div>View: <span class="val" id="hudView">Domain Phase (arg ψ)</span> · <span id="hudFps">-- fps</span></div>
+  </div>
+
+  <div class="ctrl-wrap">
+    <button class="toggle-panel-btn" id="togglePanelBtn" type="button">⚙ Controls</button>
+    <div class="panel hidden" id="ctrlPanel">
+      <div class="row">
+        <div class="row-head"><span>Barrier Ratio · <i>V</i><sub>0</sub> / <i>E</i><sub>0</sub></span><span class="v" id="valV0">0.95</span></div>
+        <input type="range" id="slV0" min="0.00" max="2.20" step="0.05" value="0.95" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Packet Momentum · <i>k</i><sub>0</sub></span><span class="v" id="valK0">0.68 rad/px</span></div>
+        <input type="range" id="slK0" min="0.35" max="0.95" step="0.02" value="0.68" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Barrier Thickness / Slit Gap</span><span class="v" id="valWidth">0.032</span></div>
+        <input type="range" id="slWidth" min="0.012" max="0.080" step="0.002" value="0.032" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Leapfrog Substeps / Frame</span><span class="v" id="valSteps">12</span></div>
+        <input type="range" id="slSteps" min="2" max="22" step="2" value="12" />
+      </div>
+
+      <div class="row">
+        <div class="row-head"><span>Wavefunction Representation</span></div>
+        <div class="pills">
+          <button type="button" class="pill active" id="viewPhase">Phase Wheel (ψ)</button>
+          <button type="button" class="pill" id="viewProb">Density (|ψ|²)</button>
+          <button type="button" class="pill" id="viewReal">Real Part (ψ_R)</button>
+          <button type="button" class="pill gold active" id="pillAutoPulse">Auto-Pulse</button>
+        </div>
+      </div>
+
+      <div class="presets">
+        <button type="button" class="preset-btn" id="preDoubleSlit">Double Slit</button>
+        <button type="button" class="preset-btn" id="preTunnel">Tunneling Wall</button>
+        <button type="button" class="preset-btn" id="preCavity">Resonant Ring</button>
+        <button type="button" class="preset-btn" id="preBragg">Bragg Lattice</button>
+        <button type="button" class="preset-btn" id="preFire">Fire Packet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('glCanvas');
+  let gl = canvas.getContext('webgl2', { alpha: false, depth: false, stencil: false, antialias: false });
+  const isWebGL2 = !!gl;
+  if (!gl) {
+    gl = canvas.getContext('webgl', { alpha: false, depth: false, stencil: false, antialias: false });
+  }
+  if (!gl) {
+    document.body.innerHTML = '<div style="padding:2rem;color:#fff">WebGL is required to run this simulation.</div>';
+    return;
+  }
+
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); }, false);
+
+  let internalFormat = gl.RGBA;
+  let format = gl.RGBA;
+  let texType = gl.UNSIGNED_BYTE;
+  let filterMode = gl.NEAREST;
+
+  if (isWebGL2) {
+    const extFloat = gl.getExtension('EXT_color_buffer_float');
+    gl.getExtension('OES_texture_float_linear');
+    if (extFloat) {
+      internalFormat = gl.RGBA16F;
+      texType = gl.HALF_FLOAT;
+      filterMode = gl.LINEAR;
+    }
+  } else {
+    const halfFloat = gl.getExtension('OES_texture_half_float');
+    const halfLinear = gl.getExtension('OES_texture_half_float_linear');
+    if (halfFloat) {
+      texType = halfFloat.HALF_FLOAT_OES;
+      if (halfLinear) filterMode = gl.LINEAR;
+    } else {
+      const fullFloat = gl.getExtension('OES_texture_float');
+      const fullLinear = gl.getExtension('OES_texture_float_linear');
+      if (fullFloat) {
+        texType = gl.FLOAT;
+        if (fullLinear) filterMode = gl.LINEAR;
+      }
+    }
+  }
+
+  const baseVs = `
+    precision highp float;
+    attribute vec2 aPos;
+    varying vec2 vUv;
+    void main() {
+      vUv = aPos * 0.5 + 0.5;
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }
+  `;
+
+  // Shared potential function V(uv) for 4 classic quantum scattering geometries
+  const potentialChunk = `
+    uniform int   uSetup;       // 0 = Double Slit, 1 = Tunneling Barrier, 2 = Resonant Ring Cavity, 3 = Bragg Crystal Lattice
+    uniform float uVmax;        // peak potential height V0 in natural grid units
+    uniform float uBarWidth;    // barrier thickness / slit parameter
+    uniform float uAspect;
+
+    float evalPotential(vec2 uv) {
+      vec2 p = (uv - 0.5) * vec2(uAspect, 1.0);
+      if (uSetup == 0) {
+        // Young's Double Slit with partially transmissive barrier walls
+        float dx = abs(uv.x - 0.50);
+        float wall = smoothstep(uBarWidth * 0.65, uBarWidth * 0.25, dx);
+        float yAbs = abs(p.y);
+        float slit1 = smoothstep(0.024, 0.042, abs(yAbs - 0.095));
+        return uVmax * wall * slit1;
+      } else if (uSetup == 1) {
+        // Planar Quantum Tunneling Barrier
+        float dx = abs(uv.x - 0.50);
+        float wall = smoothstep(uBarWidth * 0.60, uBarWidth * 0.20, dx);
+        return uVmax * wall;
+      } else if (uSetup == 2) {
+        // Circular Quantum Corral / Resonant Ring Scatterer with entry/exit ports
+        float r = length(p - vec2(0.04, 0.0));
+        float ring = smoothstep(uBarWidth * 0.75, uBarWidth * 0.25, abs(r - 0.165));
+        float ports = smoothstep(0.032, 0.055, abs(p.y));
+        return uVmax * ring * (0.35 + 0.65 * ports);
+      } else {
+        // 2D Bragg Periodic Crystal Lattice of Gaussian atomic cores
+        if (uv.x < 0.36 || uv.x > 0.76 || abs(p.y) > 0.36) return 0.0;
+        vec2 cell = fract(p * 11.5) - 0.5;
+        float atom = exp(-dot(cell, cell) / 0.055);
+        return uVmax * 1.15 * atom;
+      }
+    }
+  `;
+
+  // Wavepacket injection shader (adds a coherent Gaussian wavepacket exp(-r^2/2s^2) * exp(i * k0 . r))
+  const injectFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uState;
+    uniform float uAspect;
+    uniform vec2  uCenter;
+    uniform vec2  uKVec;        // wavevector in rad/texel
+    uniform vec2  uGridSize;
+    uniform float uSigma;
+    uniform float uClearFirst;
+
+    void main() {
+      vec2 base = (uClearFirst > 0.5) ? vec2(0.0) : texture2D(uState, vUv).rg;
+      vec2 dUv  = (vUv - uCenter) * vec2(uAspect, 1.0);
+      float env = exp(-dot(dUv, dUv) / (2.0 * uSigma * uSigma));
+
+      // Phase k0 . (x - x0) in grid texel coordinates
+      vec2 dGrid = (vUv - uCenter) * uGridSize;
+      float phase = dot(uKVec, dGrid);
+      vec2 packet = env * vec2(cos(phase), sin(phase));
+
+      gl_FragColor = vec4(base + packet, 0.0, 1.0);
+    }
+  `;
+
+  // Symplectic Leapfrog Step Shader:
+  // uPassType == 0: advances psi_R using H * psi_I
+  // uPassType == 1: advances psi_I using H * psi_R
+  const leapfrogFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uState;
+    uniform vec2  uTexel;
+    uniform float uDt;
+    uniform int   uPassType;
+    ` + potentialChunk + `
+
+    void main() {
+      vec2 C  = texture2D(uState, vUv).rg;
+      vec2 N  = texture2D(uState, vUv + vec2( 0.0,       uTexel.y)).rg;
+      vec2 S  = texture2D(uState, vUv + vec2( 0.0,      -uTexel.y)).rg;
+      vec2 E  = texture2D(uState, vUv + vec2( uTexel.x,  0.0     )).rg;
+      vec2 W  = texture2D(uState, vUv + vec2(-uTexel.x,  0.0     )).rg;
+      vec2 NE = texture2D(uState, vUv + vec2( uTexel.x,  uTexel.y)).rg;
+      vec2 NW = texture2D(uState, vUv + vec2(-uTexel.x,  uTexel.y)).rg;
+      vec2 SE = texture2D(uState, vUv + vec2( uTexel.x, -uTexel.y)).rg;
+      vec2 SW = texture2D(uState, vUv + vec2(-uTexel.x, -uTexel.y)).rg;
+
+      // Exact unit-grid 9-point Laplacian: (10/3) * (0.20*(N+S+E+W) + 0.05*(NE+NW+SE+SW) - C)
+      vec2 lap = (10.0 / 3.0) * (0.20 * (N + S + E + W) + 0.05 * (NE + NW + SE + SW) - C);
+      float V  = evalPotential(vUv);
+
+      // Smooth sponge damping only in the outermost 3% border so outgoing waves don't reflect off walls
+      float bx = min(vUv.x, 1.0 - vUv.x);
+      float by = min(vUv.y, 1.0 - vUv.y);
+      float bMin = min(bx, by);
+      float sponge = smoothstep(0.0, 0.035, bMin);
+      float damp = mix(0.965, 1.0, sponge);
+
+      float psiR = C.r;
+      float psiI = C.g;
+
+      if (uPassType == 0) {
+        // Advance Real part: psi_R^(n+1) = psi_R^n + dt * (-0.5 * lap(psi_I) + V * psi_I)
+        float hPsiI = -0.5 * lap.g + V * psiI;
+        psiR = (psiR + uDt * hPsiI) * damp;
+      } else {
+        // Advance Imag part: psi_I^(n+3/2) = psi_I^(n+1/2) - dt * (-0.5 * lap(psi_R) + V * psi_R)
+        float hPsiR = -0.5 * lap.r + V * psiR;
+        psiI = (psiI - uDt * hPsiR) * damp;
+      }
+
+      gl_FragColor = vec4(psiR, psiI, 0.0, 1.0);
+    }
+  `;
+
+  // Display shader: Complex domain phase wheel (arg psi -> Hue, |psi|^2 -> Value) + potential barrier overlay
+  const displayFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uState;
+    uniform vec2  uTexel;
+    uniform int   uViewMode; // 0 = Complex Phase Wheel, 1 = Probability Density |psi|^2, 2 = Real Part Re(psi)
+    ` + potentialChunk + `
+
+    vec3 hsv2rgb(vec3 c) {
+      vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    void main() {
+      vec2 psi = texture2D(uState, vUv).rg;
+      // 4-neighbor average for smooth probability envelope
+      vec2 psiL = texture2D(uState, vUv - vec2(uTexel.x, 0.0)).rg;
+      vec2 psiR = texture2D(uState, vUv + vec2(uTexel.x, 0.0)).rg;
+      vec2 psiB = texture2D(uState, vUv - vec2(0.0, uTexel.y)).rg;
+      vec2 psiT = texture2D(uState, vUv + vec2(0.0, uTexel.y)).rg;
+
+      float prob = dot(psi, psi);
+      float probSmooth = 0.4 * prob + 0.15 * (dot(psiL,psiL) + dot(psiR,psiR) + dot(psiB,psiB) + dot(psiT,psiT));
+      float amp = sqrt(probSmooth);
+
+      vec3 bg = vec3(0.020, 0.025, 0.045) * (1.0 - 0.3 * length(vUv - 0.5));
+      vec3 col = bg;
+
+      if (uViewMode == 0) {
+        // Domain coloring: phase angle arg(psi) mapped to HSV color wheel, envelope to brightness
+        float phase = atan(psi.g, psi.r); // [-pi, pi]
+        float hue   = phase / 6.2831853 + 0.5;
+        float val   = smoothstep(0.0, 0.85, pow(amp * 1.45, 0.78));
+        float core  = pow(clamp(probSmooth * 1.6, 0.0, 1.0), 1.8);
+        vec3 waveCol = hsv2rgb(vec3(hue, 0.82, val)) + vec3(0.95, 0.98, 1.0) * core * 0.42;
+        col += waveCol;
+      } else if (uViewMode == 1) {
+        // Probability density |psi|^2 scientific cyan-gold-white map
+        float pScaled = clamp(probSmooth * 2.4, 0.0, 1.0);
+        vec3 c1 = vec3(0.05, 0.62, 0.98);
+        vec3 c2 = vec3(0.98, 0.76, 0.22);
+        vec3 c3 = vec3(1.00, 0.98, 0.95);
+        vec3 densCol = mix(vec3(0.0), c1, smoothstep(0.0, 0.38, pow(pScaled, 0.65)));
+        densCol = mix(densCol, c2, smoothstep(0.32, 0.78, pow(pScaled, 0.65)));
+        densCol = mix(densCol, c3, smoothstep(0.72, 1.00, pow(pScaled, 0.65)));
+        col += densCol;
+      } else {
+        // Real part Re(psi): orange positive crests, cyan negative troughs
+        float re = psi.r * 1.35;
+        vec3 pos = vec3(1.0, 0.48, 0.14) * clamp(re, 0.0, 1.0);
+        vec3 neg = vec3(0.12, 0.72, 1.0) * clamp(-re, 0.0, 1.0);
+        col += pos + neg;
+      }
+
+      // Render translucent potential barrier V(x) with glowing edge contour
+      float V  = evalPotential(vUv);
+      float VL = evalPotential(vUv - vec2(uTexel.x * 1.5, 0.0));
+      float VR = evalPotential(vUv + vec2(uTexel.x * 1.5, 0.0));
+      float VB = evalPotential(vUv - vec2(0.0, uTexel.y * 1.5));
+      float VT = evalPotential(vUv + vec2(0.0, uTexel.y * 1.5));
+      float vNorm = clamp(V / max(uVmax, 0.01), 0.0, 1.0);
+      float vEdge = clamp(length(vec2(VR - VL, VT - VB)) / max(uVmax, 0.01) * 1.8, 0.0, 1.0);
+
+      vec3 barFill = vec3(0.95, 0.68, 0.20) * vNorm * 0.22;
+      vec3 barRim  = vec3(1.00, 0.82, 0.38) * vEdge * 0.72;
+      col += barFill + barRim;
+
+      gl_FragColor = vec4(pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.1)), 1.0);
+    }
+  `;
+
+  function createProgram(fsSource) {
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vs, baseVs);
+    gl.compileShader(vs);
+    if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+      console.error('VS Error:', gl.getShaderInfoLog(vs));
+    }
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, fsSource);
+    gl.compileShader(fs);
+    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+      console.error('FS Error:', gl.getShaderInfoLog(fs));
+    }
+    const p = gl.createProgram();
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      console.error('Link Error:', gl.getProgramInfoLog(p));
+    }
+    return p;
+  }
+
+  const progInject   = createProgram(injectFs);
+  const progLeapfrog = createProgram(leapfrogFs);
+  const progDisplay  = createProgram(displayFs);
+
+  // Cached uniform locations for high-frequency render loops
+  const uLoc = {
+    inject: {
+      aPos: gl.getAttribLocation(progInject, 'aPos'),
+      uAspect: gl.getUniformLocation(progInject, 'uAspect'),
+      uCenter: gl.getUniformLocation(progInject, 'uCenter'),
+      uKVec: gl.getUniformLocation(progInject, 'uKVec'),
+      uGridSize: gl.getUniformLocation(progInject, 'uGridSize'),
+      uSigma: gl.getUniformLocation(progInject, 'uSigma'),
+      uClearFirst: gl.getUniformLocation(progInject, 'uClearFirst'),
+      uState: gl.getUniformLocation(progInject, 'uState')
+    },
+    leapfrog: {
+      aPos: gl.getAttribLocation(progLeapfrog, 'aPos'),
+      uTexel: gl.getUniformLocation(progLeapfrog, 'uTexel'),
+      uDt: gl.getUniformLocation(progLeapfrog, 'uDt'),
+      uPassType: gl.getUniformLocation(progLeapfrog, 'uPassType'),
+      uSetup: gl.getUniformLocation(progLeapfrog, 'uSetup'),
+      uVmax: gl.getUniformLocation(progLeapfrog, 'uVmax'),
+      uBarWidth: gl.getUniformLocation(progLeapfrog, 'uBarWidth'),
+      uAspect: gl.getUniformLocation(progLeapfrog, 'uAspect'),
+      uState: gl.getUniformLocation(progLeapfrog, 'uState')
+    },
+    display: {
+      aPos: gl.getAttribLocation(progDisplay, 'aPos'),
+      uTexel: gl.getUniformLocation(progDisplay, 'uTexel'),
+      uViewMode: gl.getUniformLocation(progDisplay, 'uViewMode'),
+      uSetup: gl.getUniformLocation(progDisplay, 'uSetup'),
+      uVmax: gl.getUniformLocation(progDisplay, 'uVmax'),
+      uBarWidth: gl.getUniformLocation(progDisplay, 'uBarWidth'),
+      uAspect: gl.getUniformLocation(progDisplay, 'uAspect'),
+      uState: gl.getUniformLocation(progDisplay, 'uState')
+    }
+  };
+
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+
+  function bindQuad(prog, attrLoc) {
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.enableVertexAttribArray(attrLoc);
+    gl.vertexAttribPointer(attrLoc, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  function createFBO(w, h) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filterMode);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filterMode);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, texType, null);
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE && texType !== gl.UNSIGNED_BYTE) {
+      internalFormat = gl.RGBA;
+      texType = gl.UNSIGNED_BYTE;
+      gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, texType, null);
+    }
+    return { tex, fbo, width: w, height: h };
+  }
+
+  function createDoubleFBO(w, h) {
+    let fbo1 = createFBO(w, h);
+    let fbo2 = createFBO(w, h);
+    return {
+      width: w, height: h,
+      get read() { return fbo1; },
+      get write() { return fbo2; },
+      swap() { const tmp = fbo1; fbo1 = fbo2; fbo2 = tmp; }
+    };
+  }
+
+  const state = {
+    setup: 0,           // 0 = Double Slit, 1 = Tunneling Wall, 2 = Resonant Ring, 3 = Bragg Lattice
+    vRatio: 0.88,       // V0 / E0 ratio
+    k0: 0.82,           // carrier wavevector in rad/texel
+    barWidth: 0.032,
+    substeps: 16,
+    viewMode: 0,
+    autoPulse: true,
+    stepCount: 0
+  };
+
+  let simW = 480, simH = 270;
+  let qFBO;
+
+  function blit(targetFBO) {
+    if (targetFBO) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, targetFBO.fbo);
+      gl.viewport(0, 0, targetFBO.width, targetFBO.height);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  function setPotentialUniforms(uObj) {
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    const E0 = 0.5 * state.k0 * state.k0;
+    const Vmax = state.vRatio * E0;
+    gl.uniform1i(uObj.uSetup, state.setup);
+    gl.uniform1f(uObj.uVmax, Vmax);
+    gl.uniform1f(uObj.uBarWidth, state.barWidth);
+    gl.uniform1f(uObj.uAspect, aspect);
+  }
+
+  function stepLeapfrogOnce() {
+    bindQuad(progLeapfrog, uLoc.leapfrog.aPos);
+    gl.uniform2f(uLoc.leapfrog.uTexel, 1.0 / simW, 1.0 / simH);
+    gl.uniform1f(uLoc.leapfrog.uDt, 0.40);
+    setPotentialUniforms(uLoc.leapfrog);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(uLoc.leapfrog.uState, 0);
+
+    // Pass A: update Real part psi_R
+    gl.uniform1i(uLoc.leapfrog.uPassType, 0);
+    gl.bindTexture(gl.TEXTURE_2D, qFBO.read.tex);
+    blit(qFBO.write);
+    qFBO.swap();
+
+    // Pass B: update Imag part psi_I
+    gl.uniform1i(uLoc.leapfrog.uPassType, 1);
+    gl.bindTexture(gl.TEXTURE_2D, qFBO.read.tex);
+    blit(qFBO.write);
+    qFBO.swap();
+
+    state.stepCount++;
+  }
+
+  function launchPacket(cx, cy, kx, ky, sigma, clearFirst) {
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    bindQuad(progInject, uLoc.inject.aPos);
+    gl.uniform1f(uLoc.inject.uAspect, aspect);
+    gl.uniform2f(uLoc.inject.uCenter, cx, cy);
+    gl.uniform2f(uLoc.inject.uKVec, kx, ky);
+    gl.uniform2f(uLoc.inject.uGridSize, simW, simH);
+    gl.uniform1f(uLoc.inject.uSigma, sigma);
+    gl.uniform1f(uLoc.inject.uClearFirst, clearFirst ? 1.0 : 0.0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, qFBO.read.tex);
+    gl.uniform1i(uLoc.inject.uState, 0);
+    blit(qFBO.write);
+    qFBO.swap();
+    if (clearFirst) state.stepCount = 0;
+  }
+
+  function launchDefaultDemo() {
+    launchPacket(0.34, 0.50, state.k0, 0.0, 0.115, true);
+    for (let i = 0; i < 180; i++) {
+      stepLeapfrogOnce();
+    }
+  }
+
+  function initGrid() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+    canvas.width  = Math.max(Math.floor(window.innerWidth * dpr), 256);
+    canvas.height = Math.max(Math.floor(window.innerHeight * dpr), 256);
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    simH = 190;
+    simW = Math.max(Math.round(simH * aspect), 256);
+    qFBO = createDoubleFBO(simW, simH);
+    launchDefaultDemo();
+    updateHUD();
+  }
+
+  function updateHUD() {
+    const setupNames = ['Double Slit + Tunneling', 'Planar Tunneling Wall', 'Resonant Quantum Ring', 'Bragg Crystal Lattice'];
+    const viewNames  = ['Domain Phase (arg ψ)', 'Density (|ψ|²)', 'Real Wave (Re ψ)'];
+    document.getElementById('hudV0').textContent = state.vRatio.toFixed(2);
+    document.getElementById('hudK0').textContent = state.k0.toFixed(2);
+    document.getElementById('hudSetup').textContent = setupNames[state.setup];
+    document.getElementById('hudGrid').textContent = simW + '×' + simH;
+    document.getElementById('hudView').textContent = viewNames[state.viewMode];
+
+    document.getElementById('valV0').textContent = state.vRatio.toFixed(2);
+    document.getElementById('valK0').textContent = state.k0.toFixed(2) + ' rad/px';
+    document.getElementById('valWidth').textContent = state.barWidth.toFixed(3);
+    document.getElementById('valSteps').textContent = String(state.substeps);
+  }
+
+  initGrid();
+  window.addEventListener('resize', initGrid);
+
+  document.getElementById('togglePanelBtn').addEventListener('click', () => {
+    document.getElementById('ctrlPanel').classList.toggle('hidden');
+  });
+
+  document.getElementById('slV0').addEventListener('input', (e) => {
+    state.vRatio = parseFloat(e.target.value); updateHUD();
+  });
+  document.getElementById('slK0').addEventListener('input', (e) => {
+    state.k0 = parseFloat(e.target.value); updateHUD();
+  });
+  document.getElementById('slWidth').addEventListener('input', (e) => {
+    state.barWidth = parseFloat(e.target.value); updateHUD();
+  });
+  document.getElementById('slSteps').addEventListener('input', (e) => {
+    state.substeps = parseInt(e.target.value, 10); updateHUD();
+  });
+
+  const viewIds = ['viewPhase', 'viewProb', 'viewReal'];
+  viewIds.forEach((id, idx) => {
+    document.getElementById(id).addEventListener('click', () => {
+      state.viewMode = idx;
+      viewIds.forEach((bid, bidx) => {
+        document.getElementById(bid).classList.toggle('active', bidx === idx);
+      });
+      updateHUD();
+    });
+  });
+
+  document.getElementById('pillAutoPulse').addEventListener('click', (e) => {
+    state.autoPulse = !state.autoPulse;
+    e.currentTarget.classList.toggle('active', state.autoPulse);
+  });
+
+  function selectSetup(setupIdx, vRatio, width) {
+    state.setup = setupIdx;
+    state.vRatio = vRatio;
+    state.barWidth = width;
+    document.getElementById('slV0').value = vRatio;
+    document.getElementById('slWidth').value = width;
+    launchDefaultDemo();
+    updateHUD();
+  }
+
+  document.getElementById('preDoubleSlit').addEventListener('click', () => selectSetup(0, 1.35, 0.032));
+  document.getElementById('preTunnel').addEventListener('click', () => selectSetup(1, 0.95, 0.026));
+  document.getElementById('preCavity').addEventListener('click', () => selectSetup(2, 1.15, 0.028));
+  document.getElementById('preBragg').addEventListener('click', () => selectSetup(3, 0.85, 0.032));
+  document.getElementById('preFire').addEventListener('click', () => {
+    launchPacket(0.22, 0.50, state.k0, 0.0, 0.070, true);
+  });
+
+  // Click / drag on canvas to launch custom wavepacket aimed toward barrier or drag vector
+  let downX = 0.25, downY = 0.50;
+  let isDown = false;
+  canvas.addEventListener('pointerdown', (e) => {
+    isDown = true;
+    const rect = canvas.getBoundingClientRect();
+    downX = (e.clientX - rect.left) / rect.width;
+    downY = 1.0 - (e.clientY - rect.top) / rect.height;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointerup', (e) => {
+    if (!isDown) return;
+    isDown = false;
+    const rect = canvas.getBoundingClientRect();
+    const upX = (e.clientX - rect.left) / rect.width;
+    const upY = 1.0 - (e.clientY - rect.top) / rect.height;
+    let dx = upX - downX;
+    let dy = upY - downY;
+    const len = Math.hypot(dx, dy);
+    if (len < 0.015) {
+      dx = (downX < 0.52) ? 1.0 : -1.0;
+      dy = (0.50 - downY) * 0.45;
+    }
+    const norm = Math.hypot(dx, dy) || 1.0;
+    launchPacket(downX, downY, state.k0 * (dx / norm), state.k0 * (dy / norm), 0.062, false);
+  });
+
+  let frames = 0, lastFpsTime = performance.now();
+
+  function frame(now) {
+    frames++;
+    if (now - lastFpsTime >= 600) {
+      const fps = Math.round((frames * 1000) / (now - lastFpsTime));
+      document.getElementById('hudFps').textContent = fps + ' fps';
+      frames = 0;
+      lastFpsTime = now;
+    }
+
+    for (let i = 0; i < state.substeps; i++) {
+      stepLeapfrogOnce();
+    }
+
+    // Periodically launch a fresh wavepacket when Auto-Pulse is active
+    if (state.autoPulse && state.stepCount > 980) {
+      const yOff = 0.50 + 0.05 * Math.sin(now * 0.0013);
+      launchPacket(0.22, yOff, state.k0, 0.0, 0.068, true);
+    }
+
+    bindQuad(progDisplay, uLoc.display.aPos);
+    gl.uniform2f(uLoc.display.uTexel, 1.0 / simW, 1.0 / simH);
+    gl.uniform1i(uLoc.display.uViewMode, state.viewMode);
+    setPotentialUniforms(uLoc.display);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, qFBO.read.tex);
+    gl.uniform1i(uLoc.display.uState, 0);
+    blit(null);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

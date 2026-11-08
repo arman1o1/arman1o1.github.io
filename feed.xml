@@ -7,6 +7,27 @@
   <updated>2026-11-08T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
   <entry>
+    <title>Sparse Mixture-of-Experts (MoE): Routing Math, Load Balancing &amp; Expert Parallelism</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/llm-sparse-mixture-of-experts.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/llm-sparse-mixture-of-experts.html</id>
+    <updated>2026-11-08T00:00:00Z</updated>
+    <summary>A practitioner&#x27;s first-principles reference to Sparse Mixture-of-Experts (MoE) LLMs: Top-K gating, Switch auxiliary load-balancing loss, Router z-loss, DeepSeek-V3 auxiliary-loss-free bias routing, and All-to-All Expert Parallelism in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Flow Matching &amp; Diffusion Transformers (DiT): Continuous-Time Generative Physics</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/flow-matching-diffusion-transformers.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/flow-matching-diffusion-transformers.html</id>
+    <updated>2026-11-08T00:00:00Z</updated>
+    <summary>A first-principles physics and ML guide to Flow Matching, Optimal Transport Rectified Flows, Score-SDE equivalence, Logit-Normal timestep sampling, and Diffusion Transformers (DiT) with adaLN-Zero in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Quantum Tunneling in Your Browser: Solving the 2D Schrödinger Equation in WebGL</title>
+    <link href="https://arman1o1.github.io/posts/physics/quantum-wavepacket-tunneling-schrodinger-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/quantum-wavepacket-tunneling-schrodinger-webgl.html</id>
+    <updated>2026-11-08T00:00:00Z</updated>
+    <summary>How to solve the 2D time-dependent Schrödinger equation in real time in WebGL: Visscher&#x27;s unitary symplectic leapfrog integrator, complex domain coloring, evanescent barrier tunneling, and Young&#x27;s double-slit diffraction in GLSL.</summary>
+  </entry>
+  <entry>
     <title>How the Leopard Got Its Spots at 60 FPS: Gray–Scott Reaction–Diffusion in WebGL</title>
     <link href="https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html"/>
     <id>https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html</id>

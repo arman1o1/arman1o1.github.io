@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flow Matching &amp; Diffusion Transformers (DiT): Continuous-Time Generative Physics | arman1o1 blog</title>
+    <meta name="description"
+        content="A first-principles physics and ML guide to Flow Matching, Optimal Transport Rectified Flows, Score-SDE equivalence, Logit-Normal timestep sampling, and Diffusion Transformers (DiT) with adaLN-Zero in PyTorch." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/flow-matching-diffusion-transformers.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Flow Matching &amp; Diffusion Transformers (DiT): Continuous-Time Generative Physics">
+    <meta property="og:description" content="A first-principles physics and ML guide to Flow Matching, Optimal Transport Rectified Flows, Score-SDE equivalence, Logit-Normal timestep sampling, and Diffusion Transformers (DiT) with adaLN-Zero in PyTorch.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/flow-matching-diffusion-transformers.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-08">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Flow Matching & Diffusion Transformers (DiT): Continuous-Time Generative Physics", "description": "A first-principles physics and ML guide to Flow Matching, Optimal Transport Rectified Flows, Score-SDE equivalence, Logit-Normal timestep sampling, and Diffusion Transformers (DiT) with adaLN-Zero in PyTorch.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-08", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/flow-matching-diffusion-transformers.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/flow-matching-diffusion-transformers.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Physics</span>
+                    <span class="tag">Flow Matching</span>
+                    <span class="tag">Diffusion Transformers</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>Flow Matching &amp; Diffusion Transformers (DiT): Continuous-Time Generative Physics</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-08">November 8, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 15 min read</span>
+                </div>
+
+                <hr>
+
+                <p>Viewed through statistical mechanics, generative modeling is a boundary-value transport problem: how do we construct a time-dependent velocity field $v_t : \mathbb{R}^d \to \mathbb{R}^d$ that continuously transports a simple Gaussian prior $p_0 = \mathcal{N}(0, I)$ at $t = 0$ into an intricate empirical data distribution $p_1 = p_{\text{data}}$ at $t = 1$?</p>
+
+                <p>Classical Denoising Diffusion Probabilistic Models (DDPM; Ho et al., 2020) solved this via discrete-time stochastic differential equations (SDEs) with curved variance-preserving schedules, requiring dozens of solver steps to integrate accurately. Modern frontier visual, audio, and protein generators – including <strong>Stable Diffusion 3</strong>, <strong>Flux</strong>, and <strong>Sora-class Diffusion Transformers (DiT)</strong> – have converged on a cleaner geometric framework: <strong>Optimal Transport Conditional Flow Matching (CFM)</strong> (Lipman et al., 2023; Liu et al., 2023) paired with <strong>adaLN-Zero Transformer backbones</strong> (Peebles &amp; Xie, 2023).</p>
+
+                <hr>
+
+                <!-- ===== 0. CONTINUITY EQUATION & ODE ===== -->
+                <h2>0. Fluid Mechanics of Probability: The Continuity Equation &amp; Flow ODE</h2>
+                <p>Suppose a particle starts at $x_0 \sim p_0$ and evolves deterministically along an ordinary differential equation (ODE) governed by a smooth velocity field $u_t(x)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Probability Flow ODE &amp; Liouville Continuity Equation</div>
+                    $$\frac{d x_t}{d t} = u_t(x_t), \qquad \frac{\partial p_t(x)}{\partial t} + \nabla_x \cdot \bigl(p_t(x)\, u_t(x)\bigr) = 0$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">The second equation is the exact conservation of probability mass (the continuity equation from fluid dynamics): the rate of density increase $\partial_t p_t$ inside any infinitesimal volume equals the negative divergence of the probability flux $J_t = p_t u_t$.</p>
+                </div>
+
+                <h3>Why Marginal Flow Matching Seems Intractable – and Why Conditional Flow Matching Works</h3>
+                <p>To train a neural velocity field $v_\theta(x_t, t)$ to match the marginal velocity $u_t(x_t)$, the naive objective $\mathcal{L}_{\text{FM}}(\theta) = \mathbb{E}_{t, x_t \sim p_t}\bigl[\|v_\theta(x_t, t) - u_t(x_t)\|^2\bigr]$ appears intractable because we do not have a closed-form expression for the marginal $u_t(x)$ integrated over all data points $x_1 \sim p_{\text{data}}$.</p>
+
+                <p>Lipman et al. (2023) proved a remarkable identity: if we define a simple <em>conditional</em> trajectory $x_t = \psi_t(x_0 \mid x_1)$ conditioned on a single data sample $x_1 \sim p_1$ with known conditional velocity $u_t(x_t \mid x_1) = \frac{d}{dt}\psi_t(x_0 \mid x_1)$, then the conditional loss $\mathcal{L}_{\text{CFM}}(\theta)$ has the <strong>exact same parameter gradient</strong> as the intractable marginal loss $\mathcal{L}_{\text{FM}}(\theta)$!</p>
+
+                <div class="math-block">
+                    <div class="math-label">Conditional Flow Matching Gradient Equivalence Theorem</div>
+                    $$\nabla_\theta \, \mathbb{E}_{t, x_t \sim p_t}\!\left[\bigl\|v_\theta(x_t, t) - u_t(x_t)\bigr\|^2\right] \equiv \nabla_\theta \, \mathbb{E}_{t, x_0 \sim p_0, x_1 \sim p_1}\!\left[\bigl\|v_\theta(x_t, t) - u_t(x_t \mid x_1)\bigr\|^2\right]$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Proof sketch: expanding the squared norm and applying the definition of the marginal velocity $u_t(x) = \int u_t(x \mid x_1) \frac{p_t(x \mid x_1) p_1(x_1)}{p_t(x)} dx_1$ causes the cross-term $\langle v_\theta(x_t, t), u_t(x_t) \rangle$ to collapse into the conditional expectation via Bayes' rule, while the $u_t$-only squared terms are independent of $\theta$.</p>
+                </div>
+
+                <hr>
+
+                <!-- ===== 1. OPTIMAL TRANSPORT RECTIFIED FLOW ===== -->
+                <h2>1. Optimal Transport Paths (Rectified Flow) vs. Curved DDPM Schedules</h2>
+                <p>In a general linear Gaussian interpolation $x_t = \alpha_t x_1 + \sigma_t x_0$ (with $x_0 \sim \mathcal{N}(0, I)$), choosing $\alpha_t = \sqrt{\bar{\alpha}_t}$ and $\sigma_t = \sqrt{1 - \bar{\alpha}_t}$ recovers the curved <strong>Variance-Preserving (VP-SDE / DDPM)</strong> path. Because $\frac{d^2 x_t}{dt^2} \neq 0$, the conditional trajectories curve through space, forcing numerical ODE solvers to take tiny steps ($\Delta t \ll 1$) to avoid truncation error.</p>
+
+                <p><strong>Optimal Transport Flow Matching / Rectified Flow</strong> (Liu et al., 2023; Lipman et al., 2023) chooses the simplest possible displacement interpolant – a straight line in Euclidean space with constant velocity:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Optimal Transport (Rectified Flow) Interpolant &amp; Velocity Objective</div>
+                    $$x_t = (1 - t)\, x_0 + t\, x_1, \qquad u_t(x_t \mid x_0, x_1) = \frac{d x_t}{d t} = x_1 - x_0$$
+                    $$\mathcal{L}_{\text{RF}}(\theta) = \mathbb{E}_{t \sim \pi(t),\, x_0 \sim \mathcal{N}(0,I),\, x_1 \sim p_{\text{data}}} \left[ \bigl\| v_\theta\bigl((1-t)x_0 + t x_1,\; t\bigr) - (x_1 - x_0) \bigr\|_2^2 \right]$$
+                </div>
+
+                <h3>Exact Algebraic Equivalence Between Velocity $v_\theta$ and Score $\nabla_x \log p_t(x)$</h3>
+                <p>Even when training with Flow Matching, we can recover the exact Stein score function $s_\theta(x_t, t) \approx \nabla_{x_t} \log p_t(x_t)$ (needed for stochastic SDE sampling or likelihood evaluation) at any $t \in (0, 1)$ via Tweedie's formula:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Velocity-to-Score Conversion Identity (for $x_t = \alpha_t x_1 + \sigma_t x_0$)</div>
+                    $$\nabla_{x_t} \log p_t(x_t) = \frac{\alpha_t \, v_\theta(x_t, t) - \dot{\alpha}_t \, x_t}{\sigma_t^2 \dot{\alpha}_t - \alpha_t \sigma_t \dot{\sigma}_t} \;\xrightarrow{\alpha_t = t,\, \sigma_t = 1-t}\; \frac{t \, v_\theta(x_t, t) - x_t}{1 - t}$$
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 250" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Comparison of Curved VP-SDE Diffusion Paths vs Straight Optimal Transport Rectified Flow Paths">
+                        <defs>
+                            <marker id="arr-fm-red" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M1 1 L6 4 L1 7 Z" fill="#f43f5e"/>
+                            </marker>
+                            <marker id="arr-fm-green" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M1 1 L6 4 L1 7 Z" fill="#34d399"/>
+                            </marker>
+                        </defs>
+
+                        <!-- Left Panel: Curved Diffusion SDE/ODE -->
+                        <rect x="20" y="18" width="390" height="214" rx="10" fill="var(--surface-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="215" y="42" text-anchor="middle" fill="#f43f5e" font-size="13" font-weight="800">1. Classical Diffusion (VP-SDE / DDIM)</text>
+                        <text x="215" y="58" text-anchor="middle" fill="var(--text-muted)" font-size="10">x_t = √ᾱ_t x₁ + √(1−ᾱ_t) x₀  (Curved Trajectories)</text>
+
+                        <!-- Prior Blob -->
+                        <ellipse cx="68" cy="145" rx="26" ry="52" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+                        <text x="68" y="148" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="700">p₀(x₀)</text>
+
+                        <!-- Data Modes -->
+                        <circle cx="355" cy="105" r="20" fill="#450a0a" stroke="#f43f5e" stroke-width="1.6"/>
+                        <text x="355" y="109" text-anchor="middle" fill="#fecdd3" font-size="10" font-weight="700">Mode A</text>
+                        <circle cx="355" cy="185" r="20" fill="#450a0a" stroke="#f43f5e" stroke-width="1.6"/>
+                        <text x="355" y="189" text-anchor="middle" fill="#fecdd3" font-size="10" font-weight="700">Mode B</text>
+
+                        <!-- Curved Paths -->
+                        <path d="M 94 115 C 165 60 250 165 332 105" fill="none" stroke="#f43f5e" stroke-width="2" marker-end="url(#arr-fm-red)"/>
+                        <path d="M 94 175 C 175 225 250 120 332 185" fill="none" stroke="#f43f5e" stroke-width="2" marker-end="url(#arr-fm-red)"/>
+                        <line x1="94" y1="115" x2="175" y2="75" stroke="#fbbf24" stroke-width="1.6" stroke-dasharray="4 2"/>
+                        <text x="215" y="216" text-anchor="middle" fill="#fda4af" font-size="10">Large Euler step overshoots curved path → needs 50+ NFE</text>
+
+                        <!-- Right Panel: Straight Optimal Transport Flow Matching -->
+                        <rect x="430" y="18" width="390" height="214" rx="10" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="625" y="42" text-anchor="middle" fill="#34d399" font-size="13" font-weight="800">2. Optimal Transport Flow Matching (SD3 / Flux)</text>
+                        <text x="625" y="58" text-anchor="middle" fill="var(--text-muted)" font-size="10">x_t = (1−t)x₀ + t x₁,   u_t = x₁ − x₀  (Constant Velocity)</text>
+
+                        <!-- Prior Blob -->
+                        <ellipse cx="478" cy="145" rx="26" ry="52" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+                        <text x="478" y="148" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="700">p₀(x₀)</text>
+
+                        <!-- Data Modes -->
+                        <circle cx="765" cy="105" r="20" fill="#064e3b" stroke="#34d399" stroke-width="1.6"/>
+                        <text x="765" y="109" text-anchor="middle" fill="#d1fae5" font-size="10" font-weight="700">Mode A</text>
+                        <circle cx="765" cy="185" r="20" fill="#064e3b" stroke="#34d399" stroke-width="1.6"/>
+                        <text x="765" y="189" text-anchor="middle" fill="#d1fae5" font-size="10" font-weight="700">Mode B</text>
+
+                        <!-- Straight Paths -->
+                        <line x1="504" y1="112" x2="742" y2="105" stroke="#34d399" stroke-width="2.4" marker-end="url(#arr-fm-green)"/>
+                        <line x1="504" y1="178" x2="742" y2="185" stroke="#34d399" stroke-width="2.4" marker-end="url(#arr-fm-green)"/>
+                        <text x="625" y="148" text-anchor="middle" fill="#6ee7b7" font-size="10" font-weight="700">d²x_t / dt² = 0 along conditional paths</text>
+                        <text x="625" y="216" text-anchor="middle" fill="#a7f3d0" font-size="10">Straight trajectories → High-fidelity generation in 8–20 NFE</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Classical curved diffusion trajectories vs. Straight Optimal Transport Flow Matching paths. Constant conditional velocity $u_t = x_1 - x_0$ minimizes ODE curvature and numerical integration error.</div>
+                </div>
+
+                <h3>Logit-Normal Timestep Sampling &amp; Resolution Shift (SD3)</h3>
+                <p>When training Flow Matching with uniform timesteps $t \sim \mathcal{U}(0, 1)$, the network wastes capacity near $t \to 0$ (where the optimal prediction is simply the dataset mean $\mathbb{E}[x_1] - x_0$) and $t \to 1$ (where reconstructing $x_1$ from $x_{0.99}$ is trivial). Esser et al. (2024) demonstrated that sampling $t$ from a <strong>Logit-Normal distribution</strong> concentrates training updates at the critical perceptual transition around $t = 0.5$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Logit-Normal Timestep Density &amp; Resolution-Dependent Shift</div>
+                    $$u \sim \mathcal{N}(\mu_t, \sigma_t^2), \qquad t = \sigma(u) = \frac{1}{1 + e^{-u}}, \qquad t_{\text{shifted}} = \frac{s_{\text{res}} \cdot t}{1 + (s_{\text{res}} - 1) t}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">where $s_{\text{res}} = \sqrt{M_{\text{tokens}} / M_{\text{base}}}$ shifts timesteps toward higher noise levels as image/video resolution $M_{\text{tokens}}$ increases (since higher spatial resolution has greater redundancy against equal-variance pixel noise).</p>
+                </div>
+
+                <hr>
+
+                <!-- ===== 2. DIT & ADALN-ZERO ===== -->
+                <h2>2. Diffusion Transformers (DiT) &amp; `adaLN-Zero` Conditioning</h2>
+                <p>Replacing the convolutional U-Net with an isotropic Vision Transformer (Peebles &amp; Xie, 2023) unlocks clean scaling laws with compute $\mathcal{C} = N_{\text{params}} \cdot M_{\text{patches}}$. How should timestep $t$ and class/text conditioning $c$ modulate each Transformer block? Peebles &amp; Xie discovered that <strong>Adaptive LayerNorm initialized to Zero (adaLN-Zero)</strong> significantly outperforms cross-attention and in-context token conditioning at every FLOP budget:</p>
+
+                <div class="math-block">
+                    <div class="math-label">DiT Block with adaLN-Zero Modulation ($6 \times d_{\text{model}}$ Regressors)</div>
+                    $$(\gamma_1, \beta_1, \alpha_1, \gamma_2, \beta_2, \alpha_2) = W_{\text{ada}}\, \text{SiLU}(t_{\text{emb}} + c_{\text{emb}})$$
+                    $$h' = h + \alpha_1 \odot \text{Attention}\!\Bigl((1 + \gamma_1) \odot \text{LN}(h) + \beta_1\Bigr)$$
+                    $$h_{\text{out}} = h' + \alpha_2 \odot \text{MLP}\!\Bigl((1 + \gamma_2) \odot \text{LN}(h') + \beta_2\Bigr)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Initializing $W_{\text{ada}} = 0$ and $b_{\text{ada}} = 0$ sets $\alpha_1 = \alpha_2 = 0$ at step $0$, making every DiT block an exact identity function ($h_{\text{out}} = h$) at initialization and stabilizing deep 40-layer training without warmup instabilities.</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 245" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Diffusion Transformer (DiT) Block with adaLN-Zero conditioning">
+                        <defs>
+                            <marker id="arr-dit" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M1 1 L6 4 L1 7 Z" fill="#94a3b8"/>
+                            </marker>
+                            <marker id="arr-dit-mod" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M1 1 L6 4 L1 7 Z" fill="#f472b6"/>
+                            </marker>
+                        </defs>
+
+                        <!-- Residual Highway Top -->
+                        <rect x="20" y="52" width="85" height="40" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1.6"/>
+                        <text x="62" y="76" text-anchor="middle" fill="#f8fafc" font-size="12" font-weight="700">Latent h</text>
+                        <line x1="105" y1="72" x2="145" y2="72" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dit)"/>
+
+                        <!-- LN + Scale/Shift 1 -->
+                        <rect x="150" y="46" width="120" height="52" rx="8" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="210" y="68" text-anchor="middle" fill="#e0f2fe" font-size="11" font-weight="700">adaLN (γ₁, β₁)</text>
+                        <text x="210" y="84" text-anchor="middle" fill="#7dd3fc" font-size="9">(1+γ₁)·LN(h) + β₁</text>
+                        <line x1="270" y1="72" x2="305" y2="72" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dit)"/>
+
+                        <!-- Self-Attention -->
+                        <rect x="310" y="46" width="105" height="52" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="362" y="76" text-anchor="middle" fill="#bae6fd" font-size="11" font-weight="700">Multi-Head Attn</text>
+                        <line x1="415" y1="72" x2="445" y2="72" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dit)"/>
+
+                        <!-- Gate alpha_1 + Residual Add -->
+                        <rect x="450" y="52" width="66" height="40" rx="6" fill="#831843" stroke="#f472b6" stroke-width="1.6"/>
+                        <text x="483" y="76" text-anchor="middle" fill="#fce7f3" font-size="11" font-weight="800">× α₁=0</text>
+
+                        <!--LN + MLP + alpha_2 -->
+                        <line x1="516" y1="72" x2="548" y2="72" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dit)"/>
+                        <rect x="552" y="46" width="125" height="52" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1.6"/>
+                        <text x="614" y="68" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700">adaLN + MLP</text>
+                        <text x="614" y="84" text-anchor="middle" fill="#6ee7b7" font-size="9">(1+γ₂)·LN(h') + β₂</text>
+                        <line x1="677" y1="72" x2="705" y2="72" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr-dit)"/>
+
+                        <rect x="710" y="52" width="66" height="40" rx="6" fill="#831843" stroke="#f472b6" stroke-width="1.6"/>
+                        <text x="743" y="76" text-anchor="middle" fill="#fce7f3" font-size="11" font-weight="800">× α₂=0</text>
+
+                        <!-- Residual bypass arcs -->
+                        <path d="M 125 72 C 125 18 525 18 532 72" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3"/>
+                        <path d="M 532 72 C 532 18 795 18 800 72" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+                        <!-- Conditioning Input Bottom: (t + c) -> SiLU -> Zero-Init Linear -> 6 chunks -->
+                        <rect x="190" y="162" width="460" height="58" rx="10" fill="#3b0764" stroke="#c084fc" stroke-width="1.8"/>
+                        <text x="420" y="186" text-anchor="middle" fill="#f3e8ff" font-size="12" font-weight="800">Conditioning MLP: W_ada(SiLU(t_emb + c_emb)) → (γ₁, β₁, α₁, γ₂, β₂, α₂)</text>
+                        <text x="420" y="205" text-anchor="middle" fill="#d8b4fe" font-size="10">W_ada and b_ada initialized to ZERO so block acts as exact identity at step 0</text>
+
+                        <line x1="250" y1="162" x2="210" y2="102" stroke="#f472b6" stroke-width="1.6" marker-end="url(#arr-dit-mod)"/>
+                        <line x1="420" y1="162" x2="483" y2="96" stroke="#f472b6" stroke-width="1.6" marker-end="url(#arr-dit-mod)"/>
+                        <line x1="540" y1="162" x2="614" y2="102" stroke="#f472b6" stroke-width="1.6" marker-end="url(#arr-dit-mod)"/>
+                        <line x1="610" y1="162" x2="743" y2="96" stroke="#f472b6" stroke-width="1.6" marker-end="url(#arr-dit-mod)"/>
+                    </svg>
+                    <div class="flow-caption">Figure 2: Diffusion Transformer (DiT) block with `adaLN-Zero` conditioning. Regressing $(\gamma_1, \beta_1, \alpha_1, \gamma_2, \beta_2, \alpha_2)$ from a zero-initialized linear layer ensures stable identity initialization across arbitrary depth.</div>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>PyTorch Implementation: DiT Block with adaLN-Zero &amp; Logit-Normal CFM Loss</span><span class="badge-code">Pure PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def modulate(x: torch.Tensor, shift: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    # x: [B, N_tokens, D], shift: [B, D], scale: [B, D]
+    return x * (1.0 + scale.unsqueeze(1)) + shift.unsqueeze(1)
+
+class DiTBlockAdaLNZero(nn.Module):
+    """Diffusion Transformer Block with adaLN-Zero conditioning (Peebles & Xie, 2023)."""
+    def __init__(self, d_model: int = 128, n_heads: int = 4, mlp_ratio: int = 4):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(d_model, elementwise_affine=False, eps=1e-6)
+        self.attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)
+        self.norm2 = nn.LayerNorm(d_model, elementwise_affine=False, eps=1e-6)
+        self.mlp = nn.Sequential(
+            nn.Linear(d_model, d_model * mlp_ratio),
+            nn.GELU(approximate="tanh"),
+            nn.Linear(d_model * mlp_ratio, d_model)
+        )
+        self.adaLN_modulation = nn.Sequential(
+            nn.SiLU(),
+            nn.Linear(d_model, 6 * d_model, bias=True)
+        )
+        # Zero-initialize the modulation linear layer so alpha_1 = alpha_2 = 0 at step 0!
+        nn.init.zeros_(self.adaLN_modulation[1].weight)
+        nn.init.zeros_(self.adaLN_modulation[1].bias)
+
+    def forward(self, x: torch.Tensor, cond: torch.Tensor) -> torch.Tensor:
+        # x: [B, N_tokens, D], cond: [B, D] (sum of timestep and class/text embeddings)
+        shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = (
+            self.adaLN_modulation(cond).chunk(6, dim=-1)
+        )
+        h = modulate(self.norm1(x), shift_msa, scale_msa)
+        attn_out, _ = self.attn(h, h, h, need_weights=False)  # [B, N_tokens, D]
+        x = x + gate_msa.unsqueeze(1) * attn_out
+        x = x + gate_mlp.unsqueeze(1) * self.mlp(modulate(self.norm2(x), shift_mlp, scale_mlp))
+        return x
+
+def sample_logit_normal_timesteps(
+    batch_size: int,
+    mu: float = 0.0,
+    sigma: float = 1.0,
+    res_shift: float = 1.0,
+    device: str = "cpu"
+) -> torch.Tensor:
+    u = torch.randn(batch_size, device=device) * sigma + mu
+    t = torch.sigmoid(u)
+    if res_shift != 1.0:
+        t = (res_shift * t) / (1.0 + (res_shift - 1.0) * t)
+    return t  # [B]
+
+def rectified_flow_loss(model_fn, x_1: torch.Tensor, cond: torch.Tensor) -> torch.Tensor:
+    """Optimal Transport Conditional Flow Matching loss: E[||v_theta(x_t, t, c) - (x_1 - x_0)||^2]."""
+    B = x_1.size(0)
+    x_0 = torch.randn_like(x_1)  # [B, ...]
+    t = sample_logit_normal_timesteps(B, device=x_1.device)
+    t_broadcast = t.view(B, *([1] * (x_1.ndim - 1)))  # [B, 1, ...]
+
+    x_t = (1.0 - t_broadcast) * x_0 + t_broadcast * x_1
+    target_velocity = x_1 - x_0
+    pred_velocity = model_fn(x_t, t, cond)
+    return F.mse_loss(pred_velocity, target_velocity)</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 3. ODE SOLVERS & CFG ===== -->
+                <h2>3. Classifier-Free Guidance (CFG) &amp; 2nd-Order Heun ODE Integration</h2>
+                <p>At inference time, we integrate $\frac{dx_t}{dt} = \hat{v}_\theta(x_t, t, c)$ from $t = 0$ ($x_0 \sim \mathcal{N}(0, I)$) to $t = 1$, where the guided velocity $\hat{v}_\theta$ linearly extrapolates from the unconditional velocity $v_\theta(x_t, t, \varnothing)$ toward the conditional velocity $v_\theta(x_t, t, c)$ with guidance scale $w \ge 1.0$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Velocity-Space Classifier-Free Guidance &amp; 2nd-Order Heun Step</div>
+                    $$\hat{v}_\theta(x_t, t, c) = v_\theta(x_t, t, \varnothing) + w \cdot \bigl(v_\theta(x_t, t, c) - v_\theta(x_t, t, \varnothing)\bigr)$$
+                    $$\tilde{x}_{t + \Delta t} = x_t + \Delta t \, \hat{v}_\theta(x_t, t, c), \qquad x_{t + \Delta t} = x_t + \frac{\Delta t}{2}\Bigl(\hat{v}_\theta(x_t, t, c) + \hat{v}_\theta(\tilde{x}_{t + \Delta t}, t + \Delta t, c)\Bigr)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">While 1st-order Euler integration has global truncation error $\mathcal{O}(\Delta t)$, the 2nd-order Heun predictor-corrector achieves $\mathcal{O}(\Delta t^2)$ accuracy, halving the required Number of Function Evaluations (NFE) for curved regions near $t \to 1$.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>PyTorch Implementation: Euler &amp; 2nd-Order Heun Flow ODE Solver with CFG</span><span class="badge-code">Pure PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+
+@torch.no_grad()
+def solve_flow_ode(
+    velocity_fn,             # Callable(x_t, t_tensor, cond) -> velocity tensor
+    x_0: torch.Tensor,       # Initial Gaussian noise [B, ...]
+    cond: torch.Tensor,      # Conditioning tensor [B, ...]
+    uncond: torch.Tensor,    # Null conditioning tensor [B, ...]
+    num_steps: int = 20,
+    cfg_scale: float = 4.5,
+    solver: str = "heun"     # 'euler' (1st order) or 'heun' (2nd order predictor-corrector)
+) -> torch.Tensor:
+    B = x_0.size(0)
+    ts = torch.linspace(0.0, 1.0, num_steps + 1, device=x_0.device)
+    x_t = x_0.clone()
+
+    def guided_v(x: torch.Tensor, t_scalar: float) -> torch.Tensor:
+        t_vec = torch.full((B,), t_scalar, device=x.device, dtype=x.dtype)
+        if cfg_scale == 1.0:
+            return velocity_fn(x, t_vec, cond)
+        v_u = velocity_fn(x, t_vec, uncond)
+        v_c = velocity_fn(x, t_vec, cond)
+        return v_u + cfg_scale * (v_c - v_u)
+
+    for i in range(num_steps):
+        t_cur = ts[i].item()
+        t_next = ts[i + 1].item()
+        dt = t_next - t_cur
+
+        v_cur = guided_v(x_t, t_cur)
+        x_euler = x_t + dt * v_cur
+
+        if solver == "heun":
+            v_next = guided_v(x_euler, t_next)
+            x_t = x_t + 0.5 * dt * (v_cur + v_next)
+        else:
+            x_t = x_euler
+
+    return x_t</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 4. DIAGNOSTICS & FAILURE MODES ===== -->
+                <h2>4. Failure Modes &amp; Generative Diagnostics</h2>
+
+                <div class="callout callout-danger">
+                    <strong>1. High-Guidance Color Saturation &amp; Overshoot ($w \gt 7.5$):</strong> Large CFG scales amplify the orthogonal component $(v_c - v_u)$ perpendicular to the data manifold, pushing trajectories outside the support of $p_t(x)$ and producing burnt, neon-saturated artifacts.<br>
+                    <em>Fix:</em> Apply <strong>CFG Interval Clamping</strong> (Kynkäänniemi et al., 2024) – disable CFG ($w = 1.0$) for early global-layout steps $t \in [0, 0.2]$ and final high-frequency steps $t \in [0.85, 1.0]$, applying $w \gt 1$ strictly inside the middle perceptual window $t \in [0.2, 0.85]$.
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>2. Patchification Grid Artifacts on Final DiT Layer:</strong> If the final linear un-patching layer (<code>Linear(d_model, p * p * C)</code>) is initialized with standard Kaiming weights, early steps suffer massive velocity variance spikes across patch boundaries.<br>
+                    <em>Fix:</em> Always <strong>zero-initialize the final linear layer and its modulation MLP</strong> in the DiT head so the initial predicted velocity field is identically $v_\theta(x_t, t) = 0$ everywhere at step $0$.
+                </div>
+
+                <dl class="kv">
+                    <dt>Training Objective</dt>
+                    <dd>Rectified Flow velocity prediction $v_\theta \approx x_1 - x_0$ with Logit-Normal $(\mu=0.0, \sigma=1.0)$ timestep sampling.</dd>
+                    <dt>Resolution Shift $s_{\text{res}}$</dt>
+                    <dd>$s_{\text{res}} = 1.0$ at $256^2$, $s_{\text{res}} = 3.0$ at $1024^2$ ($4096$ latent patches at $16\times$ VAE compression).</dd>
+                    <dt>Inference Solver</dt>
+                    <dd>20–28 Euler steps or 12–16 Heun steps with QK-Norm enabled inside all DiT attention layers.</dd>
+                </dl>
+
+                <hr>
+
+                <!-- ===== 5. RUNNABLE VERIFICATION ===== -->
+                <h2>5. Runnable End-to-End Verification: DiT Identity Init &amp; Flow ODE Transport</h2>
+                <p>The self-contained script below verifies: (1) `DiTBlockAdaLNZero` acts as an exact identity mapping at initialization ($\|f(x, c) - x\|_\infty = 0.0$), (2) training a lightweight velocity network with `rectified_flow_loss` for 200 steps transports $\mathcal{N}(0, I)$ to a target bimodal distribution, and (3) `solve_flow_ode` with 2nd-order Heun integration accurately lands on the target modes.</p>
+
+                <details class="code-card">
+                    <summary><span>Runnable Verification Script: adaLN-Zero Identity, Rectified Flow Training &amp; Heun ODE</span><span class="badge-code">Verified PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+import torch.nn as nn
+
+def verify_flow_matching_dit():
+    torch.manual_seed(42)
+
+    # 1. Verify DiTBlockAdaLNZero exact identity at step 0
+    B, N, D = 4, 16, 64
+    x_lat = torch.randn(B, N, D)
+    cond = torch.randn(B, D)
+    dit_block = DiTBlockAdaLNZero(d_model=D, n_heads=4)
+    out_init = dit_block(x_lat, cond)
+    identity_diff = (out_init - x_lat).abs().max().item()
+    assert identity_diff == 0.0, f"adaLN-Zero failed identity init: {identity_diff}"
+
+    # 2. Train a tiny Conditional Rectified Flow velocity network on 2D conditional target modes
+    # Class c=+1 -> target mode at (+3.0, +3.0); Class c=-1 -> target mode at (-3.0, -3.0)
+    net = nn.Sequential(
+        nn.Linear(2 + 1 + 1, 64),
+        nn.SiLU(),
+        nn.Linear(64, 64),
+        nn.SiLU(),
+        nn.Linear(64, 2)
+    )
+    opt = torch.optim.AdamW(net.parameters(), lr=1e-2)
+
+    def model_fn(x_t: torch.Tensor, t: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+        inp = torch.cat([x_t, t.unsqueeze(-1), c.unsqueeze(-1)], dim=-1)
+        return net(inp)
+
+    for _ in range(200):
+        c_batch = torch.randint(0, 2, (128,)).float() * 2.0 - 1.0  # {-1, +1}
+        x1_batch = c_batch.unsqueeze(-1) * 3.0 + 0.1 * torch.randn(128, 2)
+        loss = rectified_flow_loss(model_fn, x1_batch, c_batch)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+
+    # 3. Integrate Probability Flow ODE using 2nd-order Heun solver for class c=+1
+    x0_test = torch.randn(64, 2)
+    c_pos = torch.ones(64)
+    c_null = torch.zeros(64)
+    x1_gen = solve_flow_ode(model_fn, x0_test, c_pos, c_null, num_steps=16, cfg_scale=1.0, solver="heun")
+    gen_mean = x1_gen.mean(dim=0)
+    dist_to_target = (gen_mean - torch.tensor([3.0, 3.0])).norm().item()
+    assert dist_to_target < 0.35, f"Flow ODE transport error too high: {dist_to_target}"
+
+    print(f"[PASS] DiT adaLN-Zero Step-0 Identity Diff : {identity_diff:.1e} (Exact Identity!)")
+    print(f"[PASS] Final Rectified Flow Training Loss  : {loss.item():.4f}")
+    print(f"[PASS] Heun ODE Generated Mode Mean        : ({gen_mean[0]:.2f}, {gen_mean[1]:.2f}) vs Target (3.00, 3.00)")
+
+if __name__ == "__main__":
+    verify_flow_matching_dit()</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 6. COMPARISON TABLE ===== -->
+                <h2>6. Generative Transport Frameworks: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th style="color:#f43f5e">DDPM (VP-SDE)</th>
+                            <th style="color:#f59e0b">Score SDE / EDM</th>
+                            <th style="color:#34d399">OT Flow Matching (Rectified Flow)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Forward Path $x_t$</strong></td>
+                            <td>$\sqrt{\bar{\alpha}_t} x_1 + \sqrt{1 - \bar{\alpha}_t} x_0$</td>
+                            <td>$x_1 + \sigma(t) x_0$</td>
+                            <td>$(1 - t) x_0 + t x_1$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Network Target</strong></td>
+                            <td>Noise $\epsilon_\theta \approx x_0$</td>
+                            <td>Preconditioned Denoiser $D_\theta \approx x_1$</td>
+                            <td>Velocity $v_\theta \approx x_1 - x_0$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Trajectory Geometry</strong></td>
+                            <td>Curved (high $\frac{d^2 x_t}{dt^2}$)</td>
+                            <td>Curved variance-exploding</td>
+                            <td>Straight Euclidean line ($\frac{d^2 x_t}{dt^2} = 0$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Timestep Sampling</strong></td>
+                            <td>Discrete uniform $t \in \{1..1000\}$</td>
+                            <td>Log-Normal $\ln \sigma \sim \mathcal{N}(P_{\text{mean}}, P_{\text{std}}^2)$</td>
+                            <td>Logit-Normal $t = \sigma(\mathcal{N}(\mu, \sigma^2))$ + Res Shift</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Typical Sampling NFE</strong></td>
+                            <td>$50$ – $1000$ steps</td>
+                            <td>$25$ – $50$ steps (Heun)</td>
+                            <td>$8$ – $25$ steps (Euler / Heun)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>
