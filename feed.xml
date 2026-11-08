@@ -4,8 +4,15 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-11-05T00:00:00Z</updated>
+  <updated>2026-11-08T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>How the Leopard Got Its Spots at 60 FPS: Gray–Scott Reaction–Diffusion in WebGL</title>
+    <link href="https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html</id>
+    <updated>2026-11-08T00:00:00Z</updated>
+    <summary>How to simulate Alan Turing&#x27;s 1952 chemical morphogenesis in real time in the browser: the coupled Gray–Scott reaction–diffusion PDEs, diffusion-driven instability, isotropic 9-point Laplacians in GLSL, and 3D Blinn–Phong normal-mapped coral relief.</summary>
+  </entry>
   <entry>
     <title>Test-Time Compute &amp; Reasoning Verification: PRMs, MCTS &amp; Search Scaling Laws</title>
     <link href="https://arman1o1.github.io/posts/ai-ml/llm-test-time-compute-reasoning.html"/>

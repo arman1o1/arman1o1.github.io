@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Turing Morphogenesis — Real-Time Gray–Scott Reaction–Diffusion in WebGL</title>
+<style>
+  :root {
+    --bg: #05060a;
+    --panel: rgba(12, 15, 24, 0.84);
+    --border: rgba(148, 163, 184, 0.20);
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --gold: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  #glCanvas {
+    display: block; width: 100%; height: 100%;
+    cursor: crosshair; touch-action: none;
+  }
+
+  .hud-bar {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    pointer-events: none; z-index: 10; gap: 10px;
+  }
+  .telemetry {
+    pointer-events: auto;
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 12px;
+    font-size: 11.5px; line-height: 1.48; color: var(--muted);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  }
+  .telemetry strong { color: var(--text); font-weight: 600; }
+  .telemetry .math { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #cbd5e1; }
+  .telemetry .val { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .telemetry .val-gold { color: var(--gold); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .ctrl-wrap {
+    pointer-events: auto;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .toggle-panel-btn {
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; font-weight: 600;
+    padding: 7px 13px; border-radius: 9px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    transition: border-color 0.15s;
+  }
+  .toggle-panel-btn:hover { border-color: var(--accent); }
+
+  .panel {
+    width: 300px; max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 70px); overflow-y: auto;
+    background: var(--panel);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 16px 44px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; gap: 10px;
+    font-size: 12px;
+  }
+  .panel.hidden { display: none; }
+  .row { display: flex; flex-direction: column; gap: 4px; }
+  .row-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11.5px; }
+  .row-head span.v { color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; }
+  input[type="range"] {
+    width: 100%; accent-color: var(--accent); cursor: pointer; height: 5px;
+  }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .pill {
+    background: rgba(30, 41, 59, 0.72);
+    border: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill.active {
+    background: rgba(56, 189, 248, 0.20);
+    border-color: var(--accent); color: #e0f2fe;
+  }
+  .pill.gold.active {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: var(--gold); color: #fef3c7;
+  }
+  .presets { display: flex; gap: 5px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 8px; }
+  .preset-btn {
+    flex: 1 1 auto; background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border); color: var(--text);
+    font-size: 10.5px; padding: 5px 7px; border-radius: 6px; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .preset-btn:hover { border-color: var(--accent); }
+  @media (max-width: 560px) {
+    .telemetry { font-size: 10.5px; padding: 6px 9px; }
+    .panel { width: 255px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="glCanvas"></canvas>
+
+<div class="hud-bar">
+  <div class="telemetry" id="telemetryBox">
+    <div><strong>Gray–Scott Morphogenesis</strong> · <span class="math">U + 2V → 3V</span></div>
+    <div>Feed <span class="math">F</span>: <span class="val" id="hudF">0.0370</span> · Kill <span class="math">k</span>: <span class="val-gold" id="hudK">0.0600</span></div>
+    <div>Grid: <span class="val" id="hudGrid">512×288</span> · Substeps: <span class="val" id="hudSteps">14 /frame</span></div>
+    <div>Regime: <span class="val" id="hudRegime">Coral Labyrinth</span> · <span id="hudFps">-- fps</span></div>
+  </div>
+
+  <div class="ctrl-wrap">
+    <button class="toggle-panel-btn" id="togglePanelBtn" type="button">⚙ Controls</button>
+    <div class="panel hidden" id="ctrlPanel">
+      <div class="row">
+        <div class="row-head"><span>Feed Rate · <i>F</i></span><span class="v" id="valF">0.0370</span></div>
+        <input type="range" id="slF" min="0.0100" max="0.0750" step="0.0005" value="0.0370" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Kill Rate · <i>k</i></span><span class="v" id="valK">0.0600</span></div>
+        <input type="range" id="slK" min="0.0350" max="0.0680" step="0.0005" value="0.0600" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Activator Diffusion · <i>D<sub>v</sub></i></span><span class="v" id="valDv">0.105</span></div>
+        <input type="range" id="slDv" min="0.065" max="0.145" step="0.005" value="0.105" />
+      </div>
+      <div class="row">
+        <div class="row-head"><span>Substeps per Frame</span><span class="v" id="valSteps">14</span></div>
+        <input type="range" id="slSteps" min="2" max="24" step="2" value="14" />
+      </div>
+
+      <div class="row">
+        <div class="row-head"><span>Surface Shading &amp; Channels</span></div>
+        <div class="pills">
+          <button type="button" class="pill active" id="viewCoral">3D Relief (v)</button>
+          <button type="button" class="pill" id="viewDual">Dual (u, v)</button>
+          <button type="button" class="pill" id="viewRate">Reaction (uv²)</button>
+          <button type="button" class="pill gold" id="pillSpatial">Spatial (F, k) Map</button>
+        </div>
+      </div>
+
+      <div class="presets">
+        <button type="button" class="preset-btn" id="preCoral">Coral Labyrinth</button>
+        <button type="button" class="preset-btn" id="preMitosis">Mitosis Cells</button>
+        <button type="button" class="preset-btn" id="preSpirals">Spiral Waves</button>
+        <button type="button" class="preset-btn" id="preSolitons">Soliton Worms</button>
+        <button type="button" class="preset-btn" id="preReseed">Re-Seed</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('glCanvas');
+  let gl = canvas.getContext('webgl2', { alpha: false, depth: false, stencil: false, antialias: false });
+  const isWebGL2 = !!gl;
+  if (!gl) {
+    gl = canvas.getContext('webgl', { alpha: false, depth: false, stencil: false, antialias: false });
+  }
+  if (!gl) {
+    document.body.innerHTML = '<div style="padding:2rem;color:#fff">WebGL is required to run this simulation.</div>';
+    return;
+  }
+
+  let internalFormat = gl.RGBA;
+  let format = gl.RGBA;
+  let texType = gl.UNSIGNED_BYTE;
+  let filterMode = gl.LINEAR;
+
+  if (isWebGL2) {
+    const extFloat = gl.getExtension('EXT_color_buffer_float');
+    gl.getExtension('OES_texture_float_linear');
+    if (extFloat) {
+      internalFormat = gl.RGBA16F;
+      texType = gl.HALF_FLOAT;
+    }
+  } else {
+    const halfFloat = gl.getExtension('OES_texture_half_float');
+    const halfLinear = gl.getExtension('OES_texture_half_float_linear');
+    if (halfFloat) {
+      texType = halfFloat.HALF_FLOAT_OES;
+      if (!halfLinear) filterMode = gl.NEAREST;
+    } else {
+      const fullFloat = gl.getExtension('OES_texture_float');
+      const fullLinear = gl.getExtension('OES_texture_float_linear');
+      if (fullFloat) {
+        texType = gl.FLOAT;
+        if (!fullLinear) filterMode = gl.NEAREST;
+      }
+    }
+  }
+
+  const baseVs = `
+    precision highp float;
+    attribute vec2 aPos;
+    varying vec2 vUv;
+    void main() {
+      vUv = aPos * 0.5 + 0.5;
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }
+  `;
+
+  // Initial seed shader: fills u = 1.0 everywhere and seeds organic catalyst droplets v
+  const initFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform float uAspect;
+    uniform float uSeedSalt;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+
+    void main() {
+      float u = 1.0;
+      float v = 0.0;
+      vec2 c = (vUv - 0.5) * vec2(uAspect, 1.0);
+
+      // Multi-scale organic coral seed: branching vascular filaments + surrounding nuclei
+      for (int i = 0; i < 28; i++) {
+        float fi = float(i);
+        float h1 = hash(vec2(fi, uSeedSalt));
+        float h2 = hash(vec2(fi + 17.3, uSeedSalt + 3.1));
+        float rad = (i < 8) ? (0.03 + 0.09 * h1) : (0.12 + 0.24 * h1);
+        float ang = fi * 2.39996 + uSeedSalt + 0.4 * h2;
+        vec2 seedPos = vec2(cos(ang) * 1.25, sin(ang)) * rad;
+        // Elongated curved filament segment
+        vec2 dir = vec2(-sin(ang + h1 * 3.0), cos(ang + h1 * 3.0));
+        vec2 rel = c - seedPos;
+        float proj = clamp(dot(rel, dir), -0.045, 0.045);
+        float d = length(rel - dir * proj);
+        float rBlob = 0.014 + 0.005 * sin(proj * 90.0 + fi);
+        float w = smoothstep(rBlob, rBlob * 0.3, d);
+        v = max(v, w * (0.52 + 0.12 * h2));
+        u = min(u, 1.0 - 0.58 * w);
+      }
+
+      gl_FragColor = vec4(u, v, 0.0, 1.0);
+    }
+  `;
+
+  // Brush splat shader: injects catalyst V along mouse/touch strokes
+  const brushFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uState;
+    uniform float uAspect;
+    uniform vec2  uPoint;
+    uniform float uRadius;
+
+    void main() {
+      vec4 st = texture2D(uState, vUv);
+      vec2 p = (vUv - uPoint) * vec2(uAspect, 1.0);
+      float w = exp(-dot(p, p) / max(uRadius, 1e-6));
+      float u = mix(st.r, 0.35, w * 0.85);
+      float v = max(st.g, w * 0.58);
+      gl_FragColor = vec4(u, v, 0.0, 1.0);
+    }
+  `;
+
+  // Gray-Scott PDE step with isotropic 9-point Laplacian stencil
+  const stepFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uState;
+    uniform vec2  uTexel;
+    uniform float uDu;
+    uniform float uDv;
+    uniform float uF;
+    uniform float uK;
+    uniform float uDt;
+    uniform float uSpatialMap;
+
+    void main() {
+      vec2 C  = texture2D(uState, vUv).rg;
+      vec2 N  = texture2D(uState, vUv + vec2( 0.0,       uTexel.y)).rg;
+      vec2 S  = texture2D(uState, vUv + vec2( 0.0,      -uTexel.y)).rg;
+      vec2 E  = texture2D(uState, vUv + vec2( uTexel.x,  0.0     )).rg;
+      vec2 W  = texture2D(uState, vUv + vec2(-uTexel.x,  0.0     )).rg;
+      vec2 NE = texture2D(uState, vUv + vec2( uTexel.x,  uTexel.y)).rg;
+      vec2 NW = texture2D(uState, vUv + vec2(-uTexel.x,  uTexel.y)).rg;
+      vec2 SE = texture2D(uState, vUv + vec2( uTexel.x, -uTexel.y)).rg;
+      vec2 SW = texture2D(uState, vUv + vec2(-uTexel.x, -uTexel.y)).rg;
+
+      // Isotropic 9-point Laplacian (0.20 cardinal, 0.05 diagonal, -1.0 center)
+      vec2 lap = 0.20 * (N + S + E + W) + 0.05 * (NE + NW + SE + SW) - C;
+
+      float u = C.r;
+      float v = C.g;
+      float uvv = u * v * v;
+
+      float F = (uSpatialMap > 0.5) ? mix(0.018, 0.058, vUv.y) : uF;
+      float k = (uSpatialMap > 0.5) ? mix(0.048, 0.065, vUv.x) : uK;
+
+      float du = uDu * lap.r - uvv + F * (1.0 - u);
+      float dv = uDv * lap.g + uvv - (F + k) * v;
+
+      u = clamp(u + du * uDt, 0.0, 1.0);
+      v = clamp(v + dv * uDt, 0.0, 1.0);
+
+      gl_FragColor = vec4(u, v, 0.0, 1.0);
+    }
+  `;
+
+  // 3D normal-mapped Blinn-Phong relief + scientific multi-channel visualizer
+  const displayFs = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uState;
+    uniform vec2  uTexel;
+    uniform int   uViewMode; // 0 = 3D Relief, 1 = Dual (u,v), 2 = Reaction Rate (uv^2)
+
+    void main() {
+      vec2 st = texture2D(uState, vUv).rg;
+      float u = st.r;
+      float v = st.g;
+
+      float vL = texture2D(uState, vUv - vec2(uTexel.x, 0.0)).g;
+      float vR = texture2D(uState, vUv + vec2(uTexel.x, 0.0)).g;
+      float vB = texture2D(uState, vUv - vec2(0.0, uTexel.y)).g;
+      float vT = texture2D(uState, vUv + vec2(0.0, uTexel.y)).g;
+
+      vec2 gradV = vec2(vR - vL, vT - vB);
+      vec3 norm  = normalize(vec3(-gradV * 14.0, 1.0));
+
+      vec3 col = vec3(0.0);
+
+      if (uViewMode == 0) {
+        float s = smoothstep(0.06, 0.42, v);
+        vec3 deepBg   = vec3(0.025, 0.032, 0.062);
+        vec3 midCyan  = vec3(0.05, 0.58, 0.88);
+        vec3 crestGold= vec3(0.98, 0.76, 0.28);
+        vec3 peakWhite= vec3(1.00, 0.96, 0.88);
+
+        vec3 albedo = mix(deepBg, midCyan, smoothstep(0.0, 0.45, s));
+        albedo = mix(albedo, crestGold, smoothstep(0.38, 0.80, s));
+        albedo = mix(albedo, peakWhite, smoothstep(0.75, 1.00, s));
+
+        vec3 lightDir1 = normalize(vec3(-0.55, 0.65, 0.85));
+        vec3 lightDir2 = normalize(vec3( 0.60,-0.45, 0.70));
+        vec3 viewDir   = vec3(0.0, 0.0, 1.0);
+        vec3 halfVec1  = normalize(lightDir1 + viewDir);
+
+        float diff1 = max(dot(norm, lightDir1), 0.0);
+        float diff2 = max(dot(norm, lightDir2), 0.0);
+        float spec  = pow(max(dot(norm, halfVec1), 0.0), 36.0) * smoothstep(0.08, 0.25, v);
+        float rim   = pow(1.0 - max(dot(norm, viewDir), 0.0), 2.2) * smoothstep(0.05, 0.22, v);
+
+        col = albedo * (0.38 + 0.68 * diff1 + 0.22 * diff2)
+            + vec3(0.95, 0.97, 1.0) * spec * 0.48
+            + vec3(0.20, 0.82, 1.0) * rim  * 0.55;
+      } else if (uViewMode == 1) {
+        vec3 uCol = vec3(0.06, 0.14, 0.28) * u;
+        vec3 vCol = mix(vec3(0.10, 0.82, 0.95), vec3(1.0, 0.45, 0.82), smoothstep(0.15, 0.42, v)) * smoothstep(0.04, 0.38, v);
+        col = uCol + vCol;
+      } else {
+        float rate = clamp(u * v * v * 14.0, 0.0, 1.0);
+        float edge = clamp(length(gradV) * 6.5, 0.0, 1.0);
+        col = mix(vec3(0.02, 0.03, 0.06), vec3(1.0, 0.52, 0.10), pow(rate, 0.75))
+            + vec3(0.22, 0.82, 1.0) * edge * 0.55;
+      }
+
+      gl_FragColor = vec4(pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.1)), 1.0);
+    }
+  `;
+
+  function createProgram(fsSource) {
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vs, baseVs);
+    gl.compileShader(vs);
+    if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+      console.error('VS:', gl.getShaderInfoLog(vs));
+    }
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, fsSource);
+    gl.compileShader(fs);
+    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+      console.error('FS:', gl.getShaderInfoLog(fs));
+    }
+    const p = gl.createProgram();
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      console.error('Link:', gl.getProgramInfoLog(p));
+    }
+    return p;
+  }
+
+  const progInit    = createProgram(initFs);
+  const progBrush   = createProgram(brushFs);
+  const progStep    = createProgram(stepFs);
+  const progDisplay = createProgram(displayFs);
+
+  // Cached uniform locations to eliminate per-frame string lookups
+  const locInit = {
+    uAspect:   gl.getUniformLocation(progInit, 'uAspect'),
+    uSeedSalt: gl.getUniformLocation(progInit, 'uSeedSalt')
+  };
+  const locBrush = {
+    uAspect: gl.getUniformLocation(progBrush, 'uAspect'),
+    uPoint:  gl.getUniformLocation(progBrush, 'uPoint'),
+    uRadius: gl.getUniformLocation(progBrush, 'uRadius'),
+    uState:  gl.getUniformLocation(progBrush, 'uState')
+  };
+  const locStep = {
+    uTexel:      gl.getUniformLocation(progStep, 'uTexel'),
+    uDu:         gl.getUniformLocation(progStep, 'uDu'),
+    uDv:         gl.getUniformLocation(progStep, 'uDv'),
+    uF:          gl.getUniformLocation(progStep, 'uF'),
+    uK:          gl.getUniformLocation(progStep, 'uK'),
+    uDt:         gl.getUniformLocation(progStep, 'uDt'),
+    uSpatialMap: gl.getUniformLocation(progStep, 'uSpatialMap'),
+    uState:      gl.getUniformLocation(progStep, 'uState')
+  };
+  const locDisplay = {
+    uTexel:    gl.getUniformLocation(progDisplay, 'uTexel'),
+    uViewMode: gl.getUniformLocation(progDisplay, 'uViewMode'),
+    uState:    gl.getUniformLocation(progDisplay, 'uState')
+  };
+
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+
+  function bindQuad(prog) {
+    gl.useProgram(prog);
+    const loc = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  function createFBO(w, h) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filterMode);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filterMode);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, texType, null);
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE && texType !== gl.UNSIGNED_BYTE) {
+      internalFormat = gl.RGBA;
+      texType = gl.UNSIGNED_BYTE;
+      gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, texType, null);
+    }
+    return { tex, fbo, width: w, height: h };
+  }
+
+  function createDoubleFBO(w, h) {
+    let fbo1 = createFBO(w, h);
+    let fbo2 = createFBO(w, h);
+    return {
+      width: w, height: h,
+      get read() { return fbo1; },
+      get write() { return fbo2; },
+      swap() { const tmp = fbo1; fbo1 = fbo2; fbo2 = tmp; }
+    };
+  }
+
+  const state = {
+    F: 0.0370,
+    k: 0.0600,
+    Du: 0.2097,
+    Dv: 0.1050,
+    substeps: 14,
+    viewMode: 0,
+    spatialMap: 0.0,
+    regimeName: 'Coral Labyrinth',
+    seedSalt: 1.0
+  };
+
+  let simW = 512, simH = 288;
+  let rdFBO;
+
+  function blit(targetFBO) {
+    if (targetFBO) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, targetFBO.fbo);
+      gl.viewport(0, 0, targetFBO.width, targetFBO.height);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  function stepOnce() {
+    bindQuad(progStep);
+    gl.uniform2f(locStep.uTexel, 1.0 / simW, 1.0 / simH);
+    gl.uniform1f(locStep.uDu, state.Du);
+    gl.uniform1f(locStep.uDv, state.Dv);
+    gl.uniform1f(locStep.uF, state.F);
+    gl.uniform1f(locStep.uK, state.k);
+    gl.uniform1f(locStep.uDt, 1.0);
+    gl.uniform1f(locStep.uSpatialMap, state.spatialMap);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, rdFBO.read.tex);
+    gl.uniform1i(locStep.uState, 0);
+    blit(rdFBO.write);
+    rdFBO.swap();
+  }
+
+  function seedSimulation() {
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    state.seedSalt += 1.618;
+    bindQuad(progInit);
+    gl.uniform1f(locInit.uAspect, aspect);
+    gl.uniform1f(locInit.uSeedSalt, state.seedSalt);
+    blit(rdFBO.write);
+    rdFBO.swap();
+
+    // Pre-warm 420 substeps on load so rich Turing coral patterns are immediately visible!
+    for (let i = 0; i < 420; i++) {
+      stepOnce();
+    }
+  }
+
+  function initGrid() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+    canvas.width  = Math.max(Math.floor(window.innerWidth * dpr), 256);
+    canvas.height = Math.max(Math.floor(window.innerHeight * dpr), 256);
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    simH = 260;
+    simW = Math.max(Math.round(simH * aspect), 256);
+    rdFBO = createDoubleFBO(simW, simH);
+    seedSimulation();
+    updateHUD();
+  }
+
+  function updateHUD() {
+    document.getElementById('hudF').textContent = state.F.toFixed(4);
+    document.getElementById('hudK').textContent = state.k.toFixed(4);
+    document.getElementById('hudGrid').textContent = simW + '×' + simH;
+    document.getElementById('hudSteps').textContent = state.substeps + ' /frame';
+    document.getElementById('hudRegime').textContent = state.spatialMap > 0.5 ? 'Spatial (F,k) Map' : state.regimeName;
+
+    document.getElementById('valF').textContent = state.F.toFixed(4);
+    document.getElementById('valK').textContent = state.k.toFixed(4);
+    document.getElementById('valDv').textContent = state.Dv.toFixed(3);
+    document.getElementById('valSteps').textContent = String(state.substeps);
+  }
+
+  initGrid();
+  window.addEventListener('resize', initGrid);
+
+  document.getElementById('togglePanelBtn').addEventListener('click', () => {
+    document.getElementById('ctrlPanel').classList.toggle('hidden');
+  });
+
+  document.getElementById('slF').addEventListener('input', (e) => {
+    state.F = parseFloat(e.target.value);
+    state.regimeName = 'Custom (F, k)';
+    updateHUD();
+  });
+  document.getElementById('slK').addEventListener('input', (e) => {
+    state.k = parseFloat(e.target.value);
+    state.regimeName = 'Custom (F, k)';
+    updateHUD();
+  });
+  document.getElementById('slDv').addEventListener('input', (e) => {
+    state.Dv = parseFloat(e.target.value);
+    updateHUD();
+  });
+  document.getElementById('slSteps').addEventListener('input', (e) => {
+    state.substeps = parseInt(e.target.value, 10);
+    updateHUD();
+  });
+
+  const viewIds = ['viewCoral', 'viewDual', 'viewRate'];
+  viewIds.forEach((id, idx) => {
+    document.getElementById(id).addEventListener('click', () => {
+      state.viewMode = idx;
+      viewIds.forEach((bid, bidx) => {
+        document.getElementById(bid).classList.toggle('active', bidx === idx);
+      });
+    });
+  });
+
+  document.getElementById('pillSpatial').addEventListener('click', (e) => {
+    state.spatialMap = state.spatialMap > 0.5 ? 0.0 : 1.0;
+    e.currentTarget.classList.toggle('active', state.spatialMap > 0.5);
+    updateHUD();
+  });
+
+  function applyPreset(F, k, name, reseed) {
+    state.F = F;
+    state.k = k;
+    state.spatialMap = 0.0;
+    state.regimeName = name;
+    document.getElementById('slF').value = F;
+    document.getElementById('slK').value = k;
+    document.getElementById('pillSpatial').classList.remove('active');
+    if (reseed) seedSimulation();
+    updateHUD();
+  }
+
+  document.getElementById('preCoral').addEventListener('click', () => applyPreset(0.0370, 0.0600, 'Coral Labyrinth', true));
+  document.getElementById('preMitosis').addEventListener('click', () => applyPreset(0.0280, 0.0620, 'Mitosis Division', true));
+  document.getElementById('preSpirals').addEventListener('click', () => applyPreset(0.0140, 0.0450, 'Spiral Waves', true));
+  document.getElementById('preSolitons').addEventListener('click', () => applyPreset(0.0540, 0.0630, 'Soliton Worms', true));
+  document.getElementById('preReseed').addEventListener('click', () => seedSimulation());
+
+  let pointerDown = false;
+  function paintAt(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (clientX - rect.left) / rect.width;
+    const y = 1.0 - (clientY - rect.top) / rect.height;
+    const aspect = canvas.width / Math.max(canvas.height, 1);
+    bindQuad(progBrush);
+    gl.uniform1f(locBrush.uAspect, aspect);
+    gl.uniform2f(locBrush.uPoint, x, y);
+    gl.uniform1f(locBrush.uRadius, 0.00085);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, rdFBO.read.tex);
+    gl.uniform1i(locBrush.uState, 0);
+    blit(rdFBO.write);
+    rdFBO.swap();
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    pointerDown = true;
+    paintAt(e.clientX, e.clientY);
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!pointerDown) return;
+    paintAt(e.clientX, e.clientY);
+  });
+  canvas.addEventListener('pointerup', () => { pointerDown = false; });
+  canvas.addEventListener('pointercancel', () => { pointerDown = false; });
+
+  let frames = 0, lastFpsTime = performance.now();
+
+  function frame(now) {
+    frames++;
+    if (now - lastFpsTime >= 600) {
+      const fps = Math.round((frames * 1000) / (now - lastFpsTime));
+      document.getElementById('hudFps').textContent = fps + ' fps';
+      frames = 0;
+      lastFpsTime = now;
+    }
+
+    for (let i = 0; i < state.substeps; i++) {
+      stepOnce();
+    }
+
+    bindQuad(progDisplay);
+    gl.uniform2f(locDisplay.uTexel, 1.0 / simW, 1.0 / simH);
+    gl.uniform1i(locDisplay.uViewMode, state.viewMode);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, rdFBO.read.tex);
+    gl.uniform1i(locDisplay.uState, 0);
+    blit(null);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    initGrid();
+  });
+})();
+</script>
+</body>
+</html>

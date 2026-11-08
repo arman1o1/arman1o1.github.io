@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How the Leopard Got Its Spots at 60 FPS: Gray–Scott Reaction–Diffusion in WebGL | arman1o1 blog</title>
+    <meta name="description"
+        content="How to simulate Alan Turing's 1952 chemical morphogenesis in real time in the browser: the coupled Gray–Scott reaction–diffusion PDEs, diffusion-driven instability, isotropic 9-point Laplacians in GLSL, and 3D Blinn–Phong normal-mapped coral relief." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="How the Leopard Got Its Spots at 60 FPS: Gray–Scott Reaction–Diffusion in WebGL">
+    <meta property="og:description" content="How to simulate Alan Turing's 1952 chemical morphogenesis in real time in the browser: the coupled Gray–Scott reaction–diffusion PDEs, diffusion-driven instability, isotropic 9-point Laplacians in GLSL, and 3D Blinn–Phong normal-mapped coral relief.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_reaction_diffusion.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-08">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "How the Leopard Got Its Spots at 60 FPS: Gray–Scott Reaction–Diffusion in WebGL", "description": "How to simulate Alan Turing's 1952 chemical morphogenesis in real time in the browser: the coupled Gray–Scott reaction–diffusion PDEs, diffusion-driven instability, isotropic 9-point Laplacians in GLSL, and 3D Blinn–Phong normal-mapped coral relief.", "image": "https://arman1o1.github.io/images/thumb_reaction_diffusion.webp", "datePublished": "2026-11-08", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/turing-morphogenesis-reaction-diffusion-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Morphogenesis</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>How the Leopard Got Its Spots at 60 FPS: Gray–Scott Reaction–Diffusion in WebGL</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-08">November 8, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 10 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE SIMULATION ===== -->
+                <figure style="margin:0 0 .5rem 0">
+                    <iframe src="../../assets/reaction-diffusion.html"
+                        title="Live Gray–Scott reaction–diffusion simulation: Turing morphogenesis running in real time in WebGL"
+                        loading="eager" allow="fullscreen"
+                        style="display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.35)"></iframe>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live GPU Turing Morphogenesis Solver.</strong> Drag anywhere on the canvas to seed fresh autocatalyst $V$, or open <strong>⚙ Controls</strong> to switch between <strong>Coral Labyrinth</strong>, <strong>Mitosis Cells</strong> (self-replicating dividing spots), <strong>Spiral Waves</strong>, <strong>Soliton Worms</strong>, and the <strong>Spatial $(F, k)$ Map</strong> that renders the entire Pearson phase diagram across the screen at once.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>After building a multi-pass <a href="real-time-navier-stokes-webgl.html">incompressible Navier–Stokes solver</a> on ping-pong WebGL Framebuffer Objects (FBOs), a natural question arises: what happens when you strip away the velocity field and let two diffusing chemicals react directly on the grid?</p>
+
+                <p>Common sense says diffusion is a great equalizer &ndash; drop ink into still water and the gradients smooth out into a uniform blur. In 1952, <strong>Alan Turing</strong> proved that common sense is wrong. In his seminal paper <em>"The Chemical Basis of Morphogenesis,"</em> Turing showed that if an autocatalytic <strong>activator</strong> diffuses more slowly than its substrate or <strong>inhibitor</strong> ($D_v \lt D_u$), diffusion itself destabilizes the uniform state and spontaneously carves stripes, spots, labyrinths, and dividing cells out of nothing.</p>
+
+                <p>This post builds a real-time WebGL solver for the <strong>Gray–Scott reaction–diffusion system</strong> (Pearson, 1993), executing 14 PDE substeps per animation frame (~840 chemical steps per second) on an isotropic 9-point Laplacian stencil and shading the concentration field as a 3D Blinn–Phong normal-mapped coral reef.</p>
+
+                <hr>
+
+                <!-- ===== 0. ANATOMY OF THE SYSTEM ===== -->
+                <h2>0. Anatomy of the Gray–Scott System</h2>
+                <p>Every texel in the simulation above stores two dimensionless chemical concentrations in its red and green channels, $(u, v) \in [0, 1]^2$, governed by two irreversible reactions inside an open Continuously Stirred Tank Reactor (CSTR):</p>
+
+                <dl class="kv">
+                    <dt>Autocatalysis ($U + 2V \to 3V$)</dt>
+                    <dd>Two molecules of catalyst $V$ convert one molecule of substrate $U$ into a third molecule of $V$ at nonlinear rate $R(u, v) = u v^2$.</dd>
+                    <dt>Feed Rate ($F$)</dt>
+                    <dd>Fresh substrate $U$ is continuously replenished toward $u = 1$ at rate $F(1 - u)$, while both species are washed out at rate $F$.</dd>
+                    <dt>Kill Rate ($k$)</dt>
+                    <dd>Catalyst $V$ decays into an inert product $P$ ($V \to P$) at rate $k v$, giving a total removal rate $(F + k)v$.</dd>
+                    <dt>Diffusion Ratio ($D_u / D_v \approx 2$)</dt>
+                    <dd>With $D_u = 0.2097$ and $D_v = 0.1050$, substrate $U$ diffuses twice as fast as catalyst $V$, creating local lateral depletion zones around each growing $V$ peak.</dd>
+                    <dt>Ping-Pong Substepping</dt>
+                    <dd>Because each step is a single fullscreen pass with no Poisson solve, the GPU runs 14 ping-pong substeps per frame at 60 fps.</dd>
+                </dl>
+
+                <hr>
+
+                <!-- ===== 1. THE PDEs & TURING INSTABILITY ===== -->
+                <h2>1. The Gray–Scott PDEs and Diffusion-Driven Instability</h2>
+                <p>Combining Fickian diffusion ($D \nabla^2$) with the cubic autocatalytic reaction $u v^2$, substrate replenishment $F(1 - u)$, and catalyst decay $(F + k)v$ yields the coupled <strong>Gray–Scott partial differential equations</strong>:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Coupled Gray–Scott Reaction–Diffusion PDEs</div>
+                    $$\frac{\partial u}{\partial t} = D_u \nabla^2 u - u v^2 + F(1 - u)$$
+                    $$\frac{\partial v}{\partial t} = D_v \nabla^2 v + u v^2 - (F + k)v$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice the exact opposite signs on $\mp u v^2$: every unit of substrate $u$ consumed by the reaction creates an equal unit of catalyst $v$.</p>
+                </div>
+
+                <p>Why does $D_u \gt D_v$ create intricate self-organizing structures instead of a uniform soup? Consider a tiny island where $v$ is locally high:</p>
+                <ol>
+                    <li><strong>Local self-amplification:</strong> Inside the island, the cubic reaction $+u v^2$ rapidly converts $u$ into more $v$, trying to make the peak taller.</li>
+                    <li><strong>Fast lateral refueling ($D_u \gg D_v$):</strong> As $u$ is depleted at the center of the island, fast-diffusing substrate $U$ rushes in from the surrounding sea ($u \approx 1$) to feed the outer rim of the island, while slow-diffusing $V$ remains trapped in a sharp ridge.</li>
+                    <li><strong>Core starvation &amp; bifurcation:</strong> Once the island grows wider than the diffusion length $\ell_u \sim \sqrt{D_u / F}$, fresh substrate $U$ can no longer reach the center before being consumed by the rim. The center starves and collapses back to $v \approx 0$, splitting a single spot into a dividing dumbbell (<strong>Mitosis</strong>) or a hollow branching ring (<strong>Coral Labyrinth</strong>)!</li>
+                </ol>
+
+                <div class="math-block">
+                    <div class="math-label">Homogeneous Steady States &amp; Saddle-Node Bifurcation Condition</div>
+                    $$(u_0, v_0) = (1, 0), \qquad u_\pm = \frac{1 \pm \sqrt{1 - 4(F + k)^2 / F}}{2}, \qquad v_\pm = \frac{F(1 - u_\pm)}{F + k}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Non-trivial uniform equilibria $(u_\pm, v_\pm)$ exist only inside the parabola $4(F + k)^2 \le F$. Near the boundary of this region (John Pearson's 1993 phase diagram), finite-wavelength Turing modes ($|\vec q| \neq 0$) destabilize the homogeneous states into spots, stripes, and waves.</p>
+                </div>
+
+                <hr>
+
+                <!-- ===== 2. ISOTROPIC 9-POINT LAPLACIAN ===== -->
+                <h2>2. The Isotropic 9-Point Discrete Laplacian</h2>
+                <p>If you discretize $\nabla^2 u$ with the standard 5-point cross stencil ($N + S + E + W - 4C$), its leading truncation error $\frac{h^2}{12}(\partial_x^4 + \partial_y^4)$ is strongly anisotropic: waves travel at different speeds along the grid axes ($0^\circ, 90^\circ$) than along the diagonals ($45^\circ$), turning circular Turing spots into diamond-shaped squares.</p>
+
+                <p>Blending the 5-point cardinal cross with the 4 diagonal corners ($NE, NW, SE, SW$) in a $4:1$ ratio eliminates the $\mathcal{O}(h^2)$ directional anisotropy, making the discrete Laplacian rotationally invariant to fourth order:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Isotropic 9-Point Laplacian Stencil Used in the Shader</div>
+                    $$\nabla^2_{\text{9pt}} \phi_{i,j} = \begin{bmatrix} 0.05 & 0.20 & 0.05 \\ 0.20 & -1.00 & 0.20 \\ 0.05 & 0.20 & 0.05 \end{bmatrix} * \phi_{i,j} = 0.20\big(\phi_{i\pm 1,j} + \phi_{i,j\pm 1}\big) + 0.05\big(\phi_{i\pm 1,j\pm 1}\big) - \phi_{i,j}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because the eight neighbor weights sum to $4(0.20) + 4(0.05) = 1.00$, a constant field has $\nabla^2_{\text{9pt}} \phi \equiv 0$ to machine precision, and dividing cells pinch off at arbitrary angles without locking to the pixel grid.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Isotropic 9-Point Gray–Scott Reaction–Diffusion Step</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">void main() {
+  vec2 C  = texture2D(uState, vUv).rg;
+  vec2 N  = texture2D(uState, vUv + vec2( 0.0,       uTexel.y)).rg;
+  vec2 S  = texture2D(uState, vUv + vec2( 0.0,      -uTexel.y)).rg;
+  vec2 E  = texture2D(uState, vUv + vec2( uTexel.x,  0.0     )).rg;
+  vec2 W  = texture2D(uState, vUv + vec2(-uTexel.x,  0.0     )).rg;
+  vec2 NE = texture2D(uState, vUv + vec2( uTexel.x,  uTexel.y)).rg;
+  vec2 NW = texture2D(uState, vUv + vec2(-uTexel.x,  uTexel.y)).rg;
+  vec2 SE = texture2D(uState, vUv + vec2( uTexel.x, -uTexel.y)).rg;
+  vec2 SW = texture2D(uState, vUv + vec2(-uTexel.x, -uTexel.y)).rg;
+
+  // Isotropic 9-point Laplacian (0.20 cardinal, 0.05 diagonal, -1.0 center)
+  vec2 lap = 0.20 * (N + S + E + W) + 0.05 * (NE + NW + SE + SW) - C;
+
+  float u   = C.r;
+  float v   = C.g;
+  float uvv = u * v * v;
+
+  // Optional spatial (F, k) parameter map across the canvas
+  float F = (uSpatialMap &gt; 0.5) ? mix(0.018, 0.058, vUv.y) : uF;
+  float k = (uSpatialMap &gt; 0.5) ? mix(0.048, 0.065, vUv.x) : uK;
+
+  float du = uDu * lap.r - uvv + F * (1.0 - u);
+  float dv = uDv * lap.g + uvv - (F + k) * v;
+
+  u = clamp(u + du * uDt, 0.0, 1.0);
+  v = clamp(v + dv * uDt, 0.0, 1.0);
+
+  gl_FragColor = vec4(u, v, 0.0, 1.0);
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <!-- ===== 3. 3D NORMAL-MAPPED RELIEF SHADING ===== -->
+                <h2>3. Turning a 2D Chemical Field into 3D Coral Relief</h2>
+                <p>A raw grayscale plot of $v(\vec x)$ looks flat. Instead, the display shader treats the catalyst concentration $v(x, y)$ as a 3D heightfield $z = \alpha\,v(x, y)$ and reconstructs its unit surface normal $\hat n$ per pixel using central finite differences:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Heightfield Surface Normal &amp; Blinn–Phong + Fresnel Shading</div>
+                    $$\hat n(x, y) = \frac{\big(-\alpha\,\partial_x v,\; -\alpha\,\partial_y v,\; 1\big)}{\sqrt{1 + \alpha^2|\nabla v|^2}}, \qquad I = I_{\text{albedo}}(v)\big(k_a + k_d(\hat n \cdot \hat L)\big) + k_s(\hat n \cdot \hat H)^p + k_{\text{rim}}(1 - \hat n_z)^{2.2}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Evaluating $\partial_x v$ and $\partial_y v$ on the fly in the display pass gives every chemical ridge a wet specular highlight along its crest and a bioluminescent cyan Fresnel rim along its steep flanks.</p>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Explore the whole phase space at once:</strong> toggle the gold <strong>Spatial (F, k) Map</strong> pill in Controls. Instead of using a single constant $(F, k)$, the shader maps Feed rate $F \in [0.018, 0.058]$ along the vertical axis and Kill rate $k \in [0.048, 0.065]$ along the horizontal axis &ndash; so turbulent spiral waves, dividing mitosis cells, coral labyrinths, and soliton worms all coexist in different regions of the same screen!
+                </div>
+
+                <hr>
+
+                <!-- ===== 4. PIPELINE DIAGRAM ===== -->
+                <h2>4. The Multi-Substep Ping-Pong Pipeline</h2>
+                <p>Because the Gray–Scott step requires only a single 9-tap texture read, each animation frame loops the reaction–diffusion shader 14 times across a single <code>RGBA16F</code> double FBO before computing normals and lighting in the display pass:</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" role="img" aria-label="Gray–Scott WebGL pipeline from seed to 3D normal-mapped relief">
+                        <rect x="5" y="25" width="135" height="54" rx="8" fill="var(--surface-color)" stroke="var(--border-color)" stroke-width="1.5"/>
+                        <text x="72" y="48" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-weight="600">Seed + Brush</text>
+                        <text x="72" y="65" text-anchor="middle" fill="var(--text-muted)" font-size="10">u = 1, v droplets</text>
+                        <polygon points="148,42 168,52 148,62" fill="var(--text-muted)"/>
+
+                        <rect x="176" y="25" width="175" height="54" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="263" y="48" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">9-Point Laplacian</text>
+                        <text x="263" y="65" text-anchor="middle" fill="#bae6fd" font-size="10">0.20 cardinal + 0.05 diag</text>
+                        <polygon points="359,42 379,52 359,62" fill="var(--text-muted)"/>
+
+                        <rect x="387" y="25" width="165" height="54" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1.5"/>
+                        <text x="469" y="48" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">Gray–Scott ×14</text>
+                        <text x="469" y="65" text-anchor="middle" fill="#ddd6fe" font-size="10">±uv² + F(1−u) − (F+k)v</text>
+                        <polygon points="560,42 580,52 560,62" fill="var(--text-muted)"/>
+
+                        <rect x="588" y="25" width="135" height="54" rx="8" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+                        <text x="655" y="48" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Normal map n̂</text>
+                        <text x="655" y="65" text-anchor="middle" fill="#d1fae5" font-size="10">(−α∂ₓv, −α∂ᵧv, 1)</text>
+                        <polygon points="731,42 751,52 731,62" fill="var(--text-muted)"/>
+
+                        <rect x="759" y="28" width="56" height="48" rx="8" fill="var(--surface-color)" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="787" y="49" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">Blinn</text>
+                        <text x="787" y="66" text-anchor="middle" fill="#fcd34d" font-size="10">Phong</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Each animation frame runs 14 ping-pong PDE substeps on an <code>RGBA16F</code> torus grid (<code>gl.REPEAT</code>), then reconstructs 3D surface normals from $\nabla v$ on the fly.</div>
+                </div>
+
+                <hr>
+
+                <!-- ===== 5. PEARSON REGIME TABLE ===== -->
+                <h2>5. A Tour of Pearson's $(F, k)$ Morphogenesis Zoo</h2>
+                <p>All four preset buttons in the simulation run the exact same 30-line fragment shader &ndash; only the two scalar uniforms $F$ and $k$ change:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Preset Regime</th>
+                            <th style="color:#38bdf8">Parameters $(F, k)$</th>
+                            <th style="color:#f59e0b">Emergent Dynamical Behavior</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Coral Labyrinth</strong></td>
+                            <td>$F = 0.0370,\; k = 0.0600$</td>
+                            <td>Tips elongate and bifurcate while avoiding neighbors, filling space with a space-filling labyrinth</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mitosis Cells</strong></td>
+                            <td>$F = 0.0280,\; k = 0.0620$</td>
+                            <td>Circular spots grow until their cores starve, pinch into dumbbells, and divide like biological cells</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Spiral Waves</strong></td>
+                            <td>$F = 0.0140,\; k = 0.0450$</td>
+                            <td>Excitable medium supporting self-sustaining Belousov–Zhabotinsky spiral wave rotors</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Soliton Worms</strong></td>
+                            <td>$F = 0.0540,\; k = 0.0630$</td>
+                            <td>High feed rate stabilizes narrow vermicular ridges that slither and bud from their tips</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Click <strong>Mitosis Cells</strong> in the controls above and paint a single dot on an empty patch of the canvas &ndash; watching one droplet of $V$ swell, pinch its waist, and divide exponentially into a colony of hundreds of cells is the purest demonstration of how two lines of partial differential equations can encode biological form.</p>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>
