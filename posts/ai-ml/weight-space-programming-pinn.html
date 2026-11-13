@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weight-Space Programming on Physics Neural Networks: Can an LLM Read and Write PDE Weights? | arman1o1 blog</title>
+    <meta name="description"
+        content="Testing Gemini 4 Carbon and Gemini 4 Argon on Weight-Space Programming for Physics-Informed Neural Networks (PINNs): zero-shot PDE weight generation, read-only forensics on neuron-permuted models, and surgical weight patching without gradients." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Weight-Space Programming on Physics Neural Networks: Can an LLM Read and Write PDE Weights?">
+    <meta property="og:description" content="Testing Gemini 4 Carbon and Gemini 4 Argon on Weight-Space Programming for Physics-Informed Neural Networks (PINNs): zero-shot PDE weight generation, read-only forensics on neuron-permuted models, and surgical weight patching without gradients.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_wsp_pinn.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-13">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Weight-Space Programming on Physics Neural Networks: Can an LLM Read and Write PDE Weights?", "description": "Testing Gemini 4 Carbon and Gemini 4 Argon on Weight-Space Programming for Physics-Informed Neural Networks (PINNs): zero-shot PDE weight generation, read-only forensics on neuron-permuted models, and surgical weight patching without gradients.", "image": "https://arman1o1.github.io/images/thumb_wsp_pinn.webp", "datePublished": "2026-11-13", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Physics</span>
+                    <span class="tag">Weight-Space Programming</span>
+                    <span class="tag">PINNs</span>
+                </div>
+                <h1>Weight-Space Programming on Physics Neural Networks: Can an LLM Read and Write PDE Weights?</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-13">November 13, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 10 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== INTERACTIVE LAB ===== -->
+                <figure style="margin:0 0 .5rem 0">
+                    <iframe src="../../assets/wsp-pinn-lab.html"
+                        title="Interactive Weight-Space Programming PINN Lab comparing Exact PDE solutions, Adam-trained PINNs, and Gemini Zero-Shot Weight Compilers"
+                        loading="eager" allow="fullscreen"
+                        style="display:block;width:100%;height:520px;border:0;border-radius:12px;background:#07080d;box-shadow:0 12px 40px rgba(0,0,0,.35)"></iframe>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Interactive Weight-Space PINN Lab.</strong> Switch between <strong>1D Advection</strong>, <strong>1D Wave</strong>, <strong>1D Heat</strong>, and the <strong>Surgical Patch</strong> experiment. Drag the time slider $t \in [0, 1]$ to inspect spatial slices $u(x, t)$ alongside the raw Layer-0 neuron weights $(w_x, w_t)$ plotted on the right.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>Yesterday I read <a href="https://rikiyat.github.io/blog/weight-space-programming/" target="_blank" rel="noopener noreferrer">Sparks of Weight-Space Programming</a> by Rikiya Takehi, Jayden Teoh, Alex Zhang, and Omar Khattab, and immediately wanted to test the same idea on physics networks. Their headline result was wild: frontier LLMs reading raw neural weights without forward passes, writing MinAtar and Go agents from scratch without gradients, and patching 0.016% of Qwen3.5-0.8B to fix reasoning loops.</p>
+
+                <p>Physics-Informed Neural Networks (PINNs) are a much cleaner laboratory for testing whether an LLM genuinely understands weight-space geometry. Unlike a 270M-parameter transformer, a standard 1D PDE solver (<code>2 -&gt; 32 -&gt; 32 -&gt; 1</code> with <code>tanh</code>) has only <strong>1,185 parameters</strong>, smooth differential structure, and exact analytical solutions to score against. So I wired up a three-part benchmark against <strong>Gemini 4 Carbon</strong> (with automatic fallback to <strong>Gemini 4 Argon</strong> on 180s timeouts) to see where native weight-space programming actually works – and where it breaks.</p>
+
+                <hr>
+
+                <h2>0. Experimental Setup &amp; Baselines</h2>
+                <p>Every task uses the exact same <code>PhysicsMLP</code> architecture: <code>Linear(2, 32) -&gt; Tanh -&gt; Linear(32, 32) -&gt; Tanh -&gt; Linear(32, 1)</code>, taking $[x, t] \in [0, 1]^2$ and outputting scalar $u(x, t)$. All 1,185 weights easily fit inside context as raw JSON.</p>
+
+                <div class="math-block">
+                    <div class="math-label">Three Benchmark PDEs on $(x, t) \in [0, 1] \times [0, 1]$</div>
+                    $$\begin{aligned}
+                    \textbf{Heat:} \quad & u_t = 0.05\,u_{xx}, \qquad u(x,0) = \sin(\pi x) + 0.5\sin(3\pi x), \qquad u(0,t)=u(1,t)=0 \\
+                    \textbf{Wave:} \quad & u_{tt} = u_{xx}, \qquad u(x,0) = \sin(\pi x), \; u_t(x,0)=0, \qquad u(0,t)=u(1,t)=0 \\
+                    \textbf{Advection:} \quad & u_t + 0.5\,u_x = 0, \qquad u(x,0) = \sin(2\pi x), \qquad u(0,t)=u(1,t)
+                    \end{aligned}$$
+                </div>
+
+                <p>For the gradient-descent baseline, I trained each network on CPU for 1,500 Adam steps (512 interior collocation points, 128 IC points, and 128 BC points per step). Notice that 1,500 steps of Adam already gets <code>wave</code> down to 0.025 relative $L^2$ error, while <code>advection</code> still struggles at 0.231 because periodic travelling waves are notoriously finicky for small <code>tanh</code> MLPs early in training.</p>
+
+                <hr>
+
+                <h2>1. Writing Weights Zero-Shot: Direct JSON vs. Analytical Compiler</h2>
+                <p>I tested two strict zero-shot writing protocols (zero training data, zero gradients, zero forward passes, and AST-verified to ban <code>lstsq</code>, <code>polyfit</code>, <code>minimize</code>, or <code>autograd</code>):</p>
+                <ul>
+                    <li><strong>Direct JSON (<code>zero_shot_json</code>):</strong> Emit all 1,185 floating-point numbers directly in one JSON response.</li>
+                    <li><strong>Analytical Weight Compiler (<code>zero_shot_code</code>):</strong> Write a pure <code>math</code>/<code>numpy</code> Python function <code>build_weights()</code> that derives the weights analytically from the PDE's structure.</li>
+                </ul>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PDE Task</th>
+                            <th>Method</th>
+                            <th>Model / Steps</th>
+                            <th>Rel. $L^2$ Error</th>
+                            <th>MAE</th>
+                            <th>PDE Residual MSE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>1D Advection</strong></td>
+                            <td>Adam PINN</td>
+                            <td>1,500 steps (7.4s)</td>
+                            <td>0.231492</td>
+                            <td>0.118659</td>
+                            <td>0.057022</td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Advection</strong></td>
+                            <td>Direct JSON</td>
+                            <td>Gemini 4 Argon (53.8s)</td>
+                            <td>1.393939</td>
+                            <td>0.822975</td>
+                            <td><strong>0.000000</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Advection</strong></td>
+                            <td><strong>Analytical Compiler</strong></td>
+                            <td>Gemini 4 Argon (23.7s)</td>
+                            <td><strong>0.001483</strong></td>
+                            <td><strong>0.000856</strong></td>
+                            <td><strong>0.000000</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Wave</strong></td>
+                            <td>Adam PINN</td>
+                            <td>1,500 steps (16.0s)</td>
+                            <td><strong>0.025226</strong></td>
+                            <td><strong>0.010264</strong></td>
+                            <td>0.002480</td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Wave</strong></td>
+                            <td>Direct JSON</td>
+                            <td>Gemini 4 Argon (54.5s)</td>
+                            <td>2.834325</td>
+                            <td>1.271076</td>
+                            <td><strong>0.000000</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Wave</strong></td>
+                            <td>Analytical Compiler</td>
+                            <td>Gemini 4 Argon (24.8s)</td>
+                            <td>1.125316</td>
+                            <td>0.442824</td>
+                            <td><strong>0.000000</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Heat</strong></td>
+                            <td>Adam PINN</td>
+                            <td>1,500 steps (26.6s)</td>
+                            <td><strong>0.045560</strong></td>
+                            <td><strong>0.019577</strong></td>
+                            <td><strong>0.069039</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Heat</strong></td>
+                            <td>Direct JSON</td>
+                            <td>Gemini 4 Argon (52.0s)</td>
+                            <td>1.992105</td>
+                            <td>0.924512</td>
+                            <td>1046.2275</td>
+                        </tr>
+                        <tr>
+                            <td><strong>1D Heat</strong></td>
+                            <td>Analytical Compiler</td>
+                            <td>Gemini 4 Argon (28.7s)</td>
+                            <td>0.715262</td>
+                            <td>0.325082</td>
+                            <td>0.199918</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Look at that <code>advection</code> compiler result: <strong>0.001483 relative $L^2$ error</strong> and <strong>0.000000 PDE residual</strong> – <strong>156x more accurate than 1,500 steps of Adam</strong>, with zero data and zero gradients. What made it work is genuinely clever. Instead of hand-guessing numbers, Gemini 4 Argon noticed that $\frac{d}{dz}[\frac{1}{2}\tanh(\alpha(z - z_k))] = \frac{\alpha}{2}\operatorname{sech}^2(\alpha(z - z_k))$ acts as a smooth Dirac delta along the characteristic coordinate $z = x - 0.5t$. It then computed the exact Fourier transform of $\operatorname{sech}^2$ and divided its quadrature weights by $\hat K(2\pi)$ to deconvolve the smoothing kernel!</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Gemini 4 Argon's Deconvolved sech² Quadrature Compiler for 1D Advection</span><span class="badge-code">Python</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import math
+import numpy as np
+
+
+def build_weights() -&gt; dict[str, list]:
+    N = 32
+    z_min, z_max = -0.65, 1.15
+    dz = (z_max - z_min) / (N - 1)
+    z_nodes = [z_min + i * dz for i in range(N)]
+    alpha = 1.4 / dz
+
+    w0 = np.zeros((N, 2), dtype=np.float64)
+    b0 = np.zeros(N, dtype=np.float64)
+    for k in range(N):
+        w0[k, 0] = alpha
+        w0[k, 1] = -0.5 * alpha
+        b0[k] = -alpha * z_nodes[k]
+
+    # Deconvolve finite-width sech^2 kernel at frequency omega = 2*pi
+    omega = 2.0 * math.pi
+    xi = (math.pi * omega) / (2.0 * alpha)
+    deconv_factor = math.sinh(xi) / xi
+
+    c = np.zeros(N, dtype=np.float64)
+    for k in range(N):
+        weight_factor = 0.5 if (k == 0 or k == N - 1) else 1.0
+        c[k] = 0.5 * omega * math.cos(omega * z_nodes[k]) * dz * weight_factor * deconv_factor
+
+    val_at_quarter = sum(c[k] * math.tanh(alpha * (0.25 - z_nodes[k])) for k in range(N))
+    C_offset = 1.0 - val_at_quarter
+
+    # Distributed linear pass-through in Layer 2 via small-signal scaling eps
+    eps = 1e-3
+    w2 = np.zeros((N, N), dtype=np.float64)
+    b2 = np.zeros(N, dtype=np.float64)
+    for j in range(N):
+        w2[j, :] = eps * c
+        b2[j] = eps * C_offset
+
+    w4 = np.full((1, N), 1.0 / (N * eps), dtype=np.float64)
+    b4 = np.zeros(1, dtype=np.float64)
+    return {
+        "net.0.weight": w0.tolist(), "net.0.bias": b0.tolist(),
+        "net.2.weight": w2.tolist(), "net.2.bias": b2.tolist(),
+        "net.4.weight": w4.tolist(), "net.4.bias": b4.tolist(),
+    }</code></pre>
+                    </div>
+                </details>
+
+                <p>The failures on <code>wave</code> and <code>heat</code> are just as revealing. Notice how <code>wave</code> got <strong><code>pde_residual_mse = 0.0</code></strong> in both Direct JSON and Compiler mode yet scored <code>l2_rel_error = 1.125</code>. Why? Because <em>any</em> sum $f(x - t) + g(x + t)$ satisfies $u_{tt} - u_{xx} = 0$ identically by d'Alembert's theorem – the model locked onto the exact characteristic rays $w_t = \pm w_x$, then flipped a sign when matching the boundary/initial amplitude. On <code>heat</code>, it even derived a 4-point second-difference bilinear multiplier around the inflection bias $b_{\text{opt}} = \operatorname{asinh}(1/\sqrt{2})$ (where $\tanh'''(b_{\text{opt}}) = 0$) to multiply $f(x) \cdot g(t)$ inside a <code>tanh</code> layer, though its hand-estimated temporal decay knots drifted (<code>0.715</code> error). Direct JSON without code fared worst across the board: LLMs reason far better when compiling weights symbolically in Python than when emitting 1,185 raw floats as tokens.</p>
+
+                <hr>
+
+                <h2>2. Read-Only Weight Forensics (Zero Forward Passes)</h2>
+                <p>Next, I flipped the problem around. I took the three Adam-trained PINNs, stripped all names and metadata, randomly permuted the hidden neurons in layers 0 and 2 (which preserves $f(x, t)$ while destroying neuron ordering), and handed <code>model_alpha</code>, <code>model_beta</code>, and <code>model_gamma</code> to <strong>Gemini 4 Carbon</strong> with strict instructions: zero forward passes, classify which weights belong to Heat, Wave, and Advection, and cite the mechanistic evidence.</p>
+
+                <p><strong>Gemini 4 Carbon nailed 3/3 (100% accuracy, 0.99 confidence on all three) in 127.7 seconds.</strong> Even with randomly shuffled neurons, the PDE physics leaves an unmistakable geometric fingerprint in $(w_x, w_t)$:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mystery File</th>
+                            <th>Predicted (Conf.)</th>
+                            <th>Ground Truth</th>
+                            <th>Key Weight-Space Signature Cited by Gemini 4 Carbon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>model_alpha</code></td>
+                            <td><strong>Heat</strong> (0.99)</td>
+                            <td>Heat</td>
+                            <td>Stationary spatial boundary detectors ($w_t \approx 0$), asymmetric temporal damping units, and high Layer-2 spatial gain $(W_2 W_0)_x \approx +9.7 \approx 3\pi$ for $\sin(3\pi x)$.</td>
+                        </tr>
+                        <tr>
+                            <td><code>model_beta</code></td>
+                            <td><strong>Wave</strong> (0.99)</td>
+                            <td>Wave</td>
+                            <td>Bidirectional d'Alembert characteristic families in Layer 0 and $W_2 W_0$: paired ratios $w_t / w_x \approx +1$ ($x + t$) and $w_t / w_x \approx -1$ ($x - t$).</td>
+                        </tr>
+                        <tr>
+                            <td><code>model_gamma</code></td>
+                            <td><strong>Advection</strong> (0.99)</td>
+                            <td>Advection</td>
+                            <td>Coherent unidirectional ridge: active $W_2 W_0$ rows cluster tightly around slope $w_t / w_x \approx -0.5$ with spatial wavenumber $\approx 2\pi \approx 6.28$.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>You can inspect this directly in the interactive lab above: switch between <strong>1D Advection</strong> and <strong>1D Wave</strong> and watch how the Adam-trained Layer-0 weight vectors align along the theoretical characteristic lines $w_t / w_x = -0.5$ and $w_t / w_x = \pm 1$.</p>
+
+                <hr>
+
+                <h2>3. Surgical Weight-Space Patching (And Where It Struggled)</h2>
+                <p>Finally, I tested whether an LLM could repair a broken PINN in one shot by editing strictly fewer than 5% of weights ($\lt 59$ of <code>1,185</code> parameters). I injected a localised defect into the clean Adam <code>wave</code> PINN (<code>l2_rel_error = 0.0252</code>): I shifted <code>net.4.bias</code> by <code>+0.55</code> and inverted-and-doubled <code>net.0.weight[idx, 1]</code> ($w_t$) on the two largest-norm Layer-0 neurons, blowing the $L^2$ error up to <code>5.2504</code>. Then I gave the corrupted weights plus a single $9 \times 3$ diagnostic snapshot to the model.</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Model State</th>
+                            <th>Params Edited</th>
+                            <th>Rel. $L^2$ Error</th>
+                            <th>MAE</th>
+                            <th>PDE Residual MSE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clean Adam PINN (<code>wave</code>)</td>
+                            <td>–</td>
+                            <td>0.025226</td>
+                            <td>0.010264</td>
+                            <td>0.002480</td>
+                        </tr>
+                        <tr>
+                            <td>Corrupted (<code>+0.55</code> bias, 2 flipped $w_t$)</td>
+                            <td>3 / 1,185 (0.253%)</td>
+                            <td>5.250414</td>
+                            <td>2.462109</td>
+                            <td>7.258197</td>
+                        </tr>
+                        <tr>
+                            <td>Patched (Gemini 4 Argon, 7.2s)</td>
+                            <td>8 / 1,185 (0.675%)</td>
+                            <td>3.668127</td>
+                            <td>1.524339</td>
+                            <td>5.431135</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Gemini 4 Carbon timed out at 180s here, and the fast fallback (Gemini 4 Argon, 7.23s) immediately spotted and reversed the exact <code>+0.55</code> shift in <code>net.4.bias</code> (<code>-0.044</code>), cutting the error from <code>5.25</code> down to <code>3.67</code>. However, without running intermediate probes (like the 10–50 forward passes Takehi et al. allowed in their Qwen3.5-0.8B experiment), it misattributed the remaining temporal asymmetry to seven weights in <code>net.4.weight</code> instead of tracing the defect upstream to the two flipped <code>net.0.weight[:, 1]</code> rows.</p>
+
+                <hr>
+
+                <h2>Takeaways for Weight-Space Programming</h2>
+                <p>Even on a tiny 1,185-parameter network, three clear rules stood out from running this end-to-end:</p>
+                <ol>
+                    <li><strong>Symbolic compilers beat raw weight tokens.</strong> Asking an LLM to emit 1,185 floats directly in JSON fails badly, whereas letting it write a 40-line <code>numpy</code> compiler produced <code>0.001483</code> $L^2$ error on 1D advection – beating 1,500 Adam steps by two orders of magnitude.</li>
+                    <li><strong>Reading weights is already surprisingly reliable.</strong> Identifying Heat vs. Wave vs. Advection with 3/3 accuracy from shuffled raw matrices works because PDE symmetries and characteristic velocities ($w_t / w_x$) live directly in the geometry of $W_0$ and $W_2 W_0$.</li>
+                    <li><strong>One-shot patching breaks when defects sit behind mixing layers.</strong> Detecting an output bias offset is trivial from one snapshot, but localising a flipped neuron two layers deep without any forward-pass budget is where zero-feedback debugging hits a wall.</li>
+                </ol>
+
+                <h3>References</h3>
+                <ul>
+                    <li>Rikiya Takehi, Jayden Teoh, Alex Zhang, and Omar Khattab, <a href="https://rikiyat.github.io/blog/weight-space-programming/" target="_blank" rel="noopener noreferrer">Sparks of Weight-Space Programming: LLMs can natively read &amp; write neural network weights</a> (2026).</li>
+                    <li>Raissi, Perdikaris, and Karniadakis, <a href="https://www.sciencedirect.com/science/article/pii/S0021999118307125" target="_blank" rel="noopener noreferrer">Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations</a> (2019).</li>
+                </ul>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

@@ -8,11 +8,15 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/archives.html</loc>
-    <lastmod>2026-11-08</lastmod>
+    <lastmod>2026-11-13</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/</loc>
-    <lastmod>2026-11-08</lastmod>
+    <lastmod>2026-11-13</lastmod>
+  </url>
+    <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html</loc>
+    <lastmod>2026-11-13</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/llm-sparse-mixture-of-experts.html</loc>

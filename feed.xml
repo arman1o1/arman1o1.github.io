@@ -4,8 +4,15 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-11-08T00:00:00Z</updated>
+  <updated>2026-11-13T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Weight-Space Programming on Physics Neural Networks: Can an LLM Read and Write PDE Weights?</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html</id>
+    <updated>2026-11-13T00:00:00Z</updated>
+    <summary>Testing Gemini 4 Carbon and Gemini 4 Argon on Weight-Space Programming for Physics-Informed Neural Networks (PINNs): zero-shot PDE weight generation, read-only forensics on neuron-permuted models, and surgical weight patching without gradients.</summary>
+  </entry>
   <entry>
     <title>Sparse Mixture-of-Experts (MoE): Routing Math, Load Balancing &amp; Expert Parallelism</title>
     <link href="https://arman1o1.github.io/posts/ai-ml/llm-sparse-mixture-of-experts.html"/>
