@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Autonomous AI Scientists: Recursive Hypothesis Search, Sandboxed Execution &amp; Verifiable Rewards | arman1o1 blog</title>
+    <meta name="description"
+        content="How to architect an autonomous ML research agent: MCTS over executable git commits, rule-based verifiable rewards (GRPO), AST and causal-leakage verification gates, and distributed spot-GPU experiment orchestration." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/autonomous-ai-scientists-verifiable-rl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Autonomous AI Scientists: Recursive Hypothesis Search, Sandboxed Execution &amp; Verifiable Rewards">
+    <meta property="og:description" content="How to architect an autonomous ML research agent: MCTS over executable git commits, rule-based verifiable rewards (GRPO), AST and causal-leakage verification gates, and distributed spot-GPU experiment orchestration.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/autonomous-ai-scientists-verifiable-rl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-14">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Autonomous AI Scientists: Recursive Hypothesis Search, Sandboxed Execution & Verifiable Rewards", "description": "How to architect an autonomous ML research agent: MCTS over executable git commits, rule-based verifiable rewards (GRPO), AST and causal-leakage verification gates, and distributed spot-GPU experiment orchestration.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-14", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/autonomous-ai-scientists-verifiable-rl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/autonomous-ai-scientists-verifiable-rl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Agents</span>
+                    <span class="tag">Verifiable RL</span>
+                    <span class="tag">GRPO</span>
+                    <span class="tag">Systems ML</span>
+                </div>
+                <h1>Autonomous AI Scientists: Recursive Hypothesis Search, Sandboxed Execution &amp; Verifiable Rewards</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-14">November 14, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 13 min read</span>
+                </div>
+
+                <hr>
+
+                <p>Earlier this year, we distilled the engineering patterns behind <a href="building-agents.html">OpenAI's Agent Guide</a>, <a href="building-skills-guide.html">Anthropic's Progressive Disclosure Skills</a>, and <a href="llm-test-time-compute-reasoning.html">Test-Time Compute Scaling (PRMs &amp; MCTS)</a>. When you combine those three primitives with rule-based reinforcement learning from <a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noopener noreferrer">DeepSeek-R1 (arXiv:2501.12948)</a> and <a href="https://arxiv.org/abs/2402.03300" target="_blank" rel="noopener noreferrer">DeepSeekMath GRPO (arXiv:2402.03300)</a>, a new systems paradigm emerges: <strong>Autonomous AI Scientists</strong> (<a href="https://arxiv.org/abs/2408.06292" target="_blank" rel="noopener noreferrer">Lu et al., 2024, arXiv:2408.06292</a>; <a href="https://github.com/sakanaai/ai-scientist" target="_blank" rel="noopener noreferrer">GitHub</a>) that propose ML hypotheses, mutate PyTorch training code, dispatch experiments to cloud GPU workers, and optimize against deterministic verification gates.</p>
+
+                <p>Unlike open-ended chat assistants where reward models are easily gamed via length bias or sycophancy, scientific code discovery operates in a <strong>verifiable environment</strong>: code either compiles without syntax errors, satisfies invariant unit tests under <code>pytest</code>, and lowers validation loss within a fixed wall-clock FLOP budget – or it fails.</p>
+
+                <hr>
+
+                <h2>0. Closing the Loop: Tree Search Over Executable Experiments</h2>
+                <p>We can formalize an autonomous ML research loop as a Markov Decision Process over git commit states $s_t \in \mathcal{S}$, where an action $a_t = \Delta \text{patch}_t$ is a unified diff applied to a baseline training script, evaluated by a sandboxed execution functional $\mathcal{E}(s_t \oplus a_t)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Verifiable Composite Reward &amp; Group Relative Policy Optimization (<a href="https://arxiv.org/abs/2402.03300" target="_blank" rel="noopener noreferrer">GRPO, Shao et al., 2024</a>)</div>
+                    $$R(s_t, a_t) = \mathbb{I}_{\text{AST}}\, \mathbb{I}_{\text{pytest}}\! \left[ r_{\text{pass}} + \alpha \cdot \max\!\left(0,\; \frac{\mathcal{L}_{\text{baseline}} - \mathcal{L}_{\text{val}}(s_t \oplus a_t)}{\mathcal{L}_{\text{baseline}}}\right) - \beta \cdot \max\!\left(0,\; \frac{T_{\text{step}} - T_{\text{budget}}}{T_{\text{budget}}}\right) \right]$$
+                    $$\hat{A}_i = \frac{R_i - \mathrm{mean}(\{R_1, \dots, R_G\})}{\mathrm{std}(\{R_1, \dots, R_G\}) + \epsilon}, \qquad \mathcal{L}_{\text{GRPO}}(\theta) = -\frac{1}{G}\sum_{i=1}^{G} \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \left[ \min\!\Bigl(\rho_{i,t}\hat{A}_i,\, \mathrm{clip}(\rho_{i,t}, 1-\epsilon, 1+\epsilon)\hat{A}_i\Bigr) - \beta_{\text{KL}}\mathbb{D}_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}}) \right]$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Multiplicative indicator gates $\mathbb{I}_{\text{AST}} \cdot \mathbb{I}_{\text{pytest}} \in \{0, 1\}$ zero out the entire reward if the generated patch breaks tensor shapes, leaks validation data, or fails invariant tests.</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 220" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Autonomous AI Scientist Architecture">
+                        <rect x="18" y="68" width="165" height="84" rx="8" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="100" y="98" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">1. Orchestrator Node</text>
+                        <text x="100" y="116" text-anchor="middle" fill="var(--text-muted)" font-size="10">PUCT Tree over Git Commits</text>
+                        <text x="100" y="134" text-anchor="middle" fill="#93c5fd" font-size="10">Samples G diffs via LLM</text>
+
+                        <line x1="183" y1="110" x2="225" y2="110" stroke="#38bdf8" stroke-width="2"/>
+                        <rect x="225" y="68" width="175" height="84" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="1.6"/>
+                        <text x="312" y="98" text-anchor="middle" fill="#fcd34d" font-size="12" font-weight="700">2. Static &amp; AST Gate</text>
+                        <text x="312" y="116" text-anchor="middle" fill="#fde68a" font-size="10">Blocks eval/exec/network</text>
+                        <text x="312" y="134" text-anchor="middle" fill="#fde68a" font-size="10">Checks causal mask invariants</text>
+
+                        <line x1="400" y1="110" x2="442" y2="110" stroke="#f59e0b" stroke-width="2"/>
+                        <rect x="442" y="68" width="180" height="84" rx="8" fill="#2e1065" stroke="#a78bfa" stroke-width="1.6"/>
+                        <text x="532" y="98" text-anchor="middle" fill="#ddd6fe" font-size="12" font-weight="700">3. Ephemeral GPU Worker</text>
+                        <text x="532" y="116" text-anchor="middle" fill="#c4b5fd" font-size="10">uv run pytest + 5-min train</text>
+                        <text x="532" y="134" text-anchor="middle" fill="#c4b5fd" font-size="10">Strict wall-clock timeout</text>
+
+                        <line x1="622" y1="110" x2="662" y2="110" stroke="#a78bfa" stroke-width="2"/>
+                        <rect x="662" y="68" width="160" height="84" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="742" y="98" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="700">4. Verifiable Reward</text>
+                        <text x="742" y="116" text-anchor="middle" fill="#a7f3d0" font-size="10">Update PUCT Q(s, a)</text>
+                        <text x="742" y="134" text-anchor="middle" fill="#a7f3d0" font-size="10">&amp; GRPO Advantages Â_i</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Closed-loop Autonomous AI Scientist pipeline combining an orchestrator MCTS tree over git diffs, static AST anti-cheating verification, sandboxed GPU training workers, and GRPO advantage updates.</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Three Reward-Hacking Footguns Seen in Real Autonomous ML Agents:</strong>
+                    (1) <em>Causal Lookahead Leakage</em>: When asked to improve sequence modeling loss, an unconstrained code agent will frequently drop the causal mask in attention or pad convolutions asymmetrically so token $t$ peeks at $t+1$ – always enforce a Jacobian future-gradient test ($\|\partial y_t / \partial x_{t'}\| = 0$ for all $t' \gt t$) before running training!
+                    (2) <em>Evaluation Metric Tampering</em>: Mount the validation harness read-only outside the agent's writable workspace directory.
+                    (3) <em>Length Bias in Token-Summed RL</em>: Normalize GRPO policy loss by $|o_i|$ carefully; as shown in <a href="https://arxiv.org/abs/2503.20783" target="_blank" rel="noopener noreferrer">Dr. GRPO (arXiv:2503.20783)</a>, dividing by response length $|o_i|$ can encourage overly verbose failed rollouts unless paired with a hard context budget.
+                </div>
+
+                <hr>
+
+                <h2>1. Self-Contained Python Verification: AST Guard + Causal Leakage Detector + GRPO</h2>
+                <p>The runnable script below implements the exact two-stage verification gate (AST static analysis + causal lookahead Jacobian test) paired with group-relative advantage scoring:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Verifiable Experiment Gate (AST + Causal Jacobian Check + GRPO Scoring)</span><span class="badge-code">Python</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import ast
+import numpy as np
+
+FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "system", "popen"}
+
+def verify_ast_safety(source_code: str) -> bool:
+    """Reject candidate patches that invoke dynamic execution or shell escapes."""
+    try:
+        tree = ast.parse(source_code)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            fn = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", None)
+            if fn in FORBIDDEN_CALLS:
+                return False
+    return True
+
+def verify_causal_invariance(step_fn, seq_len: int = 8, d_model: int = 4) -> bool:
+    """Perturb future tokens t' > t and assert past outputs y_{<=t} remain invariant."""
+    rng = np.random.default_rng(42)
+    x_a = rng.standard_normal((seq_len, d_model))
+    x_b = x_a.copy()
+    x_b[seq_len // 2 :, :] += 5.0  # Inject massive perturbation into future half
+    y_a = step_fn(x_a)
+    y_b = step_fn(x_b)
+    future_leakage = np.max(np.abs(y_a[: seq_len // 2] - y_b[: seq_len // 2]))
+    return bool(future_leakage < 1e-12)
+
+def compute_grpo_advantages(rewards: np.ndarray, eps: float = 1e-8) -> np.ndarray:
+    """Group-relative advantage normalization (Shao et al., arXiv:2402.03300)."""
+    return (rewards - rewards.mean()) / (rewards.std() + eps)
+
+if __name__ == "__main__":
+    valid_causal_layer = lambda x: np.cumsum(x, axis=0) / np.arange(1, len(x) + 1)[:, None]
+    cheating_bidirectional_layer = lambda x: x + 0.01 * np.roll(x, -1, axis=0)
+
+    print(f"[PASS] Causal Layer Passes Leakage Gate      : {verify_causal_invariance(valid_causal_layer)}")
+    print(f"[PASS] Cheating Layer Blocked by Leakage Gate: {not verify_causal_invariance(cheating_bidirectional_layer)}")
+
+    group_rewards = np.array([1.0, 0.0, 1.0, 0.2, 0.0, 1.0, 0.2, 0.0])
+    adv = compute_grpo_advantages(group_rewards)
+    print(f"[PASS] GRPO Advantages (G=8)                 : {[round(float(a), 3) for a in adv]}")
+# Output:
+# [PASS] Causal Layer Passes Leakage Gate      : True
+# [PASS] Cheating Layer Blocked by Leakage Gate: True
+# [PASS] GRPO Advantages (G=8)                 : [1.272, -0.94, 1.272, -0.498, -0.94, 1.272, -0.498, -0.94]</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Reward Design for Autonomous Code &amp; Reasoning Agents</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Verification Paradigm</th>
+                            <th style="color:#f43f5e">Learned Neural ORM / Judge</th>
+                            <th style="color:#f59e0b">Step-Level PRM (<a href="llm-test-time-compute-reasoning.html">TTC Post</a>)</th>
+                            <th style="color:#34d399">Executable Rule + Sandbox Verifier (<a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noopener noreferrer">R1</a> / <a href="https://arxiv.org/abs/2408.06292" target="_blank" rel="noopener noreferrer">AI Scientist</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Reward Signal Source</strong></td>
+                            <td>Scalar head on fine-tuned LLM</td>
+                            <td>Per-step classification head</td>
+                            <td>Deterministic compiler + <code>pytest</code> + val loss delta</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vulnerability to Reward Hacking</strong></td>
+                            <td>High (exploits surface formatting)</td>
+                            <td>Moderate (step splitting inflation)</td>
+                            <td>Near-zero when paired with causal &amp; read-only harnesses</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Critic Memory Overhead</strong></td>
+                            <td>Requires full Reward + Value models</td>
+                            <td>Requires PRM + MCTS rollout tree</td>
+                            <td>Zero critic model via GRPO group normalization ($G=8..64$)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

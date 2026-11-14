@@ -4,8 +4,43 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-11-13T00:00:00Z</updated>
+  <updated>2026-11-14T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Fourier Neural Operators (FNO) vs. PINNs: Zero-Shot Super-Resolution on Navier–Stokes</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/fourier-neural-operators-navier-stokes.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/fourier-neural-operators-navier-stokes.html</id>
+    <updated>2026-11-14T00:00:00Z</updated>
+    <summary>A first-principles practitioner guide to Fourier Neural Operators (FNO): Banach-space operator learning vs. coordinate PINNs, spectral convolution via rfft2, zero-shot 4x super-resolution on 2D Navier–Stokes turbulence, and cuFFT AMP footguns in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>State Space Duality (SSD) &amp; Hybrid Mamba-2: Sub-Quadratic Sequence Parallelism</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/state-space-duality-mamba2-ring-attention.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/state-space-duality-mamba2-ring-attention.html</id>
+    <updated>2026-11-14T00:00:00Z</updated>
+    <summary>A practitioner&#x27;s first-principles guide to Structured State Space Duality (SSD / Mamba-2) and Ring Attention: 1-semiseparable matrix equivalence, Tensor Core blockwise scans, O(1) recurrent state caching, and hybrid GQA+SSD architectures in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Autonomous AI Scientists: Recursive Hypothesis Search, Sandboxed Execution &amp; Verifiable Rewards</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/autonomous-ai-scientists-verifiable-rl.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/autonomous-ai-scientists-verifiable-rl.html</id>
+    <updated>2026-11-14T00:00:00Z</updated>
+    <summary>How to architect an autonomous ML research agent: MCTS over executable git commits, rule-based verifiable rewards (GRPO), AST and causal-leakage verification gates, and distributed spot-GPU experiment orchestration.</summary>
+  </entry>
+  <entry>
+    <title>Continuous-Time Audio Flow Matching: Vocal Seed Infilling &amp; Phase Coherence Across Long Tracks</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/audio-flow-matching-vocal-infilling.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/audio-flow-matching-vocal-infilling.html</id>
+    <updated>2026-11-14T00:00:00Z</updated>
+    <summary>A first-principles guide to Masked Conditional Flow Matching for generative music and voice: preventing acoustic timbre drift, bidirectional master-seed infilling, raised-cosine boundary crossfades, and DiT audio velocity fields in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Superfluid Vortices in Your Browser: Solving the Gross–Pitaevskii BEC Equation in WebGL</title>
+    <link href="https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html</id>
+    <updated>2026-11-14T00:00:00Z</updated>
+    <summary>How to simulate a quantum Bose–Einstein Condensate (BEC) and quantized superfluid vortices in real time in the browser: the Gross–Pitaevskii nonlinear Schrödinger equation, Madelung quantum hydrodynamics, healing length, and BKT vortex-pair dynamics in GLSL.</summary>
+  </entry>
   <entry>
     <title>Weight-Space Programming on Physics Neural Networks: Can an LLM Read and Write PDE Weights?</title>
     <link href="https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html"/>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Superfluid Vortices in Your Browser: Solving the Gross–Pitaevskii BEC Equation in WebGL | arman1o1 blog</title>
+    <meta name="description"
+        content="How to simulate a quantum Bose–Einstein Condensate (BEC) and quantized superfluid vortices in real time in the browser: the Gross–Pitaevskii nonlinear Schrödinger equation, Madelung quantum hydrodynamics, healing length, and BKT vortex-pair dynamics in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+    <meta name="theme-color" content="#0c0d12">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Superfluid Vortices in Your Browser: Solving the Gross–Pitaevskii BEC Equation in WebGL">
+    <meta property="og:description" content="How to simulate a quantum Bose–Einstein Condensate (BEC) and quantized superfluid vortices in real time in the browser: the Gross–Pitaevskii nonlinear Schrödinger equation, Madelung quantum hydrodynamics, healing length, and BKT vortex-pair dynamics in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-14">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Superfluid Vortices in Your Browser: Solving the Gross–Pitaevskii BEC Equation in WebGL", "description": "How to simulate a quantum Bose–Einstein Condensate (BEC) and quantized superfluid vortices in real time in the browser: the Gross–Pitaevskii nonlinear Schrödinger equation, Madelung quantum hydrodynamics, healing length, and BKT vortex-pair dynamics in GLSL.", "image": "https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp", "datePublished": "2026-11-14", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Quantum Mechanics</span>
+                    <span class="tag">Superfluid BEC</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Superfluid Vortices in Your Browser: Solving the Gross–Pitaevskii BEC Equation in WebGL</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-14">November 14, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE INTERACTIVE GROSS-PITAEVSKII BEC SIMULATION ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div id="bec-sim-wrapper" style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#07080d;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="bec-canvas" style="width:100%;height:100%;display:block;cursor:crosshair"></canvas>
+                        <!-- Interactive HUD Controls -->
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.82);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="bec-preset-btn" data-preset="lattice" onclick="window.setBecPreset('lattice')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Abrikosov Vortex Lattice</button>
+                                <button type="button" class="bec-preset-btn" data-preset="dipole" onclick="window.setBecPreset('dipole')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Vortex–Antivortex Dipole</button>
+                                <button type="button" class="bec-preset-btn" data-preset="obstacle" onclick="window.setBecPreset('obstacle')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Supersonic Obstacle Shedding</button>
+                                <button type="button" class="bec-preset-btn" data-preset="soliton" onclick="window.setBecPreset('soliton')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Dark Soliton Snake Instability</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.82);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Coupling $g$:</span>
+                                    <input id="bec-g-slider" type="range" min="0.2" max="3.0" step="0.1" value="1.4" oninput="window.updateBecParams()" style="width:70px;accent-color:#38bdf8">
+                                    <span id="bec-g-val" style="font-family:monospace;color:#38bdf8">1.4</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>View:</span>
+                                    <select id="bec-view-select" onchange="window.updateBecParams()" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:11px">
+                                        <option value="0">Phase Wheel arg(ψ) + Density</option>
+                                        <option value="1">Superfluid Density |ψ|² (Dark Cores)</option>
+                                        <option value="2">Quantized Phase Singularities</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="bec-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.78);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
+                            ξ (Healing Length): 0.60 Δx | c_s (Bogoliubov Sound): 1.18 | Click/Drag to stir quantized 2π vortices
+                        </div>
+                    </div>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live 2D Gross–Pitaevskii Superfluid BEC Solver.</strong> Click or drag across the condensate to stir quantized $2\pi$ phase vortices ($\oint \nabla\varphi \cdot d\vec\ell = 2\pi n$), or switch between <strong>Abrikosov Vortex Lattice</strong>, <strong>Vortex–Antivortex Dipole</strong>, <strong>Supersonic Obstacle Shedding</strong>, and <strong>Dark Soliton Snake Instability</strong>.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="real-time-navier-stokes-webgl.html">Solving Navier–Stokes at 60 FPS</a>, we simulated classical viscous fluids where vorticity $\omega = \nabla \times \vec u$ takes arbitrary continuous values and decays via viscosity. In <a href="quantum-wavepacket-tunneling-schrodinger-webgl.html">Quantum Tunneling in Your Browser</a>, we evolved a linear single-particle Schrödinger wavefunction $\psi(\vec x, t) \in \mathbb{C}$. What happens when millions of bosons condense into the exact same macroscopic quantum ground state and repel one another via s-wave contact interactions?</p>
+
+                <p>The result is a <strong>Bose–Einstein Condensate (BEC) superfluid</strong> governed by the <strong>Gross–Pitaevskii Equation (GPE)</strong> (<a href="https://arxiv.org/abs/cond-mat/0104255" target="_blank" rel="noopener noreferrer">Tsubota et al., arXiv:cond-mat/0104255</a>; <a href="https://arxiv.org/abs/1604.03595" target="_blank" rel="noopener noreferrer">Villois et al., arXiv:1604.03595</a>). Adding a single cubic self-interaction term $g|\psi|^2\psi$ to our staggered symplectic leapfrog shader transforms the linear dispersion relation into a <strong>Bogoliubov superfluid</strong> with zero viscosity, a finite speed of sound $c_s = \sqrt{gn_0/m}$, and <strong>topologically quantized vortices</strong> whose circulation is locked to integer multiples of $h/m$.</p>
+
+                <hr>
+
+                <h2>0. Anatomy of a Quantum Superfluid Solver</h2>
+                <dl class="kv">
+                    <dt>Governing PDE</dt>
+                    <dd>$i\hbar \partial_t \psi = \big(-\tfrac{\hbar^2}{2m}\nabla^2 + V_{\text{trap}}(\vec x) + g|\psi|^2 - \mu\big)\psi$, where $g \gt 0$ models repulsive s-wave boson scattering and $\mu = gn_0$ is the chemical potential.</dd>
+                    <dt>Madelung Fluid Map</dt>
+                    <dd>Writing $\psi = \sqrt{\rho}\,e^{i\varphi}$ maps the GPE onto inviscid compressible Euler hydrodynamics with superfluid velocity $\vec v_s = \frac{\hbar}{m}\nabla\varphi$ and Bohm quantum pressure $Q = -\frac{\hbar^2}{2m}\frac{\nabla^2\sqrt{\rho}}{\sqrt{\rho}}$.</dd>
+                    <dt>Quantized Circulation</dt>
+                    <dd>Because $\psi$ is single-valued, the phase $\varphi$ must wind by $2\pi n$ around any closed loop: $\oint_{\mathcal{C}} \vec v_s \cdot d\vec\ell = \frac{h}{m}n$ ($n \in \mathbb{Z}$). Vorticity vanishes everywhere except at point singularities where $\rho \to 0$.</dd>
+                    <dt>Healing Length $\xi$</dt>
+                    <dd>The vortex core radius $\xi = \hbar / \sqrt{2mgn_0}$ where kinetic quantum pressure balances nonlinear interaction energy $gn_0$.</dd>
+                </dl>
+
+                <hr>
+
+                <h2>1. Madelung Hydrodynamics &amp; Why Superfluid Vortices Are Quantized</h2>
+                <p>Substituting the polar decomposition $\psi(\vec x, t) = \sqrt{\rho(\vec x, t)}\,e^{i\varphi(\vec x, t)}$ (with natural units $\hbar = m = 1$) into the Gross–Pitaevskii equation and separating real and imaginary parts yields the exact <strong>Madelung quantum fluid equations</strong>:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Madelung Continuity &amp; Quantum Euler Momentum Equations ($\hbar = m = 1$)</div>
+                    $$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \vec v_s) = 0, \qquad \frac{\partial \vec v_s}{\partial t} + (\vec v_s \cdot \nabla)\vec v_s = -\frac{1}{\rho}\nabla P_{\text{int}} - \nabla V_{\text{trap}} + \nabla\!\left(\frac{\nabla^2\sqrt{\rho}}{2\sqrt{\rho}}\right)$$
+                    $$\vec v_s = \nabla \varphi = \frac{\psi_R \nabla \psi_I - \psi_I \nabla \psi_R}{\psi_R^2 + \psi_I^2}, \qquad P_{\text{int}} = \frac{1}{2}g\rho^2, \qquad c_s = \sqrt{\frac{\partial P_{\text{int}}}{\partial \rho}} = \sqrt{g\rho_0}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice two remarkable consequences: (1) the repulsive nonlinearity $g|\psi|^2$ acts as a polytropic gas pressure $P = \frac{1}{2}g\rho^2$ with sound speed $c_s = \sqrt{g\rho_0}$, and (2) the Bohm quantum potential $\frac{\nabla^2\sqrt{\rho}}{2\sqrt{\rho}}$ regularizes vortex cores at scale $\xi = 1/\sqrt{2g\rho_0}$ without requiring artificial viscosity!</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Staggered Symplectic Gross–Pitaevskii Shader &amp; Topological Vortex Stamping</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Isotropic 9-point Laplacian on RGBA16F wavefunction texture C = (psi_R, psi_I)
+vec2 lap = (10.0 / 3.0) * (0.20 * (N + S + E + W) + 0.05 * (NE + NW + SE + SW) - C);
+float rho = dot(C, C); // Condensate density |psi|^2 = psi_R^2 + psi_I^2
+
+// Effective nonlinear Hamiltonian potential: V_eff = V_trap(x) + g * |psi|^2 - mu
+float V_eff = evalTrapAndObstacle(vUv, uTime) + uCouplingG * (rho - 1.0);
+
+if (uPassType == 0) {
+    // Pass A: advance Real part psi_R^(n+1) using H_GP * psi_I^(n+1/2)
+    float hPsiI = -0.5 * lap.g + V_eff * C.g;
+    gl_FragColor = vec4(C.r + uDt * hPsiI, C.g, 0.0, 1.0);
+} else {
+    // Pass B: advance Imag part psi_I^(n+3/2) using H_GP * psi_R^(n+1)
+    float hPsiR = -0.5 * lap.r + V_eff * C.r;
+    gl_FragColor = vec4(C.r, C.g - uDt * hPsiR, 0.0, 1.0);
+}</code></pre>
+                    </div>
+                </details>
+
+                <div class="callout callout-warn">
+                    <strong>Why You Must Subtract the Chemical Potential $\mu = gn_0$ in Explicit Leapfrog Schemes:</strong>
+                    Without subtracting $\mu = gn_0$ from the diagonal potential, the uniform ground state $\psi_0 = \sqrt{n_0}e^{-i\mu t}$ rotates in complex phase at angular frequency $\omega_0 = gn_0$, eating up your symplectic stability budget $\Delta t \le 2 / (E_{\max} + gn_0)$ and causing high-$g$ condensates to blow up! Working in the co-rotating chemical potential frame ($\hat{H}_{\text{GP}} - \mu$) keeps the uniform background stationary in phase.
+                </div>
+
+                <hr>
+
+                <h2>2. Four Superfluid Regimes in the Interactive Simulator</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Preset Mode</th>
+                            <th style="color:#38bdf8">Initial Field $\psi(\vec x, 0)$</th>
+                            <th style="color:#34d399">Macroscopic Quantum Phenomenon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Abrikosov Vortex Lattice</strong></td>
+                            <td>Array of same-sign $n = +1$ phase singularities</td>
+                            <td>Same-sign vortices co-rotate in a triangular Abrikosov crystal lattice rather than merging</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vortex–Antivortex Dipole</strong></td>
+                            <td>Opposite-circulation pairs ($n = \pm 1$)</td>
+                            <td>Kelvin–Helmholtz self-induced translation at speed $v_{\text{pair}} = \frac{\hbar}{m d}$ followed by BKT acoustic annihilation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Supersonic Obstacle Shedding</strong></td>
+                            <td>Moving Gaussian laser barrier ($v_{\text{obs}} \gt c_s$)</td>
+                            <td>Breakdown of Landau superfluidity above the critical Mach number, shedding quantized von Kármán vortex pairs (<a href="https://arxiv.org/html/2311.06664v2" target="_blank" rel="noopener noreferrer">Liu et al., arXiv:2311.06664</a>)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dark Soliton Snake Instability</strong></td>
+                            <td>Planar $\tanh(x/\xi)$ density notch with $\pi$ phase jump</td>
+                            <td>2D transverse "snake" modulational instability decaying a planar dark soliton into a chain of vortex–antivortex pairs</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    (function initBecSimulation() {
+        const canvas = document.getElementById('bec-canvas');
+        if (!canvas) return;
+        const NX = 160, NY = 90;
+        const N = NX * NY;
+        let psiR = new Float32Array(N);
+        let psiI = new Float32Array(N);
+        let potV = new Float32Array(N);
+        let gCoupling = 1.4;
+        let viewMode = 0;
+        let currentPreset = 'lattice';
+        let simTime = 0;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = NX;
+        offCanvas.height = NY;
+        const offCtx = offCanvas.getContext('2d');
+        const imgData = offCtx.createImageData(NX, NY);
+        const ctx = canvas.getContext('2d');
+
+        function idx(x, y) {
+            const xx = (x + NX) % NX;
+            const yy = (y + NY) % NY;
+            return yy * NX + xx;
+        }
+
+        function stampVortex(cx, cy, charge) {
+            const xi = 1.0 / Math.sqrt(Math.max(0.2, 2.0 * gCoupling));
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const dx = x - cx;
+                    const dy = y - cy;
+                    const r = Math.hypot(dx, dy);
+                    const core = r / Math.hypot(r, xi * 1.6);
+                    const theta = charge * Math.atan2(dy, dx);
+                    const c = Math.cos(theta) * core;
+                    const s = Math.sin(theta) * core;
+                    const i = y * NX + x;
+                    const rOld = psiR[i], iOld = psiI[i];
+                    psiR[i] = rOld * c - iOld * s;
+                    psiI[i] = rOld * s + iOld * c;
+                }
+            }
+        }
+
+        function initField(preset) {
+            currentPreset = preset;
+            simTime = 0;
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    // Soft harmonic trap near boundary walls
+                    const bx = (x - NX * 0.5) / (NX * 0.48);
+                    const by = (y - NY * 0.5) / (NY * 0.48);
+                    const rEdge = Math.max(0, Math.hypot(bx, by) - 0.88);
+                    potV[i] = 18.0 * rEdge * rEdge;
+                    psiR[i] = Math.exp(-2.5 * rEdge * rEdge);
+                    psiI[i] = 0.0;
+                }
+            }
+            if (preset === 'lattice') {
+                const pts = [
+                    [NX * 0.38, NY * 0.36, 1], [NX * 0.62, NY * 0.36, 1],
+                    [NX * 0.38, NY * 0.64, 1], [NX * 0.62, NY * 0.64, 1],
+                    [NX * 0.50, NY * 0.50, 1], [NX * 0.28, NY * 0.50, 1], [NX * 0.72, NY * 0.50, 1]
+                ];
+                pts.forEach(p => stampVortex(p[0], p[1], p[2]));
+            } else if (preset === 'dipole') {
+                stampVortex(NX * 0.42, NY * 0.40, +1);
+                stampVortex(NX * 0.42, NY * 0.60, -1);
+                stampVortex(NX * 0.68, NY * 0.42, -1);
+                stampVortex(NX * 0.68, NY * 0.58, +1);
+            } else if (preset === 'soliton') {
+                for (let y = 0; y < NY; y++) {
+                    for (let x = 0; x < NX; x++) {
+                        const i = y * NX + x;
+                        const snake = 3.5 * Math.sin((y / NY) * Math.PI * 4.0);
+                        const s1 = Math.tanh((x - NX * 0.38 - snake) * 0.45);
+                        const s2 = Math.tanh((x - NX * 0.62 + snake) * 0.45);
+                        psiR[i] *= s1 * s2;
+                    }
+                }
+            }
+            document.querySelectorAll('.bec-preset-btn').forEach(btn => {
+                const active = btn.getAttribute('data-preset') === preset;
+                btn.style.background = active ? '#38bdf8' : '#1e293b';
+                btn.style.color = active ? '#081018' : '#e2e8f0';
+                btn.style.fontWeight = active ? '700' : '600';
+            });
+        }
+
+        window.setBecPreset = function(preset) {
+            initField(preset);
+        };
+
+        window.updateBecParams = function() {
+            const gSlider = document.getElementById('bec-g-slider');
+            const gVal = document.getElementById('bec-g-val');
+            const vSel = document.getElementById('bec-view-select');
+            const telem = document.getElementById('bec-telemetry');
+            if (gSlider) {
+                gCoupling = parseFloat(gSlider.value);
+                if (gVal) gVal.textContent = gCoupling.toFixed(1);
+            }
+            if (vSel) viewMode = parseInt(vSel.value, 10);
+            if (telem) {
+                const xi = (1.0 / Math.sqrt(Math.max(0.1, 2.0 * gCoupling))).toFixed(2);
+                const cs = Math.sqrt(gCoupling).toFixed(2);
+                telem.textContent = `ξ (Healing Length): ${xi} Δx | c_s (Bogoliubov Sound): ${cs} | Click/Drag to stir quantized 2π vortices`;
+            }
+        };
+
+        function stepGPE() {
+            const dt = 0.045;
+            const mu = gCoupling; // Chemical potential offset mu = g * n_0
+            const obsX = NX * (0.5 + 0.26 * Math.cos(simTime * 0.035));
+            const obsY = NY * (0.5 + 0.22 * Math.sin(simTime * 0.07));
+
+            // Pass A: update psiR using H * psiI (isotropic 9-point Laplacian)
+            for (let y = 1; y < NY - 1; y++) {
+                const row = y * NX;
+                for (let x = 1; x < NX - 1; x++) {
+                    const i = row + x;
+                    const lapI = (10.0 / 3.0) * (
+                        0.20 * (psiI[i - 1] + psiI[i + 1] + psiI[i - NX] + psiI[i + NX]) +
+                        0.05 * (psiI[i - NX - 1] + psiI[i - NX + 1] + psiI[i + NX - 1] + psiI[i + NX + 1]) -
+                        psiI[i]
+                    );
+                    let vLoc = potV[i];
+                    if (currentPreset === 'obstacle') {
+                        const d2 = (x - obsX) * (x - obsX) + (y - obsY) * (y - obsY);
+                        vLoc += 4.5 * Math.exp(-d2 / 9.0);
+                    }
+                    const rho = psiR[i] * psiR[i] + psiI[i] * psiI[i];
+                    const hPsiI = -0.5 * lapI + (vLoc + gCoupling * rho - mu) * psiI[i];
+                    psiR[i] += dt * hPsiI;
+                }
+            }
+            // Pass B: update psiI using H * psiR (isotropic 9-point Laplacian)
+            for (let y = 1; y < NY - 1; y++) {
+                const row = y * NX;
+                for (let x = 1; x < NX - 1; x++) {
+                    const i = row + x;
+                    const lapR = (10.0 / 3.0) * (
+                        0.20 * (psiR[i - 1] + psiR[i + 1] + psiR[i - NX] + psiR[i + NX]) +
+                        0.05 * (psiR[i - NX - 1] + psiR[i - NX + 1] + psiR[i + NX - 1] + psiR[i + NX + 1]) -
+                        psiR[i]
+                    );
+                    let vLoc = potV[i];
+                    if (currentPreset === 'obstacle') {
+                        const d2 = (x - obsX) * (x - obsX) + (y - obsY) * (y - obsY);
+                        vLoc += 4.5 * Math.exp(-d2 / 9.0);
+                    }
+                    const rho = psiR[i] * psiR[i] + psiI[i] * psiI[i];
+                    const hPsiR = -0.5 * lapR + (vLoc + gCoupling * rho - mu) * psiR[i];
+                    psiI[i] -= dt * hPsiR;
+                }
+            }
+            simTime += 1.0;
+        }
+
+        function hsvToRgb(h, s, v) {
+            const i = Math.floor(h * 6);
+            const f = h * 6 - i;
+            const p = v * (1 - s);
+            const q = v * (1 - f * s);
+            const t = v * (1 - (1 - f) * s);
+            switch (i % 6) {
+                case 0: return [v, t, p];
+                case 1: return [q, v, p];
+                case 2: return [p, v, t];
+                case 3: return [p, q, v];
+                case 4: return [t, p, v];
+                default: return [v, p, q];
+            }
+        }
+
+        function renderBec() {
+            for (let k = 0; k < 5; k++) stepGPE();
+            const data = imgData.data;
+            for (let i = 0; i < N; i++) {
+                const r = psiR[i], im = psiI[i];
+                const rho = r * r + im * im;
+                const p4 = i * 4;
+                if (viewMode === 0) {
+                    const hue = (Math.atan2(im, r) / (2 * Math.PI)) + 0.5;
+                    const val = Math.min(1.0, Math.pow(rho, 0.45) * 0.95);
+                    const rgb = hsvToRgb(hue, 0.82, val);
+                    data[p4] = rgb[0] * 255;
+                    data[p4 + 1] = rgb[1] * 255;
+                    data[p4 + 2] = rgb[2] * 255;
+                } else if (viewMode === 1) {
+                    const d = Math.min(1.0, rho * 0.85);
+                    data[p4] = Math.floor(18 + 48 * d + 185 * Math.pow(d, 2.2));
+                    data[p4 + 1] = Math.floor(24 + 165 * d + 65 * Math.pow(d, 3.0));
+                    data[p4 + 2] = Math.floor(42 + 210 * Math.pow(d, 0.85));
+                } else {
+                    const coreGlow = Math.exp(-rho * 5.5);
+                    const phaseGrid = 0.5 + 0.5 * Math.cos(4.0 * Math.atan2(im, r));
+                    data[p4] = Math.min(255, Math.floor(coreGlow * 250 + phaseGrid * 35));
+                    data[p4 + 1] = Math.min(255, Math.floor(coreGlow * 90 + phaseGrid * 140));
+                    data[p4 + 2] = Math.min(255, Math.floor(coreGlow * 190 + phaseGrid * 220));
+                }
+                data[p4 + 3] = 255;
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth || 640;
+                canvas.height = canvas.clientHeight || 360;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(renderBec);
+        }
+
+        let isDragging = false;
+        function handlePointer(e) {
+            const rect = canvas.getBoundingClientRect();
+            const gx = ((e.clientX - rect.left) / rect.width) * NX;
+            const gy = ((e.clientY - rect.top) / rect.height) * NY;
+            stampVortex(gx, gy, e.shiftKey ? -1 : 1);
+        }
+        canvas.addEventListener('pointerdown', e => { isDragging = true; handlePointer(e); });
+        window.addEventListener('pointerup', () => { isDragging = false; });
+        canvas.addEventListener('pointermove', e => { if (isDragging) handlePointer(e); });
+
+        initField('lattice');
+        window.updateBecParams();
+        requestAnimationFrame(renderBec);
+    })();
+
+    </script>
+</body>
+
+</html>

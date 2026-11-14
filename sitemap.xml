@@ -8,11 +8,27 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/archives.html</loc>
-    <lastmod>2026-11-13</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/</loc>
-    <lastmod>2026-11-13</lastmod>
+    <lastmod>2026-11-14</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/fourier-neural-operators-navier-stokes.html</loc>
+    <lastmod>2026-11-14</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/state-space-duality-mamba2-ring-attention.html</loc>
+    <lastmod>2026-11-14</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/autonomous-ai-scientists-verifiable-rl.html</loc>
+    <lastmod>2026-11-14</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/audio-flow-matching-vocal-infilling.html</loc>
+    <lastmod>2026-11-14</lastmod>
   </url>
     <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/weight-space-programming-pinn.html</loc>
@@ -40,7 +56,11 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/</loc>
-    <lastmod>2026-11-08</lastmod>
+    <lastmod>2026-11-14</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html</loc>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/quantum-wavepacket-tunneling-schrodinger-webgl.html</loc>

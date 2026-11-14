@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Continuous-Time Audio Flow Matching: Vocal Seed Infilling &amp; Phase Coherence Across Long Tracks | arman1o1 blog</title>
+    <meta name="description"
+        content="A first-principles guide to Masked Conditional Flow Matching for generative music and voice: preventing acoustic timbre drift, bidirectional master-seed infilling, raised-cosine boundary crossfades, and DiT audio velocity fields in PyTorch." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/audio-flow-matching-vocal-infilling.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Continuous-Time Audio Flow Matching: Vocal Seed Infilling &amp; Phase Coherence Across Long Tracks">
+    <meta property="og:description" content="A first-principles guide to Masked Conditional Flow Matching for generative music and voice: preventing acoustic timbre drift, bidirectional master-seed infilling, raised-cosine boundary crossfades, and DiT audio velocity fields in PyTorch.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/audio-flow-matching-vocal-infilling.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-14">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Continuous-Time Audio Flow Matching: Vocal Seed Infilling & Phase Coherence Across Long Tracks", "description": "A first-principles guide to Masked Conditional Flow Matching for generative music and voice: preventing acoustic timbre drift, bidirectional master-seed infilling, raised-cosine boundary crossfades, and DiT audio velocity fields in PyTorch.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-14", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/audio-flow-matching-vocal-infilling.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/audio-flow-matching-vocal-infilling.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Audio Gen</span>
+                    <span class="tag">Flow Matching</span>
+                    <span class="tag">Diffusion Transformers</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>Continuous-Time Audio Flow Matching: Vocal Seed Infilling &amp; Phase Coherence Across Long Tracks</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-14">November 14, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+                <p>In <a href="flow-matching-diffusion-transformers.html">Flow Matching &amp; Diffusion Transformers (DiT)</a>, we derived why straight Optimal Transport trajectories $x_t = (1 - t)x_0 + t x_1$ dramatically outperform curved DDPM schedules. When you apply that exact same continuous-time transport PDE to <strong>music and vocal generation</strong> (<a href="https://arxiv.org/abs/2306.15687" target="_blank" rel="noopener noreferrer">Voicebox, Le et al., arXiv:2306.15687</a>; <a href="https://arxiv.org/abs/2407.14358" target="_blank" rel="noopener noreferrer">Stable Audio Open, Evans et al., arXiv:2407.14358</a>), a unique domain problem arises: how do you maintain <strong>vocal timbre consistency, formant phrasing, and phase-locked BPM</strong> across a 3-minute track when the underlying DiT window spans only 15 to 47 seconds?</p>
+
+                <p>Autoregressive audio tokenizers (like MusicGen or VALL-E) suffer from progressive acoustic drift: small sampling errors accumulate over thousands of discrete RVQ tokens, causing a vocalist's formant profile or a synthwave bassline's stereo phase to mutate mid-song. Non-autoregressive <strong>Masked Conditional Flow Matching (Infilling CFM)</strong> solves this by conditioning the velocity field $v_\theta(x_t, t \mid x_{\text{ctx}}, m)$ directly on an uncorrupted 15-second master reference seed.</p>
+
+                <hr>
+
+                <h2>0. Acoustic Drift in Autoregressive RVQ vs. Context-Conditioned Flow Infilling</h2>
+                <p>Let $x_1 \in \mathbb{R}^{T \times D}$ denote a sequence of continuous stereo VAE latents (e.g., $44.1\,\text{kHz}$ audio compressed $2048\times$ to $21.5\,\text{Hz}$ latent frames in <a href="https://arxiv.org/abs/2407.14358" target="_blank" rel="noopener noreferrer">Stable Audio Open</a>) or log-mel spectrogram frames (<a href="https://arxiv.org/abs/2306.15687" target="_blank" rel="noopener noreferrer">Voicebox</a>). Given a binary temporal context mask $m \in \{0, 1\}^{T \times 1}$ where $m_\tau = 1$ marks locked vocal/master seed frames and $m_\tau = 0$ marks frames to be synthesized:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Context-Preserving Masked Conditional Flow Matching Objective (<a href="https://arxiv.org/abs/2306.15687" target="_blank" rel="noopener noreferrer">Le et al., 2023</a>)</div>
+                    $$x_t = (1 - t)\, x_0 + t\, x_1, \qquad x_{\text{cond}} = m \odot x_1, \qquad u_t(x_t \mid x_0, x_1) = x_1 - x_0$$
+                    $$\mathcal{L}_{\text{Infill-CFM}}(\theta) = \mathbb{E}_{t, x_0, x_1, m}\!\left[ \frac{1}{\sum_{\tau=1}^T (1 - m_\tau) D} \sum_{\tau=1}^{T} (1 - m_\tau)\, \Bigl\| v_\theta\bigl([x_t;\, m \odot x_1;\, m],\, t,\, c_{\text{text}}\bigr)_\tau - (x_{1,\tau} - x_{0,\tau}) \Bigr\|_2^2 \right]$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Crucially, self-attention inside the Diffusion Transformer attends globally across both masked ($m_\tau=0$) and unmasked ($m_\tau=1$) tokens at every ODE step, locking vocal harmonics, vibrato cadence, and room reverb tail to the reference seed.</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 215" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Master Seed Vocal Infilling via Audio Flow Matching">
+                        <rect x="20" y="25" width="210" height="150" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="125" y="52" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="800">Locked Master Seed (m = 1)</text>
+                        <text x="125" y="70" text-anchor="middle" fill="#a7f3d0" font-size="10">0.0s – 15.0s Reference Anchor</text>
+                        <path d="M 35 120 Q 55 80 75 120 T 115 120 T 155 120 T 195 120" fill="none" stroke="#34d399" stroke-width="2.2"/>
+                        <text x="125" y="158" text-anchor="middle" fill="#d1fae5" font-size="10">Fixed Formant &amp; Synth Timbre</text>
+
+                        <rect x="235" y="25" width="370" height="150" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="6 3"/>
+                        <text x="420" y="52" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="800">Active ODE Infill Window (m = 0)</text>
+                        <text x="420" y="70" text-anchor="middle" fill="#bae6fd" font-size="10">dx_t / dt = v_θ([x_t, m⊙x₁, m], t, c_lyrics)</text>
+                        <path d="M 255 120 Q 280 65 305 120 T 355 120 T 405 120 T 455 120 T 505 120 T 555 120" fill="none" stroke="#38bdf8" stroke-width="2.2"/>
+                        <text x="420" y="158" text-anchor="middle" fill="#93c5fd" font-size="10">Cross-attends to Seed (m=1) + Lyric Phonemes</text>
+
+                        <rect x="610" y="25" width="210" height="150" rx="8" fill="#2e1065" stroke="#a78bfa" stroke-width="1.6"/>
+                        <text x="715" y="52" text-anchor="middle" fill="#ddd6fe" font-size="12" font-weight="800">Phase-Aligned Suffix (m = 1)</text>
+                        <text x="715" y="70" text-anchor="middle" fill="#c4b5fd" font-size="10">Optional Beat/Hook Outbound Lock</text>
+                        <path d="M 625 120 Q 645 85 665 120 T 705 120 T 745 120 T 785 120" fill="none" stroke="#a78bfa" stroke-width="2.2"/>
+                        <text x="715" y="158" text-anchor="middle" fill="#e9d5ff" font-size="10">Zero Boundary Click / Tempo Jump</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Anchor-seeded audio flow matching. Keeping the 15-second master vocal/synth reference unmasked ($m=1$) forces the DiT velocity field to transport Gaussian noise in the $m=0$ region onto the exact same harmonic manifold.</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Audio Flow Matching Boundary Footguns:</strong>
+                    (1) <em>Hard-Mask Boundary Transients</em>: Replacing $x_t$ with $m \odot x_1 + (1 - m) \odot x_t$ via a step-function binary mask at inference creates a 1-frame phase discontinuity at the $15.0\,\text{s}$ splice point – apply a raised-cosine crossfade mask $m_\tau \in [0, 1]$ over 4–8 latent frames ($\sim 200\,\text{ms}$) during the final 25% of Heun ODE steps.
+                    (2) <em>CFG Over-Saturation in Mel Space</em>: Classifier-Free Guidance scales $w_{\text{cfg}} \gt 4.0$ in audio flow matching clip high-frequency sibilants (<code>s</code>, <code>t</code>, hi-hats); rescale guided velocities using standard-deviation clamping.
+                </div>
+
+                <hr>
+
+                <h2>1. Runnable PyTorch Reference: Masked Audio Flow Matching &amp; Cosine-Blended Heun Solver</h2>
+                <p>Below is a self-contained implementation of the masked CFM training loss and the boundary-smoothed Heun 2nd-order ODE sampler for extending a locked vocal/instrumental seed:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Masked Audio Flow Matching Loss &amp; Phase-Locked Heun Infiller</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import math
+import torch
+import torch.nn as nn
+
+class AudioInfillCFM(nn.Module):
+    """Minimal DiT-style Masked Conditional Flow Matching module for audio latents."""
+    def __init__(self, d_latent: int = 16, d_model: int = 64) -> None:
+        super().__init__()
+        # Input concatenates noisy state x_t [D], locked context m * x_1 [D], and mask m [1]
+        self.in_proj = nn.Linear(2 * d_latent + 1, d_model)
+        self.attn = nn.MultiheadAttention(d_model, num_heads=4, batch_first=True)
+        self.out_proj = nn.Linear(d_model, d_latent)
+
+    def forward(self, x_t: torch.Tensor, x_ctx: torch.Tensor, mask: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        # x_t, x_ctx: [B, T, D], mask: [B, T, 1], t: [B, 1, 1]
+        h = self.in_proj(torch.cat([x_t, x_ctx * mask, mask], dim=-1)) + torch.sin(t * math.pi)
+        h_attn, _ = self.attn(h, h, h, need_weights=False)
+        return self.out_proj(h + h_attn)  # Predicted velocity v_theta: [B, T, D]
+
+def masked_cfm_loss(model: nn.Module, x_1: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    # x_1: [B, T, D] target audio latents, mask: [B, T, 1] (1 = seed context, 0 = target infill)
+    x_0 = torch.randn_like(x_1)
+    t = torch.sigmoid(torch.randn(x_1.size(0), 1, 1, device=x_1.device))  # Logit-normal t in (0, 1)
+    x_t = (1.0 - t) * x_0 + t * x_1
+    v_pred = model(x_t, x_1, mask, t)
+    v_target = x_1 - x_0
+    target_region = 1.0 - mask  # Evaluate MSE strictly on synthesized frames
+    return ((v_pred - v_target).pow(2) * target_region).sum() / (target_region.sum() * x_1.size(-1))
+
+@torch.no_grad()
+def heun_infill_sample(
+    model: nn.Module, x_seed: torch.Tensor, mask: torch.Tensor, steps: int = 8
+) -> torch.Tensor:
+    """2nd-order Heun ODE sampler with raised-cosine boundary crossfade on final 25% steps."""
+    B, T, _ = x_seed.shape
+    seed_end = int(mask[0, :, 0].sum().item())
+    fade_len = min(4, max(0, T - seed_end))
+    soft_mask = mask.clone()
+    if fade_len > 0:
+        w = 0.5 * (1.0 + torch.cos(torch.linspace(0.0, math.pi, fade_len + 2, device=x_seed.device)[1:-1]))
+        soft_mask[:, seed_end : seed_end + fade_len, 0] = w.unsqueeze(0)
+
+    x_t = torch.randn_like(x_seed)
+    dt = 1.0 / steps
+    for step in range(steps):
+        t = torch.full((B, 1, 1), step * dt, device=x_seed.device)
+        t_next = torch.full((B, 1, 1), min(1.0, (step + 1) * dt), device=x_seed.device)
+        m_blend = soft_mask if step >= int(0.75 * steps) else mask
+        x_in = m_blend * x_seed + (1.0 - m_blend) * x_t
+
+        v1 = model(x_in, x_seed, mask, t)
+        x_pred = x_in + dt * v1
+        v2 = model(m_blend * x_seed + (1.0 - m_blend) * x_pred, x_seed, mask, t_next)
+        x_t = x_in + 0.5 * dt * (v1 + v2)
+    return mask * x_seed + (1.0 - mask) * x_t
+
+if __name__ == "__main__":
+    torch.manual_seed(42)
+    B, T_frames, D_lat = 2, 64, 16
+    x_master = torch.sin(torch.linspace(0, 4 * math.pi, T_frames)).view(1, T_frames, 1).repeat(B, 1, D_lat)
+    seed_mask = torch.zeros(B, T_frames, 1)
+    seed_mask[:, :16, :] = 1.0  # First 16 frames locked as master vocal seed
+
+    net = AudioInfillCFM(d_latent=D_lat, d_model=64)
+    loss = masked_cfm_loss(net, x_master, seed_mask)
+    infill = heun_infill_sample(net, x_master, seed_mask, steps=8)
+    seed_drift = (infill[:, :16] - x_master[:, :16]).abs().max().item()
+    print(f"[PASS] Locked Seed Frames: {int(seed_mask[0].sum().item())}/{T_frames} | Masked Infill CFM Loss: {loss.item():.4f}")
+    print(f"[PASS] Heun Infill Shape : {tuple(infill.shape)} | Seed Drift Max Error: {seed_drift:.2e}")
+# Output:
+# [PASS] Locked Seed Frames: 16/64 | Masked Infill CFM Loss: 1.7610
+# [PASS] Heun Infill Shape : (2, 64, 16) | Seed Drift Max Error: 0.00e+00</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Generative Audio Architectures: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th style="color:#f43f5e">Autoregressive RVQ (MusicGen / VALL-E)</th>
+                            <th style="color:#f59e0b">Score Diffusion (AudioLDM 2)</th>
+                            <th style="color:#34d399">Masked Audio Flow Matching (<a href="https://arxiv.org/abs/2306.15687" target="_blank" rel="noopener noreferrer">Voicebox</a> / <a href="https://arxiv.org/abs/2407.14358" target="_blank" rel="noopener noreferrer">Stable Audio</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Latent Representation</strong></td>
+                            <td>Discrete EnCodec / SoundStream RVQ tokens</td>
+                            <td>Continuous mel-VAE latents (curved SDE)</td>
+                            <td>Continuous stereo VAE / mel frames (straight OT ODE)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vocal Seed Extension</strong></td>
+                            <td>Prefix-only; drifts over $\gt 30\,\text{s}$ rollouts</td>
+                            <td>Requires approximate repaint score guidance</td>
+                            <td>Exact bidirectional prefix + suffix infilling ($m \in \{0,1\}$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sampling Latency</strong></td>
+                            <td>$O(T_{\text{tokens}})$ sequential decoding steps</td>
+                            <td>$50\text{–}100$ U-Net / DiT NFE</td>
+                            <td>$16\text{–}24$ DiT Heun ODE steps across full window</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>
