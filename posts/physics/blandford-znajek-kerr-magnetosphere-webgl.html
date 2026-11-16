@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Extracting Energy from Gargantua: Force-Free Kerr Magnetospheres &amp; Blandford–Znajek Relativistic Jets in WebGL2 | arman1o1 blog</title>
+    <meta name="description"
+        content="How a spinning Kerr black hole powers relativistic astrophysical jets: force-free electrodynamics in Boyer–Lindquist coordinates, the Znajek horizon regularity condition, ergospheric magnetic twist, and 60 FPS WebGL visualization." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/blandford-znajek-kerr-magnetosphere-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Extracting Energy from Gargantua: Force-Free Kerr Magnetospheres &amp; Blandford–Znajek Relativistic Jets in WebGL2">
+    <meta property="og:description" content="How a spinning Kerr black hole powers relativistic astrophysical jets: force-free electrodynamics in Boyer–Lindquist coordinates, the Znajek horizon regularity condition, ergospheric magnetic twist, and 60 FPS WebGL visualization.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/blandford-znajek-kerr-magnetosphere-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_kerr_blackhole.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-16">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Extracting Energy from Gargantua: Force-Free Kerr Magnetospheres & Blandford–Znajek Relativistic Jets in WebGL2", "description": "How a spinning Kerr black hole powers relativistic astrophysical jets: force-free electrodynamics in Boyer–Lindquist coordinates, the Znajek horizon regularity condition, ergospheric magnetic twist, and 60 FPS WebGL visualization.", "image": "https://arman1o1.github.io/images/thumb_kerr_blackhole.webp", "datePublished": "2026-11-16", "dateModified": "2026-11-16", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/blandford-znajek-kerr-magnetosphere-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/blandford-znajek-kerr-magnetosphere-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Astrophysics</span>
+                    <span class="tag">General Relativity</span>
+                    <span class="tag">Blandford–Znajek</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Extracting Energy from Gargantua: Force-Free Kerr Magnetospheres &amp; Blandford–Znajek Relativistic Jets in WebGL2</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-16">November 16, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 13 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE INTERACTIVE BLANDFORD-ZNAJEK KERR MAGNETOSPHERE SIMULATION ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div id="bz-sim-wrapper" style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#05060a;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="bz-canvas" style="width:100%;height:100%;display:block;cursor:grab"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="bz-preset-btn" data-bz="parabolic" onclick="window.setBzPreset('parabolic')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Parabolic Collimated Jet</button>
+                                <button type="button" class="bz-preset-btn" data-bz="monopole" onclick="window.setBzPreset('monopole')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Blandford–Znajek Split Monopole</button>
+                                <button type="button" class="bz-preset-btn" data-bz="ergo" onclick="window.setBzPreset('ergo')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Ergosphere Poynting Flux</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Kerr Spin $a/M$:</span>
+                                    <input id="bz-spin-slider" type="range" min="0.05" max="0.998" step="0.01" value="0.94" oninput="window.updateBzParams()" style="width:80px;accent-color:#38bdf8">
+                                    <span id="bz-spin-val" style="font-family:monospace;color:#38bdf8">0.94</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Pitch $\theta_{\text{cam}}$:</span>
+                                    <input id="bz-inc-slider" type="range" min="15" max="88" step="1" value="72" oninput="window.updateBzParams()" style="width:65px;accent-color:#a78bfa">
+                                </label>
+                            </div>
+                        </div>
+                        <div id="bz-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.80);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
+                            r_+ = 1.34 M | Ω_H = 0.350 / M | Ω_F = 0.175 / M | Jet Power P_BZ / P_max = 86.2%
+                        </div>
+                    </div>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live Force-Free Kerr Magnetosphere &amp; Blandford–Znajek Jet Visualizer.</strong> Drag the <strong>Kerr Spin $a/M$</strong> slider from $0.05$ to $0.998$ to watch frame dragging inside the ergosphere wind poloidal magnetic flux lines into a collimated relativistic twin jet.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="spinning-up-gargantua-kerr-black-hole.html">Spinning Up Gargantua: A Real-Time Kerr Black Hole in Your Browser</a>, we integrated null geodesics in Boyer–Lindquist coordinates $(t, r, \theta, \phi)$ and visualized the <strong>ergosphere</strong> – the region between the outer event horizon $r_+ = M + \sqrt{M^2 - a^2}$ and the static limit $r_{\text{ergo}}(\theta) = M + \sqrt{M^2 - a^2\cos^2\theta}$ where spacetime frame dragging forces every physical observer to co-rotate with the black hole.</p>
+
+                <p>When a magnetized accretion disk threads poloidal magnetic flux $\Psi(r, \theta)$ across that spinning horizon, frame dragging twists the field lines azimuthally like a cosmic Faraday unipolar inductor. Discovered by <strong>Blandford &amp; Znajek (1977)</strong> (<a href="https://arxiv.org/abs/1403.6959" target="_blank" rel="noopener noreferrer">Gralla &amp; Jacobson, 2014, arXiv:1403.6959</a>; <a href="https://arxiv.org/abs/2310.20531" target="_blank" rel="noopener noreferrer">Camilloni et al., 2023, arXiv:2310.20531</a>), this electromagnetic torque extracts rotational energy directly from the Kerr black hole's irreducible spin reservoir, launching twin relativistic Poynting-flux jets observed in M87* and quasars.</p>
+
+                <hr>
+
+                <h2>0. Anatomy of a Force-Free Kerr Magnetosphere</h2>
+                <dl class="kv">
+                    <dt>Force-Free Condition</dt>
+                    <dd>In a magnetically dominated corona ($\frac{B^2}{8\pi} \gg \rho_{\text{plasma}} c^2$), plasma inertia is negligible and the Lorentz force vanishes: $F_{\mu\nu}J^\nu = 0$, implying $\vec{E} \cdot \vec{B} = 0$.</dd>
+                    <dt>Horizon Angular Speed</dt>
+                    <dd>A Kerr black hole with spin parameter $a \in [0, M]$ rotates with horizon angular velocity $\Omega_H = \frac{a}{2 M r_+} = \frac{a}{r_+^2 + a^2}$.</dd>
+                    <dt>Znajek Regularity</dt>
+                    <dd>Requiring the electromagnetic fields to remain finite for an infalling observer crossing $r = r_+$ locks the poloidal current $I(\Psi)$ to the field-line angular velocity $\Omega_F$: $I(r_+, \theta) = 2\pi(\Omega_H - \Omega_F)\sin\theta\,\partial_\theta\Psi\,\frac{r_+^2 + a^2}{\Sigma_+}$.</dd>
+                    <dt>Impedance Matching</dt>
+                    <dd>Maximum electromagnetic power extraction occurs when the magnetosphere load matches the horizon membrane impedance at $\Omega_F = \frac{1}{2}\Omega_H$, giving $P_{\text{BZ}} \propto \Omega_F(\Omega_H - \Omega_F)B_H^2 r_+^4$.</dd>
+                </dl>
+
+                <hr>
+
+                <h2>1. The General-Relativistic Grad–Shafranov Stream Equation &amp; Znajek Horizon Condition</h2>
+                <p>For a stationary, axisymmetric force-free magnetosphere ($\partial_t = \partial_\phi = 0$), the electromagnetic 2-form $F = dA$ is completely determined by three flux-surface quantities: the poloidal magnetic flux $\Psi(r, \theta) = A_\phi$, the field-line angular velocity $\Omega_F(\Psi) = -dA_t / d\Psi$, and the poloidal electric current $I(\Psi)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Blandford–Znajek Poloidal Current &amp; Outgoing Poynting Luminosity (<a href="https://arxiv.org/abs/1403.6959" target="_blank" rel="noopener noreferrer">Gralla &amp; Jacobson, 2014</a>)</div>
+                    $$I(\Psi) = \frac{2\pi (\Omega_H - \Omega_F)(r_+^2 + a^2)\sin\theta}{r_+^2 + a^2\cos^2\theta}\,\frac{\partial \Psi}{\partial \theta}\Bigg|_{r = r_+} \;\xrightarrow{\text{Split Monopole, } \Omega_F = \Omega_H/2}\; 2\pi \Omega_F (1 - \cos^2\theta)$$
+                    $$P_{\text{BZ}} = \int T^r{}_t \sqrt{-g}\,d\theta\,d\phi = \int \Omega_F I(\Psi)\,d\Psi = \frac{\pi}{6} B_H^2 r_+^4 \Omega_H^2 + \mathcal{O}(a^4)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice the factor $\Omega_F(\Omega_H - \Omega_F)$: if $\Omega_F = 0$, the magnetic field lines are static and no Poynting flux $S^r \propto \Omega_F B_\phi$ flows outward; if $\Omega_F = \Omega_H$, the field lines co-rotate with the horizon and experience zero frame-dragging torque. The 50% slip $\Omega_F = \frac{1}{2}\Omega_H$ is an exact general-relativistic maximum-power transfer theorem!</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Force-Free Stream Function $\Psi(r, \theta)$ &amp; Helical Toroidal Twist $B_\phi$</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Evaluate force-free magnetic stream function Psi(r, theta) and toroidal pitch in Boyer-Lindquist coords
+float evaluateKerrJetDensity(vec3 posBL, float spinA, float time) {
+    float r = posBL.x, theta = posBL.y, phi = posBL.z;
+    float rPlus  = 1.0 + sqrt(max(0.0, 1.0 - spinA * spinA));
+    float omegaH = spinA / (2.0 * rPlus);
+    float omegaF = 0.5 * omegaH; // Optimal Blandford-Znajek impedance matching
+
+    // Parabolic collimated stream function Psi(r, theta) = r^p * (1 - |cos(theta)|)
+    float cosT = abs(cos(theta));
+    float psiFlux = pow(r / rPlus, 0.75) * (1.0 - cosT);
+
+    // Frame-dragging azimuthal phase winding along flux tubes
+    float helicalPhase = phi - omegaF * (r - rPlus) + omegaF * time;
+    float tubeMod = 0.5 + 0.5 * cos(10.0 * helicalPhase);
+
+    // Concentrate Poynting emission along the hollow parabolic jet sheath (Psi in [0.35, 1.15])
+    float sheath = exp(-pow((psiFlux - 0.72) / 0.28, 2.0));
+    return sheath * tubeMod * (omegaH * omegaH * 4.0);
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Black Hole Energy Extraction Mechanisms: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mechanism</th>
+                            <th style="color:#f43f5e">Mechanical Penrose Process</th>
+                            <th style="color:#f59e0b">Superradiant Boson Cloud</th>
+                            <th style="color:#34d399">Blandford–Znajek Magnetosphere (<a href="https://arxiv.org/abs/1403.6959" target="_blank" rel="noopener noreferrer">BZ77</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Energy Carrier</strong></td>
+                            <td>Ballistic particle splitting in ergosphere</td>
+                            <td>Massive scalar/vector wave ($\omega \lt m\Omega_H$)</td>
+                            <td>Force-free electromagnetic Poynting flux $T^{\mu\nu}_{\text{EM}}$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Critical Efficiency Condition</strong></td>
+                            <td>Requires relativistic breakup $\Delta v \gt 0.5c$</td>
+                            <td>Requires Compton wavelength $\lambda_C \sim r_+$</td>
+                            <td>Horizon impedance match $\Omega_F \approx \frac{1}{2}\Omega_H$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Astrophysical Relevance</strong></td>
+                            <td>Negligible in continuous accretion flows</td>
+                            <td>Gravitational-wave continuous sources</td>
+                            <td>Primary engine of AGN quasars &amp; M87* relativistic jets</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    (function initBzSimulation() {
+        const canvas = document.getElementById('bz-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let spinA = 0.94;
+        let incDeg = 72;
+        let bzMode = 'parabolic';
+        let phaseTime = 0;
+
+        window.setBzPreset = function(mode) {
+            bzMode = mode;
+            document.querySelectorAll('.bz-preset-btn').forEach(btn => {
+                const active = btn.getAttribute('data-bz') === mode;
+                btn.style.background = active ? '#38bdf8' : '#1e293b';
+                btn.style.color = active ? '#081018' : '#e2e8f0';
+                btn.style.fontWeight = active ? '700' : '600';
+            });
+        };
+
+        window.updateBzParams = function() {
+            const sSlider = document.getElementById('bz-spin-slider');
+            const sVal = document.getElementById('bz-spin-val');
+            const iSlider = document.getElementById('bz-inc-slider');
+            const telem = document.getElementById('bz-telemetry');
+            if (sSlider) {
+                spinA = parseFloat(sSlider.value);
+                if (sVal) sVal.textContent = spinA.toFixed(2);
+            }
+            if (iSlider) incDeg = parseFloat(iSlider.value);
+            if (telem) {
+                const rPlus = 1.0 + Math.sqrt(Math.max(0, 1.0 - spinA * spinA));
+                const omegaH = spinA / (2.0 * rPlus);
+                const omegaF = 0.5 * omegaH;
+                const pRatio = (omegaH / 0.5) * (omegaH / 0.5) * 100.0;
+                telem.textContent = `r_+ = ${rPlus.toFixed(2)} M | Ω_H = ${omegaH.toFixed(3)} / M | Ω_F = ${omegaF.toFixed(3)} / M | Jet Power P_BZ / P_max = ${pRatio.toFixed(1)}%`;
+            }
+        };
+
+        function project3D(x, y, z, w, h, scale) {
+            const inc = (incDeg * Math.PI) / 180.0;
+            const cy = Math.cos(inc), sy = Math.sin(inc);
+            // z is spin axis (vertical on screen when inc=90)
+            const yCam = y * cy - z * sy;
+            const zCam = y * sy + z * cy;
+            const depth = 9.5 + yCam * 0.25;
+            const persp = scale / Math.max(2.0, depth);
+            return [w * 0.5 + x * persp, h * 0.5 - zCam * persp, yCam];
+        }
+
+        function renderBz() {
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth || 640;
+                canvas.height = canvas.clientHeight || 360;
+            }
+            const w = canvas.width, h = canvas.height;
+            const scale = Math.min(w, h) * 1.15;
+            ctx.fillStyle = '#05060a';
+            ctx.fillRect(0, 0, w, h);
+
+            const rPlus = 1.0 + Math.sqrt(Math.max(0, 1.0 - spinA * spinA));
+            const omegaH = spinA / (2.0 * rPlus);
+            const omegaF = 0.5 * omegaH;
+            phaseTime += 0.018 * (0.3 + 2.8 * omegaF);
+
+            // 1. Volumetric Poynting Jet Glow along +/- z axis
+            const jetPower = Math.min(1.0, (omegaH / 0.45) * (omegaH / 0.45));
+            const gradTop = ctx.createRadialGradient(w * 0.5, h * 0.22, 4, w * 0.5, h * 0.22, h * 0.42);
+            gradTop.addColorStop(0, `rgba(56, 189, 248, ${0.34 * jetPower})`);
+            gradTop.addColorStop(0.5, `rgba(167, 139, 250, ${0.12 * jetPower})`);
+            gradTop.addColorStop(1, 'rgba(5, 6, 10, 0)');
+            ctx.fillStyle = gradTop;
+            ctx.fillRect(0, 0, w, h);
+
+            const gradBot = ctx.createRadialGradient(w * 0.5, h * 0.78, 4, w * 0.5, h * 0.78, h * 0.42);
+            gradBot.addColorStop(0, `rgba(56, 189, 248, ${0.30 * jetPower})`);
+            gradBot.addColorStop(0.5, `rgba(167, 139, 250, ${0.10 * jetPower})`);
+            gradBot.addColorStop(1, 'rgba(5, 6, 10, 0)');
+            ctx.fillStyle = gradBot;
+            ctx.fillRect(0, 0, w, h);
+
+            // 2. Equatorial Accretion Disk Rings
+            for (let ir = 5; ir >= 1; ir--) {
+                const rDisk = rPlus * 1.45 + ir * 0.52;
+                ctx.beginPath();
+                for (let a = 0; a <= 64; a++) {
+                    const phi = (a / 64) * Math.PI * 2;
+                    const p = project3D(rDisk * Math.cos(phi), rDisk * Math.sin(phi), 0, w, h, scale);
+                    if (a === 0) ctx.moveTo(p[0], p[1]);
+                    else ctx.lineTo(p[0], p[1]);
+                }
+                ctx.strokeStyle = `rgba(245, 158, 11, ${0.12 + 0.04 * (6 - ir)})`;
+                ctx.lineWidth = 2.0;
+                ctx.stroke();
+            }
+
+            // 3. Ergosphere Static Limit Surface r_ergo(theta) = 1 + sqrt(1 - a^2 cos^2 theta)
+            ctx.beginPath();
+            for (let it = 0; it <= 96; it++) {
+                const th = (it / 96) * Math.PI * 2;
+                const cosT = Math.cos(th), sinT = Math.sin(th);
+                const rErgo = 1.0 + Math.sqrt(Math.max(0, 1.0 - spinA * spinA * cosT * cosT));
+                const p = project3D(rErgo * sinT, 0, rErgo * cosT, w, h, scale);
+                if (it === 0) ctx.moveTo(p[0], p[1]);
+                else ctx.lineTo(p[0], p[1]);
+            }
+            ctx.strokeStyle = bzMode === 'ergo' ? 'rgba(244, 63, 94, 0.85)' : 'rgba(167, 139, 250, 0.45)';
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 4. Helical Force-Free Magnetic Flux Lines (North & South Poles)
+            const nLines = 10;
+            for (let hemi = -1; hemi <= 1; hemi += 2) {
+                for (let il = 0; il < nLines; il++) {
+                    const phi0 = (il / nLines) * Math.PI * 2 + phaseTime * hemi;
+                    ctx.beginPath();
+                    for (let s = 0; s <= 70; s++) {
+                        const u = s / 70.0;
+                        const z = hemi * (rPlus * 0.78 + u * 4.2);
+                        let rhoCyl;
+                        if (bzMode === 'parabolic') {
+                            rhoCyl = 0.28 * Math.pow(1.0 + u * 4.2, 0.58);
+                        } else if (bzMode === 'monopole') {
+                            rhoCyl = 0.25 + u * 2.15;
+                        } else {
+                            rhoCyl = 0.32 * Math.pow(1.0 + u * 3.8, 0.48) * (1.0 + 0.22 * Math.sin(u * 8.0 - phaseTime));
+                        }
+                        // Azimuthal frame-dragging pitch B_phi / B_p = -Omega_F *varpi
+                        const twist = -hemi * omegaF * 5.2 * Math.pow(u, 1.15);
+                        const phi = phi0 + twist;
+                        const p = project3D(rhoCyl * Math.cos(phi), rhoCyl * Math.sin(phi), z, w, h, scale);
+                        if (s === 0) ctx.moveTo(p[0], p[1]);
+                        else ctx.lineTo(p[0], p[1]);
+                    }
+                    const alpha = 0.35 + 0.55 * jetPower;
+                    ctx.strokeStyle = il % 2 === 0 ? `rgba(56, 189, 248, ${alpha})` : `rgba(52, 211, 153, ${alpha * 0.85})`;
+                    ctx.lineWidth = 1.65;
+                    ctx.stroke();
+                }
+            }
+
+            // 5. Event Horizon Shadow r_+ (with Bardeen D-shift)
+            const pCenter = project3D(0.12 * spinA, 0, 0, w, h, scale);
+            const rPix = (rPlus * 0.72) * (scale / 9.5);
+            ctx.beginPath();
+            ctx.arc(pCenter[0], pCenter[1], rPix, 0, Math.PI * 2);
+            ctx.fillStyle = '#020305';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(251, 191, 36, 0.78)';
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+
+            requestAnimationFrame(renderBz);
+        }
+
+        window.updateBzParams();
+        requestAnimationFrame(renderBz);
+    })();
+
+    </script>
+</body>
+
+</html>

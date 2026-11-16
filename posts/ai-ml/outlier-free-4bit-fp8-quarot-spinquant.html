@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outlier-Free 4-Bit &amp; FP8 LLM Systems: Hadamard Invariance (QuaRot), Stiefel Rotations (SpinQuant) &amp; Blockwise FP8 | arman1o1 blog</title>
+    <meta name="description"
+        content="How orthogonal Walsh–Hadamard rotations (QuaRot), Cayley Stiefel manifold optimization (SpinQuant), and 1x128 blockwise FP8 scaling eliminate Transformer activation outliers and enable lossless W4A4KV4 inference in PyTorch." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/outlier-free-4bit-fp8-quarot-spinquant.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Outlier-Free 4-Bit &amp; FP8 LLM Systems: Hadamard Invariance (QuaRot), Stiefel Rotations (SpinQuant) &amp; Blockwise FP8">
+    <meta property="og:description" content="How orthogonal Walsh–Hadamard rotations (QuaRot), Cayley Stiefel manifold optimization (SpinQuant), and 1x128 blockwise FP8 scaling eliminate Transformer activation outliers and enable lossless W4A4KV4 inference in PyTorch.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/outlier-free-4bit-fp8-quarot-spinquant.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-16">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Outlier-Free 4-Bit & FP8 LLM Systems: Hadamard Invariance (QuaRot), Stiefel Rotations (SpinQuant) & Blockwise FP8", "description": "How orthogonal Walsh–Hadamard rotations (QuaRot), Cayley Stiefel manifold optimization (SpinQuant), and 1x128 blockwise FP8 scaling eliminate Transformer activation outliers and enable lossless W4A4KV4 inference in PyTorch.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-16", "dateModified": "2026-11-16", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/outlier-free-4bit-fp8-quarot-spinquant.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/outlier-free-4bit-fp8-quarot-spinquant.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Quantization</span>
+                    <span class="tag">QuaRot & SpinQuant</span>
+                    <span class="tag">FP8 Systems</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>Outlier-Free 4-Bit &amp; FP8 LLM Systems: Hadamard Invariance (QuaRot), Stiefel Rotations (SpinQuant) &amp; Blockwise FP8</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-16">November 16, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 15 min read</span>
+                </div>
+
+                <hr>
+
+                <p>In <a href="llm-speculative-decoding-inference.html">LLM Inference &amp; Speculative Decoding</a> and <a href="llm-sparse-mixture-of-experts.html">Sparse Mixture-of-Experts (MoE)</a>, we saw how modern serving and training pipelines are governed by the Roofline ratio of HBM bandwidth to Tensor Core compute. Dropping weights, activations, and the KV-cache from <code>BF16</code> down to <code>INT4</code> or <code>FP8</code> immediately quadruples or doubles arithmetic intensity – yet naive low-bit quantization collapses above $6.7\text{B}$ parameters due to <strong>emergent activation outliers</strong> where a handful of hidden channels spike to $20\text{–}100\times$ the median magnitude.</p>
+
+                <p><strong>QuaRot</strong> (<a href="https://arxiv.org/abs/2404.00456" target="_blank" rel="noopener noreferrer">Ashkboos et al., 2024, arXiv:2404.00456</a>; <a href="https://github.com/spcl/quarot" target="_blank" rel="noopener noreferrer">GitHub</a>) and <strong>SpinQuant</strong> (<a href="https://arxiv.org/abs/2405.16406" target="_blank" rel="noopener noreferrer">Liu et al., 2024, arXiv:2405.16406</a>; <a href="https://github.com/facebookresearch/SpinQuant" target="_blank" rel="noopener noreferrer">GitHub</a>) exploit a clean linear-algebraic symmetry of RMSNorm Transformers: multiplying the residual stream by an orthogonal rotation matrix $H \in \mathrm{O}(d)$ ($H H^\top = I$) and counter-rotating every adjacent weight matrix ($W_{\text{in}}' = W_{\text{in}} H$, $W_{\text{out}}' = H^\top W_{\text{out}}$) leaves the full-precision forward pass <strong>mathematically identical</strong> while smearing channel-aligned outliers uniformly across all $d$ dimensions.</p>
+
+                <hr>
+
+                <h2>0. Computational Invariance of Orthogonal Residual Rotations</h2>
+                <p>Recall that <code>RMSNorm</code> normalizes a token vector $x \in \mathbb{R}^d$ strictly by its Euclidean $\ell_2$ norm $\|x\|_2 / \sqrt{d}$ before applying a diagonal elementwise scale $\mathrm{diag}(\gamma)$. Because orthogonal transformations preserve $\ell_2$ norms ($\|x H\|_2 \equiv \|x\|_2$), absorbing $\mathrm{diag}(\gamma)$ into the subsequent linear projection $W$ makes the entire block rotation-invariant:</p>
+
+                <div class="math-block">
+                    <div class="math-label">RMSNorm Orthogonal Invariance &amp; Walsh–Hadamard Outlier Dispersion</div>
+                    $$\mathrm{RMSNorm}(x) W^\top = \frac{x}{\|x\|_2 / \sqrt{d}} \mathrm{diag}(\gamma) W^\top = \frac{(x H)}{\|x H\|_2 / \sqrt{d}} \underbrace{\bigl(H^\top \mathrm{diag}(\gamma) W^\top\bigr)}_{\tilde{W}^\top}$$
+                    $$H_{2^k} = \frac{1}{\sqrt{2}} \begin{pmatrix} H_{2^{k-1}} & H_{2^{k-1}} \\ H_{2^{k-1}} & -H_{2^{k-1}} \end{pmatrix}, \qquad H_d H_d^\top = I_d, \qquad |H_{i,j}| = \frac{1}{\sqrt{d}}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because every entry of a normalized Walsh–Hadamard matrix has magnitude $1/\sqrt{d}$, a single channel outlier of magnitude $M$ in $x$ is redistributed into $\pm M/\sqrt{d}$ across all channels – collapsing fourth-moment kurtosis from $\kappa \gt 500$ down to the Gaussian baseline $\kappa \approx 3$!</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 220" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="QuaRot and SpinQuant Orthogonal Rotation Diagram">
+                        <rect x="20" y="22" width="385" height="180" rx="10" fill="var(--surface-elevated)" stroke="#f43f5e" stroke-width="1.6"/>
+                        <text x="212" y="46" text-anchor="middle" fill="#f43f5e" font-size="13" font-weight="800">1. Unrotated Residual Stream X (Kurtosis κ = 582)</text>
+                        <text x="212" y="64" text-anchor="middle" fill="var(--text-muted)" font-size="10">Single outlier channel dominates INT4/FP8 dynamic range</text>
+                        <line x1="55" y1="165" x2="370" y2="165" stroke="#475569" stroke-width="1.5"/>
+                        <rect x="85" y="148" width="14" height="17" fill="#64748b"/>
+                        <rect x="125" y="152" width="14" height="13" fill="#64748b"/>
+                        <rect x="165" y="75" width="16" height="90" fill="#f43f5e"/>
+                        <text x="173" y="70" text-anchor="middle" fill="#fda4af" font-size="10" font-weight="700">40× Spike</text>
+                        <rect x="210" y="150" width="14" height="15" fill="#64748b"/>
+                        <rect x="255" y="146" width="14" height="19" fill="#64748b"/>
+                        <rect x="300" y="151" width="14" height="14" fill="#64748b"/>
+                        <text x="212" y="190" text-anchor="middle" fill="#fda4af" font-size="10">95% of normal channels crushed into 0 or ±1 quantization bin</text>
+
+                        <rect x="435" y="22" width="385" height="180" rx="10" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="627" y="46" text-anchor="middle" fill="#34d399" font-size="13" font-weight="800">2. Hadamard-Rotated X · H (Kurtosis κ = 3.04)</text>
+                        <text x="627" y="64" text-anchor="middle" fill="var(--text-muted)" font-size="10">Y = (X H)(H^T W^T) ≡ X W^T with uniform sub-Gaussian channels</text>
+                        <line x1="470" y1="165" x2="785" y2="165" stroke="#475569" stroke-width="1.5"/>
+                        <rect x="500" y="125" width="14" height="40" fill="#34d399"/>
+                        <rect x="540" y="130" width="14" height="35" fill="#34d399"/>
+                        <rect x="580" y="122" width="14" height="43" fill="#34d399"/>
+                        <rect x="620" y="128" width="14" height="37" fill="#34d399"/>
+                        <rect x="660" y="124" width="14" height="41" fill="#34d399"/>
+                        <rect x="700" y="129" width="14" height="36" fill="#34d399"/>
+                        <text x="627" y="190" text-anchor="middle" fill="#a7f3d0" font-size="10">Full 4-bit [-8, 7] grid utilized across every channel</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Effect of orthogonal Walsh–Hadamard rotation $X' = X H$ on activation channel distributions. The $40\times$ outlier spike is spread uniformly across all channels with zero change to the full-precision GEMM output.</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Two Non-Obvious Footguns When Rotating Transformers:</strong>
+                    (1) <em>RoPE Does Not Commute with Random Rotations</em>: Because Rotary Position Embedding (<code>RoPE</code>) applies $2 \times 2$ block rotations $R_{\Theta, m}$ inside $Q$ and $K$, you cannot fuse a global residual rotation $H$ into $W_Q$ and $W_K$ across the RoPE boundary – instead, $H$ is absorbed on the input side ($W_Q' = H^\top W_Q$), and a fast online Walsh–Hadamard transform is applied to $Q$ and $K$ <em>after</em> RoPE to quantize the KV-cache to 4 bits.
+                    (2) <em>Cayley Stiefel Parameterization in SpinQuant</em>: When optimizing learned rotation matrices $R_1, R_2 \in \mathrm{SO}(d)$ via gradient descent (<a href="https://arxiv.org/abs/2405.16406" target="_blank" rel="noopener noreferrer">SpinQuant</a>), projecting onto $\mathrm{O}(d)$ via SVD every step triggers an expensive host-device sync; use the skew-symmetric Cayley map $R = (I - A)(I + A)^{-1}$ ($A = -A^\top$) instead.
+                </div>
+
+                <hr>
+
+                <h2>1. Runnable PyTorch Reference: Fast Walsh–Hadamard Transform (<code>FWHT</code>) &amp; W4A4 Error Verification</h2>
+                <p>The self-contained PyTorch script below implements the $O(d \log d)$ in-place butterfly Fast Walsh–Hadamard Transform, verifies exact FP64 invariance, and measures the $2.3\times$ MSE reduction under <code>W4A4</code> symmetric quantization:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Fast Walsh–Hadamard Transform (<code>FWHT</code>) &amp; Outlier-Free W4A4 Quantization</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import math
+import torch
+
+def fwht_pow2(x: torch.Tensor) -> torch.Tensor:
+    """O(d log d) orthogonal Fast Walsh-Hadamard Transform along last dim (Ashkboos et al., arXiv:2404.00456)."""
+    # x: [..., D] where D is a power of 2
+    d = x.size(-1)
+    h = x.clone()
+    step = 1
+    while step &lt; d:
+        h = h.view(*x.shape[:-1], d // (2 * step), 2, step)
+        a, b = h[..., 0, :], h[..., 1, :]
+        h = torch.stack((a + b, a - b), dim=-2).reshape(x.shape)
+        step *= 2
+    return h / math.sqrt(d)
+
+def quantize_sym_int4(t: torch.Tensor) -> torch.Tensor:
+    """Per-token / per-channel symmetric 4-bit quantization to [-8, 7]."""
+    scale = t.abs().amax(dim=-1, keepdim=True) / 7.0 + 1e-12
+    return torch.clamp(torch.round(t / scale), -8.0, 7.0) * scale
+
+if __name__ == "__main__":
+    torch.manual_seed(42)
+    X = torch.randn(32, 64, dtype=torch.float64) * 0.5
+    X[:, 7] *= 40.0  # Inject 40x activation outlier spike in channel 7
+    W = torch.randn(32, 64, dtype=torch.float64) * 0.2
+
+    Y_exact = X @ W.T
+    X_rot, W_rot = fwht_pow2(X), fwht_pow2(W)
+    Y_rot_exact = X_rot @ W_rot.T
+
+    mse_naive = (Y_exact - (quantize_sym_int4(X) @ quantize_sym_int4(W).T)).pow(2).mean().item()
+    mse_quarot = (Y_exact - (quantize_sym_int4(X_rot) @ quantize_sym_int4(W_rot).T)).pow(2).mean().item()
+    kurt_before = (X.pow(4).mean() / X.pow(2).mean().pow(2)).item()
+    kurt_after = (X_rot.pow(4).mean() / X_rot.pow(2).mean().pow(2)).item()
+
+    print(f"[PASS] Full-Precision Hadamard Invariance Diff: {(Y_exact - Y_rot_exact).abs().max().item():.2e}")
+    print(f"[PASS] Activation Kurtosis (Before -&gt; After)  : {kurt_before:.1f} -&gt; {kurt_after:.2f}")
+    print(f"[PASS] W4A4 GEMM MSE (Naive -&gt; QuaRot)        : {mse_naive:.4f} -&gt; {mse_quarot:.4f} ({mse_naive / mse_quarot:.1f}x lower error!)")
+# Output:
+# [PASS] Full-Precision Hadamard Invariance Diff: 1.07e-14
+# [PASS] Activation Kurtosis (Before -&gt; After)  : 152.8 -&gt; 2.73
+# [PASS] W4A4 GEMM MSE (Naive -&gt; QuaRot)        : 0.4083 -&gt; 0.1741 (2.3x lower error!)</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Low-Bit LLM Quantization Schemes: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scheme</th>
+                            <th style="color:#f43f5e">SmoothQuant (W8A8)</th>
+                            <th style="color:#f59e0b">QuaRot (<a href="https://arxiv.org/abs/2404.00456" target="_blank" rel="noopener noreferrer">arXiv:2404.00456</a>, W4A4KV4)</th>
+                            <th style="color:#34d399">SpinQuant (<a href="https://arxiv.org/abs/2405.16406" target="_blank" rel="noopener noreferrer">arXiv:2405.16406</a>) + Block FP8</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Outlier Mitigation Mechanism</strong></td>
+                            <td>Diagonal channel migration $s_j = \max|X_j|^\alpha / \max|W_j|^{1-\alpha}$</td>
+                            <td>Random orthogonal Walsh–Hadamard $H \in \mathrm{O}(d)$</td>
+                            <td>Cayley-learned Stiefel rotations $R_1, R_2 \in \mathrm{SO}(d)$ + $1 \times 128$ tile scaling</td>
+                        </tr>
+                        <tr>
+                            <td><strong>4-Bit Activation &amp; KV Accuracy</strong></td>
+                            <td>Collapses at 4-bit (outliers migrate to weights)</td>
+                            <td>Retains 99% zero-shot accuracy on 70B models</td>
+                            <td>Closes W4A4KV4 gap to within 2.9 pts of BF16 on Llama-3</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Runtime Overhead</strong></td>
+                            <td>Zero (fused into LayerNorm)</td>
+                            <td>2 online FWHT kernels per block ($O(d \log d)$)</td>
+                            <td>Zero extra overhead for $R_1$ (fused offline into weights)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

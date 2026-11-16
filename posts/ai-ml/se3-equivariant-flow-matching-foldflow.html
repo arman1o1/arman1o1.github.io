@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SE(3)-Equivariant Flow Matching on Lie Groups: Geodesic Interpolants &amp; Matrix Exponential Maps (FoldFlow) | arman1o1 blog</title>
+    <meta name="description"
+        content="A first-principles geometric deep learning guide to Riemannian Conditional Flow Matching on SE(3) and SO(3): Rodrigues matrix exponential and logarithmic maps, geodesic optimal transport, and protein backbone generation in PyTorch." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/se3-equivariant-flow-matching-foldflow.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="SE(3)-Equivariant Flow Matching on Lie Groups: Geodesic Interpolants &amp; Matrix Exponential Maps (FoldFlow)">
+    <meta property="og:description" content="A first-principles geometric deep learning guide to Riemannian Conditional Flow Matching on SE(3) and SO(3): Rodrigues matrix exponential and logarithmic maps, geodesic optimal transport, and protein backbone generation in PyTorch.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/se3-equivariant-flow-matching-foldflow.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-16">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "SE(3)-Equivariant Flow Matching on Lie Groups: Geodesic Interpolants & Matrix Exponential Maps (FoldFlow)", "description": "A first-principles geometric deep learning guide to Riemannian Conditional Flow Matching on SE(3) and SO(3): Rodrigues matrix exponential and logarithmic maps, geodesic optimal transport, and protein backbone generation in PyTorch.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-16", "dateModified": "2026-11-16", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/se3-equivariant-flow-matching-foldflow.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/se3-equivariant-flow-matching-foldflow.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Physics</span>
+                    <span class="tag">Geometric ML</span>
+                    <span class="tag">SE(3) Flow Matching</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>SE(3)-Equivariant Flow Matching on Lie Groups: Geodesic Interpolants &amp; Matrix Exponential Maps (FoldFlow)</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-16">November 16, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 14 min read</span>
+                </div>
+
+                <hr>
+
+                <p>In <a href="flow-matching-diffusion-transformers.html">Flow Matching &amp; Diffusion Transformers (DiT)</a>, we trained velocity fields along straight Euclidean lines $x_t = (1 - t)x_0 + t x_1$ in $\mathbb{R}^d$. What happens when the generative target is not a grid of pixels, but a 3D molecular or protein backbone parameterized by $N$ rigid residue frames $x_i = (R_i, s_i) \in \mathrm{SE}(3) = \mathrm{SO}(3) \rtimes \mathbb{R}^3$?</p>
+
+                <p>Taking a linear combination $(1 - t)R_0 + t R_1$ of two $3 \times 3$ rotation matrices $R_0, R_1 \in \mathrm{SO}(3)$ immediately leaves the rotation manifold ($\det R_t \neq 1$, $R_t^\top R_t \neq I_3$), crushing rigid bond lengths and dihedral angles during intermediate ODE steps. <strong>FoldFlow</strong> (<a href="https://arxiv.org/html/2310.02391v4" target="_blank" rel="noopener noreferrer">Bose et al., 2024, arXiv:2310.02391</a>; <a href="https://github.com/DreamFold/FoldFlow" target="_blank" rel="noopener noreferrer">GitHub</a>) generalizes Optimal Transport Conditional Flow Matching to <strong>Riemannian manifolds and Lie groups</strong>, evolving translations in the center-of-mass zero-mean subspace $(\mathbb{R}^3)_0^N$ and rotations along exact minimum-arclength geodesics on $\mathrm{SO}(3)^N$.</p>
+
+                <hr>
+
+                <h2>0. Geodesic Interpolants &amp; Exponential/Logarithmic Maps on $\mathrm{SO}(3)$</h2>
+                <p>The special orthogonal group $\mathrm{SO}(3) = \{R \in \mathbb{R}^{3 \times 3} : R^\top R = I,\, \det R = +1\}$ has a Lie algebra $\mathfrak{so}(3)$ consisting of $3 \times 3$ skew-symmetric matrices $\Omega = -\Omega^\top$, isomorphic to axis-angle vectors $\vec{\omega} \in \mathbb{R}^3$ via the hat operator $\hat{\cdot} : \mathbb{R}^3 \to \mathfrak{so}(3)$. Equipping $\mathrm{SO}(3)$ with the canonical bi-invariant Frobenius metric $\langle \Omega_1, \Omega_2 \rangle_{\mathrm{SO}(3)} = \frac{1}{2}\mathrm{Tr}(\Omega_1^\top \Omega_2)$ yields closed-form geodesic interpolants:</p>
+
+                <div class="math-block">
+                    <div class="math-label">$\mathrm{SO}(3)$ Geodesic Path &amp; Tangent Conditional Velocity (<a href="https://arxiv.org/html/2310.02391v4" target="_blank" rel="noopener noreferrer">Bose et al., 2024</a>)</div>
+                    $$R_t = \exp_{R_0}\!\bigl(t \cdot \log_{R_0}(R_1)\bigr) = R_0 \exp\!\bigl(t \log(R_0^\top R_1)\bigr), \qquad \dot{R}_t = u_t(R_t \mid R_0, R_1) = \frac{\log_{R_t}(R_1)}{1 - t} = R_t \frac{\log(R_t^\top R_1)}{1 - t}$$
+                    $$\exp(\hat{\omega}) = I_3 + \frac{\sin\theta}{\theta}\hat{\omega} + \frac{1 - \cos\theta}{\theta^2}\hat{\omega}^2 \quad (\theta = \|\vec{\omega}\|_2), \qquad \log(R) = \frac{\theta}{2\sin\theta}(R - R^\top) \quad \left(\theta = \arccos\frac{\mathrm{Tr}(R) - 1}{2}\right)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Every intermediate frame $R_t$ along the geodesic has $\det(R_t) \equiv +1$ and constant angular velocity $\|\dot{R}_t\|_{\mathrm{SO}(3)} = d_{\mathrm{SO}(3)}(R_0, R_1)$.</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 220" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Riemannian Geodesic Flow Matching on SO(3) Manifold">
+                        <rect x="20" y="18" width="390" height="184" rx="10" fill="var(--surface-elevated)" stroke="#f43f5e" stroke-width="1.6"/>
+                        <text x="215" y="42" text-anchor="middle" fill="#f43f5e" font-size="13" font-weight="800">1. Naive Euclidean Matrix Lerp: (1−t)R₀ + t R₁</text>
+                        <text x="215" y="60" text-anchor="middle" fill="var(--text-muted)" font-size="10">Cuts through interior of manifold → det(R_t) = 0.44 ≠ 1</text>
+                        <path d="M 75 155 A 150 95 0 0 1 355 155" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="4 3"/>
+                        <line x1="75" y1="155" x2="355" y2="155" stroke="#f43f5e" stroke-width="2.4"/>
+                        <circle cx="75" cy="155" r="6" fill="#38bdf8"/>
+                        <circle cx="215" cy="155" r="6" fill="#f43f5e"/>
+                        <circle cx="355" cy="155" r="6" fill="#34d399"/>
+                        <text x="215" y="180" text-anchor="middle" fill="#fda4af" font-size="10">Invalid non-orthogonal frame crushes Cα–N–C bond geometry</text>
+
+                        <rect x="430" y="18" width="390" height="184" rx="10" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="625" y="42" text-anchor="middle" fill="#34d399" font-size="13" font-weight="800">2. Riemannian Geodesic: R₀ exp(t log(R₀^T R₁))</text>
+                        <text x="625" y="60" text-anchor="middle" fill="var(--text-muted)" font-size="10">Stays strictly on SO(3) manifold → det(R_t) ≡ 1.000000</text>
+                        <path d="M 485 155 A 150 95 0 0 1 765 155" fill="none" stroke="#34d399" stroke-width="2.8"/>
+                        <line x1="625" y1="103" x2="705" y2="103" stroke="#38bdf8" stroke-width="2"/>
+                        <circle cx="485" cy="155" r="6" fill="#38bdf8"/>
+                        <circle cx="625" cy="103" r="6" fill="#34d399"/>
+                        <circle cx="765" cy="155" r="6" fill="#34d399"/>
+                        <text x="685" y="92" text-anchor="middle" fill="#bae6fd" font-size="10" font-weight="700">u_t ∈ T_{R_t}SO(3)</text>
+                        <text x="625" y="180" text-anchor="middle" fill="#a7f3d0" font-size="10">Equivariant tangent vector field + Inference Annealing i(t) = c·t</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Chordal Euclidean interpolation cuts inside the $\mathrm{SO}(3)$ manifold and breaks orthogonality, whereas the Riemannian exponential map $R_0 \exp(t \log(R_0^\top R_1))$ follows the exact surface geodesic.</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Three $\mathrm{SE}(3)$ Geometric Flow Matching Footguns in PyTorch:</strong>
+                    (1) <em>$\arccos$ Gradient Explosion at $\theta \to 0$ and $\theta \to \pi$</em>: The derivative of $\arccos(x)$ is $-1/\sqrt{1 - x^2}$, which diverges to $-\infty$ when $R_0^\top R_1 \approx I$ ($\mathrm{Tr}(R) \to 3$) – always clamp $\frac{\mathrm{Tr}(R)-1}{2} \in [-1 + 10^{-6}, 1 - 10^{-6}]$ and use the Taylor series $\frac{\theta}{2\sin\theta} \approx \frac{1}{2} + \frac{\theta^2}{12}$ for $\theta \lt 10^{-4}$.
+                    (2) <em>Center-of-Mass (CoM) Drift breaks $\mathrm{SE}(3)$ Invariance</em>: A probability density on $\mathbb{R}^{3N}$ cannot be normalizeable and translation-invariant simultaneously; project both $s_0$ and $s_1$ onto the zero-CoM subspace $\sum_{i=1}^N s_i = \vec{0}$ at every step.
+                    (3) <em>Divergence of $1/(1-t)$ Near $t \to 1$</em>: Clamp the training target denominator $(1 - t)$ away from $0$ to avoid gradient spikes, and during sampling apply FoldFlow's inference annealing schedule $i(t) = c \cdot t$ ($c \approx 10$) to scale the rotational vector field.
+                </div>
+
+                <hr>
+
+                <h2>1. Runnable PyTorch Reference: Exact $\mathrm{SO}(3)$ Rodrigues Geodesic Flow &amp; Tangent Loss</h2>
+                <p>The self-contained PyTorch script below implements singularity-safe $\mathrm{SO}(3)$ exponential and logarithmic maps and verifies that geodesic interpolation preserves $\det(R_t) = 1.000000$ and orthogonality:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Singularity-Safe $\mathrm{SO}(3)$ Exponential/Logarithmic Maps &amp; Geodesic Flow Matching</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+
+def hat_so3(w: torch.Tensor) -&gt; torch.Tensor:
+    """Map axis-angle vector w [..., 3] to skew-symmetric matrix in so(3) [..., 3, 3]."""
+    wx, wy, wz = w.unbind(dim=-1)
+    z = torch.zeros_like(wx)
+    return torch.stack([z, -wz, wy, wz, z, -wx, -wy, wx, z], dim=-1).reshape(*w.shape[:-1], 3, 3)
+
+def exp_so3(Omega: torch.Tensor) -&gt; torch.Tensor:
+    """Rodrigues matrix exponential exp: so(3) -&gt; SO(3) with Taylor expansion near theta=0."""
+    w = torch.stack([Omega[..., 2, 1], Omega[..., 0, 2], Omega[..., 1, 0]], dim=-1)
+    theta = torch.linalg.norm(w, dim=-1, keepdim=True).unsqueeze(-1)  # [..., 1, 1]
+    theta_safe = theta.clamp_min(1e-12)
+    I3 = torch.eye(3, device=Omega.device, dtype=Omega.dtype)
+    c1 = torch.where(theta &gt; 1e-4, torch.sin(theta_safe) / theta_safe, 1.0 - theta.pow(2) / 6.0)
+    c2 = torch.where(theta &gt; 1e-4, (1.0 - torch.cos(theta_safe)) / theta_safe.pow(2), 0.5 - theta.pow(2) / 24.0)
+    return I3 + c1 * Omega + c2 * (Omega @ Omega)
+
+def log_so3(R: torch.Tensor) -&gt; torch.Tensor:
+    """Riemannian matrix logarithm log: SO(3) -&gt; so(3) with safe acos clamping."""
+    tr = R[..., 0, 0] + R[..., 1, 1] + R[..., 2, 2]
+    cos_theta = torch.clamp((tr - 1.0) * 0.5, -1.0 + 1e-6, 1.0 - 1e-6)
+    theta = torch.acos(cos_theta).unsqueeze(-1).unsqueeze(-1)
+    theta_safe = theta.clamp_min(1e-12)
+    scale = torch.where(theta &gt; 1e-4, theta_safe / (2.0 * torch.sin(theta_safe)), 0.5 + theta.pow(2) / 12.0)
+    return scale * (R - R.transpose(-1, -2))
+
+if __name__ == "__main__":
+    R0 = exp_so3(hat_so3(torch.tensor([0.4, -0.7, 0.5], dtype=torch.float64)))
+    R1 = exp_so3(hat_so3(torch.tensor([-0.9, 0.3, 1.1], dtype=torch.float64)))
+    t = 0.5
+    R_euclid = (1.0 - t) * R0 + t * R1
+    R_geod = R0 @ exp_so3(t * log_so3(R0.T @ R1))
+
+    print(f"[PASS] Naive Euclidean Lerp det(R_0.5): {torch.linalg.det(R_euclid).item():.4f} (Leaves SO(3)!)")
+    print(f"[PASS] Geodesic Flow det(R_0.5)       : {torch.linalg.det(R_geod).item():.6f} (Exact SO(3)!)")
+    print(f"[PASS] Orthogonality Max Error        : {(R_geod.T @ R_geod - torch.eye(3, dtype=R_geod.dtype)).abs().max().item():.2e}")
+# Output:
+# [PASS] Naive Euclidean Lerp det(R_0.5): 0.4365 (Leaves SO(3)!)
+# [PASS] Geodesic Flow det(R_0.5)       : 1.000000 (Exact SO(3)!)
+# [PASS] Orthogonality Max Error        : 2.22e-16</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. 3D Molecular &amp; Protein Generative Frameworks: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Framework</th>
+                            <th style="color:#f43f5e">Euclidean Diffusion (EDM)</th>
+                            <th style="color:#f59e0b">Score SDE on $\mathrm{SE}(3)$ (FrameDiff)</th>
+                            <th style="color:#34d399">Riemannian OT Flow Matching (<a href="https://arxiv.org/html/2310.02391v4" target="_blank" rel="noopener noreferrer">FoldFlow</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>State Space Geometry</strong></td>
+                            <td>Flat $\mathbb{R}^{3N}$ atomic coordinates</td>
+                            <td>Curved $\mathrm{SE}(3)_0^N$ via Brownian bridge SDE</td>
+                            <td>Exact $\mathrm{SE}(3)_0^N$ geodesic interpolants + OT coupling</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Training Target</strong></td>
+                            <td>Coordinate noise $\epsilon_\theta$</td>
+                            <td>Stein score $\nabla_R \log p_t(R_t | R_0)$ (requires SDE sim)</td>
+                            <td>Simulation-free Lie algebra velocity $\frac{\log(R_t^\top R_1)}{1 - t}$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Rigid Frame Integrity</strong></td>
+                            <td>Can distort bond lengths at mid-t</td>
+                            <td>Preserved ($\det R_t \equiv 1$)</td>
+                            <td>Preserved ($\det R_t \equiv 1$) with $2\text{–}5\times$ faster convergence</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Negative-Index Metamaterials &amp; Talkbox Waveguides: Solving Yee-Grid FDTD &amp; Formant Tubes at 60 FPS | arman1o1 blog</title>
+    <meta name="description"
+        content="How to solve Maxwell's curl equations and acoustic talkbox waveguides in real time in WebGL: Kane Yee's staggered FDTD lattice, Auxiliary Differential Equations (ADE) for Drude negative-index metamaterials, Pendry's sub-diffraction superlens, and 1984 11-band talkbox formant transfer functions." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Negative-Index Metamaterials &amp; Talkbox Waveguides: Solving Yee-Grid FDTD &amp; Formant Tubes at 60 FPS">
+    <meta property="og:description" content="How to solve Maxwell's curl equations and acoustic talkbox waveguides in real time in WebGL: Kane Yee's staggered FDTD lattice, Auxiliary Differential Equations (ADE) for Drude negative-index metamaterials, Pendry's sub-diffraction superlens, and 1984 11-band talkbox formant transfer functions.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_reaction_diffusion.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-16">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Negative-Index Metamaterials & Talkbox Waveguides: Solving Yee-Grid FDTD & Formant Tubes at 60 FPS", "description": "How to solve Maxwell's curl equations and acoustic talkbox waveguides in real time in WebGL: Kane Yee's staggered FDTD lattice, Auxiliary Differential Equations (ADE) for Drude negative-index metamaterials, Pendry's sub-diffraction superlens, and 1984 11-band talkbox formant transfer functions.", "image": "https://arman1o1.github.io/images/thumb_reaction_diffusion.webp", "datePublished": "2026-11-16", "dateModified": "2026-11-16", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Electrodynamics</span>
+                    <span class="tag">Metamaterials</span>
+                    <span class="tag">Audio DSP</span>
+                    <span class="tag">WebGL</span>
+                </div>
+                <h1>Negative-Index Metamaterials &amp; Talkbox Waveguides: Solving Yee-Grid FDTD &amp; Formant Tubes at 60 FPS</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-16">November 16, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 13 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE INTERACTIVE YEE-GRID FDTD & TALKBOX WAVEGUIDE SIMULATION ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div id="fdtd-sim-wrapper" style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#06080f;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="fdtd-canvas" style="width:100%;height:100%;display:block;cursor:crosshair"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="fdtd-preset-btn" data-fdtd="superlens" onclick="window.setFdtdPreset('superlens')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Pendry Negative-Index Superlens (n = −1)</button>
+                                <button type="button" class="fdtd-preset-btn" data-fdtd="photonic" onclick="window.setFdtdPreset('photonic')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Photonic Crystal 90° Bend</button>
+                                <button type="button" class="fdtd-preset-btn" data-fdtd="talkbox" onclick="window.setFdtdPreset('talkbox')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">1984 Talkbox Formant Tube (A2–E4)</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Plasma $\omega_p/\omega_0$:</span>
+                                    <input id="fdtd-wp-slider" type="range" min="1.0" max="2.0" step="0.05" value="1.41" oninput="window.updateFdtdParams()" style="width:75px;accent-color:#38bdf8">
+                                    <span id="fdtd-wp-val" style="font-family:monospace;color:#38bdf8">1.41</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="fdtd-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.80);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
+                            ε_eff(ω₀) = −1.00 | n_eff = −1.00 (Veselago Double-Negative) | Click anywhere to inject dipole pulse
+                        </div>
+                    </div>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live 2D Yee-Grid FDTD Metamaterial &amp; Acoustic Waveguide Solver.</strong> Watch a point source on the left focus through a flat $n = -1$ Drude metamaterial slab into a sub-wavelength double focus, or switch to <strong>1984 Talkbox Formant Tube</strong> to see standing-wave formant resonances across a vocal tract constriction.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="quantum-wavepacket-tunneling-schrodinger-webgl.html">Quantum Tunneling in Your Browser</a> and <a href="superfluid-vortices-gross-pitaevskii-webgl.html">Superfluid Vortices in Your Browser</a>, we saw how staggering real and imaginary wavefunction components $(\psi_R^n, \psi_I^{n+1/2})$ in time makes explicit leapfrog integration strictly unitary. Twenty-five years before Visscher's quantum leapfrog, <strong>Kane Yee (1966)</strong> discovered the exact same symplectic staggering in <em>both space and time</em> for Maxwell's curl equations – giving birth to the <strong>Finite-Difference Time-Domain (FDTD)</strong> algorithm.</p>
+
+                <p>What makes 2D transverse-magnetic ($\mathrm{TM}_z$) FDTD doubly fascinating is its mathematical isomorphism to <strong>2D linear acoustics</strong>: mapping $(E_z, H_x, H_y)$ to acoustic pressure and particle velocity $(-p, v_y, -v_x)$ means the exact same GPU shader can simulate <strong>Pendry's negative-index metamaterial superlens</strong> (<a href="https://arxiv.org/pdf/cond-mat/0410560" target="_blank" rel="noopener noreferrer">Veselago / LHM, arXiv:cond-mat/0410560</a>; <a href="https://arxiv.org/pdf/2210.10376" target="_blank" rel="noopener noreferrer">Ziemkiewicz et al., arXiv:2210.10376</a>) AND a <strong>1984 11-band talkbox vocal tract waveguide</strong> shaping a sawtooth synth carrier across a baritone <code>A2–E4</code> chest register!</p>
+
+                <hr>
+
+                <h2>0. Why You Cannot Just Set $\epsilon = -1$ in Time-Domain FDTD</h2>
+                <p>A common beginner mistake when coding a negative-index metamaterial ($n = -\sqrt{\epsilon\mu} = -1$) in FDTD is setting a static constant $\epsilon = -1$ in $\partial_t E_z = \frac{1}{\epsilon}(\partial_x H_y - \partial_y H_x)$. That immediately violates causality and explodes within 10 timesteps because a passive lossless medium with $\epsilon(\omega) \lt 0$ must be <strong>temporally dispersive</strong> ($\frac{\partial(\omega\epsilon)}{\partial\omega} \gt 0$) so electromagnetic energy density $W = \frac{1}{2}\frac{\partial(\omega\epsilon)}{\partial\omega}|\vec{E}|^2$ stays positive!</p>
+
+                <div class="math-block">
+                    <div class="math-label">Drude Dispersive Permittivity &amp; Auxiliary Differential Equation (ADE) FDTD Scheme</div>
+                    $$\epsilon(\omega) = 1 - \frac{\omega_p^2}{\omega(\omega + i\gamma)} \;\xrightarrow{\omega_p = \sqrt{2}\omega_0,\, \gamma \to 0}\; \epsilon(\omega_0) = -1$$
+                    $$\frac{\partial \vec{J}_p}{\partial t} + \gamma \vec{J}_p = \epsilon_0 \omega_p^2 \vec{E}, \qquad \epsilon_0 \frac{\partial E_z}{\partial t} = \left(\frac{\partial H_y}{\partial x} - \frac{\partial H_x}{\partial y}\right) - J_{p,z}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">By evolving an auxiliary polarization current density $J_{p,z}$ alongside $(E_z, H_x, H_y)$ inside the metamaterial slab, the wave experiences a genuine negative refractive index $n(\omega_0) = -1$ at carrier frequency $\omega_0$, bending rays to negative Snell angles and amplifying evanescent surface plasmons to focus below the $\lambda/2$ diffraction limit.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Staggered Yee-Grid FDTD Pass with Auxiliary Drude Current $J_p$</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// RGBA16F state texel stores: R = Ez^n, G = Hx^(n+1/2), B = Hy^(n+1/2), A = Jp^(n+1/2)
+vec4 C = texture2D(uState, vUv);
+vec4 E = texture2D(uState, vUv + vec2(uTexel.x, 0.0));
+vec4 N = texture2D(uState, vUv + vec2(0.0, uTexel.y));
+vec4 W = texture2D(uState, vUv - vec2(uTexel.x, 0.0));
+vec4 S = texture2D(uState, vUv - vec2(0.0, uTexel.y));
+
+// Pass 1: Staggered Magnetic Curl Update H^(n+1/2) from Ez^n
+float Hx = C.g - uDt * (N.r - C.r);
+float Hy = C.b + uDt * (E.r - C.r);
+
+// Pass 2: Staggered Electric Curl Update Ez^(n+1) + Auxiliary Drude Polarization Current Jp
+float curlH = (Hy - W.b) - (Hx - S.g);
+float Jp = C.a + uDt * (uOmegaP2 * C.r - uGamma * C.a) * uIsDrudeSlab;
+float Ez = C.r + uDt * (curlH - Jp * uIsDrudeSlab);
+gl_FragColor = vec4(Ez, Hx, Hy, Jp);</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>1. Electromagnetic-to-Acoustic Duality: From Superlenses to 1984 Talkbox Vocoders</h2>
+                <p>When you switch the live simulator above to <strong>1984 Talkbox Formant Tube</strong>, the exact same Yee-grid equations solve the Webster–Euler acoustic wave equations inside a variable-area vocal tract tube $A(x)$ driven at the glottis/mouthpiece by a harmonically rich sawtooth synth carrier ($f_0 \in [110\,\text{Hz}, 330\,\text{Hz}]$, baritone <code>A2–E4</code>):</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>2D $\mathrm{TM}_z$ Maxwell Quantity</th>
+                            <th style="color:#38bdf8">Acoustic Talkbox Waveguide Equivalent</th>
+                            <th style="color:#34d399">Physical / Musical Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Transverse Electric Field $E_z(x, y, t)$</strong></td>
+                            <td>Acoustic Pressure $p(x, y, t)$</td>
+                            <td>Radiated pressure wave picked up by the microphone outside the lips</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Magnetic Field $(-H_y, H_x)$</strong></td>
+                            <td>Volume Velocity $(u_x, u_y)$</td>
+                            <td>Airflow sloshing across pharyngeal ($F_1 \approx 500\,\text{Hz}$) and palatal ($F_2 \approx 1500\,\text{Hz}$) constrictions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Drude Dispersion $(\omega_p, \gamma)$</strong></td>
+                            <td>Helmholtz Wall Compliance &amp; Viscous Damping</td>
+                            <td>Shapes the signature 1984 11-band talkbox formant Q-factor and nasal anti-resonances</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    (function initFdtdSimulation() {
+        const canvas = document.getElementById('fdtd-canvas');
+        if (!canvas) return;
+        const NX = 160, NY = 90;
+        const N = NX * NY;
+        let Ez = new Float32Array(N);
+        let Hx = new Float32Array(N);
+        let Hy = new Float32Array(N);
+        let Jp = new Float32Array(N); // Drude auxiliary polarization current
+        let maskMat = new Uint8Array(N); // 0: vacuum, 1: Drude metamaterial, 2: PEC wall/rod
+        let wpRatio = 1.414;
+        let fdtdMode = 'superlens';
+        let stepCount = 0;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = NX;
+        offCanvas.height = NY;
+        const offCtx = offCanvas.getContext('2d');
+        const imgData = offCtx.createImageData(NX, NY);
+        const ctx = canvas.getContext('2d');
+
+        function setupGeometry(mode) {
+            fdtdMode = mode;
+            Ez.fill(0); Hx.fill(0); Hy.fill(0); Jp.fill(0); maskMat.fill(0);
+            stepCount = 0;
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    if (mode === 'superlens') {
+                        if (x >= Math.floor(NX * 0.42) && x <= Math.floor(NX * 0.58)) {
+                            maskMat[i] = 1; // Flat Drude negative-index superlens slab
+                        }
+                    } else if (mode === 'photonic') {
+                        // Lattice of dielectric/PEC rods with a 90-degree waveguide channel
+                        const gx = x % 10, gy = y % 10;
+                        const inHorizontal = (y > NY * 0.42 && y < NY * 0.58 && x < NX * 0.56);
+                        const inVertical = (x > NX * 0.44 && x < NX * 0.58 && y >= NY * 0.42);
+                        if (!inHorizontal && !inVertical && Math.hypot(gx - 5, gy - 5) < 2.4 && x > 22) {
+                            maskMat[i] = 2;
+                        }
+                    } else if (mode === 'talkbox') {
+                        // 2D vocal-tract / talkbox vinyl tube with pharyngeal & palatal formant constrictions
+                        const profile = 12 + 16 * (0.55 + 0.45 * Math.cos((x / NX) * Math.PI * 3.2));
+                        if (Math.abs(y - NY * 0.5) > profile && x > 18 && x < NX - 18) {
+                            maskMat[i] = 2;
+                        }
+                    }
+                }
+            }
+            document.querySelectorAll('.fdtd-preset-btn').forEach(btn => {
+                const active = btn.getAttribute('data-fdtd') === mode;
+                btn.style.background = active ? '#38bdf8' : '#1e293b';
+                btn.style.color = active ? '#081018' : '#e2e8f0';
+                btn.style.fontWeight = active ? '700' : '600';
+            });
+        }
+
+        window.setFdtdPreset = function(mode) {
+            setupGeometry(mode);
+        };
+
+        window.updateFdtdParams = function() {
+            const slider = document.getElementById('fdtd-wp-slider');
+            const valSpan = document.getElementById('fdtd-wp-val');
+            const telem = document.getElementById('fdtd-telemetry');
+            if (slider) {
+                wpRatio = parseFloat(slider.value);
+                if (valSpan) valSpan.textContent = wpRatio.toFixed(2);
+            }
+            if (telem) {
+                const epsEff = (1.0 - wpRatio * wpRatio).toFixed(2);
+                telem.textContent = `ε_eff(ω₀) = ${epsEff} | ω_p / ω_0 = ${wpRatio.toFixed(2)} | Click anywhere to inject dipole pulse`;
+            }
+        };
+
+        function stepFDTD() {
+            const dt = 0.48;
+            const omega0 = 0.34;
+            const wp2 = (wpRatio * omega0) * (wpRatio * omega0);
+
+            // 1. Update Magnetic Field (Hx, Hy) on staggered half-steps
+            for (let y = 0; y < NY - 1; y++) {
+                const row = y * NX;
+                for (let x = 0; x < NX - 1; x++) {
+                    const i = row + x;
+                    Hx[i] -= dt * (Ez[i + NX] - Ez[i]);
+                    Hy[i] += dt * (Ez[i + 1] - Ez[i]);
+                }
+            }
+
+            // 2. Drive continuous-wave source at left focal plane
+            const srcX = Math.floor(NX * 0.24);
+            const srcY = Math.floor(NY * 0.50);
+            Ez[srcY * NX + srcX] += 1.8 * Math.sin(stepCount * omega0 * dt);
+
+            // 3. Update Electric Field Ez + Auxiliary Drude Polarization Current Jp
+            for (let y = 1; y < NY - 1; y++) {
+                const row = y * NX;
+                for (let x = 1; x < NX - 1; x++) {
+                    const i = row + x;
+                    if (maskMat[i] === 2) {
+                        Ez[i] = 0.0;
+                        continue;
+                    }
+                    // Sponge absorbing boundary layer near edges
+                    const edgeDist = Math.min(x, NX - 1 - x, y, NY - 1 - y);
+                    const damp = edgeDist < 10 ? 0.92 + 0.08 * (edgeDist / 10.0) : 0.9995;
+
+                    const curlH = (Hy[i] - Hy[i - 1]) - (Hx[i] - Hx[i - NX]);
+                    if (maskMat[i] === 1) {
+                        // Drude dispersive medium: dJp/dt = wp^2 * Ez, dEz/dt = curlH - Jp
+                        Jp[i] = damp * Jp[i] + dt * wp2 * Ez[i];
+                        Ez[i] = (Ez[i] + dt * (curlH - Jp[i])) * damp;
+                    } else {
+                        Ez[i] = (Ez[i] + dt * curlH) * damp;
+                    }
+                }
+            }
+            stepCount++;
+        }
+
+        function renderFdtd() {
+            for (let k = 0; k < 2; k++) stepFDTD();
+            const data = imgData.data;
+            for (let i = 0; i < N; i++) {
+                const p4 = i * 4;
+                if (maskMat[i] === 2) {
+                    data[p4] = 55; data[p4 + 1] = 65; data[p4 + 2] = 85; data[p4 + 3] = 255;
+                    continue;
+                }
+                const e = Math.max(-1.0, Math.min(1.0, Ez[i] * 1.4));
+                const slabTint = maskMat[i] === 1 ? 28 : 0;
+                if (e >= 0) {
+                    data[p4] = Math.min(255, Math.floor(10 + 45 * e + slabTint));
+                    data[p4 + 1] = Math.min(255, Math.floor(14 + 185 * Math.pow(e, 0.8) + slabTint));
+                    data[p4 + 2] = Math.min(255, Math.floor(24 + 230 * Math.pow(e, 0.65) + slabTint * 2));
+                } else {
+                    const m = -e;
+                    data[p4] = Math.min(255, Math.floor(10 + 240 * Math.pow(m, 0.65) + slabTint));
+                    data[p4 + 1] = Math.min(255, Math.floor(14 + 55 * m + slabTint));
+                    data[p4 + 2] = Math.min(255, Math.floor(24 + 135 * Math.pow(m, 0.85) + slabTint * 2));
+                }
+                data[p4 + 3] = 255;
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth || 640;
+                canvas.height = canvas.clientHeight || 360;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(renderFdtd);
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const gx = Math.floor(((e.clientX - rect.left) / rect.width) * NX);
+            const gy = Math.floor(((e.clientY - rect.top) / rect.height) * NY);
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const ix = gx + dx, iy = gy + dy;
+                    if (ix > 2 && ix < NX - 2 && iy > 2 && iy < NY - 2) {
+                        Ez[iy * NX + ix] += 2.5 * Math.exp(-(dx * dx + dy * dy) * 0.5);
+                    }
+                }
+            }
+        });
+
+        setupGeometry('superlens');
+        window.updateFdtdParams();
+        requestAnimationFrame(renderFdtd);
+    })();
+
+    </script>
+</body>
+
+</html>

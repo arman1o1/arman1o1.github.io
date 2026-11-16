@@ -4,8 +4,43 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-11-14T00:00:00Z</updated>
+  <updated>2026-11-16T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Negative-Index Metamaterials &amp; Talkbox Waveguides: Solving Yee-Grid FDTD &amp; Formant Tubes at 60 FPS</title>
+    <link href="https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html</id>
+    <updated>2026-11-16T00:00:00Z</updated>
+    <summary>How to solve Maxwell&#x27;s curl equations and acoustic talkbox waveguides in real time in WebGL: Kane Yee&#x27;s staggered FDTD lattice, Auxiliary Differential Equations (ADE) for Drude negative-index metamaterials, Pendry&#x27;s sub-diffraction superlens, and 1984 11-band talkbox formant transfer functions.</summary>
+  </entry>
+  <entry>
+    <title>Extracting Energy from Gargantua: Force-Free Kerr Magnetospheres &amp; Blandford–Znajek Relativistic Jets in WebGL2</title>
+    <link href="https://arman1o1.github.io/posts/physics/blandford-znajek-kerr-magnetosphere-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/blandford-znajek-kerr-magnetosphere-webgl.html</id>
+    <updated>2026-11-16T00:00:00Z</updated>
+    <summary>How a spinning Kerr black hole powers relativistic astrophysical jets: force-free electrodynamics in Boyer–Lindquist coordinates, the Znajek horizon regularity condition, ergospheric magnetic twist, and 60 FPS WebGL visualization.</summary>
+  </entry>
+  <entry>
+    <title>SE(3)-Equivariant Flow Matching on Lie Groups: Geodesic Interpolants &amp; Matrix Exponential Maps (FoldFlow)</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/se3-equivariant-flow-matching-foldflow.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/se3-equivariant-flow-matching-foldflow.html</id>
+    <updated>2026-11-16T00:00:00Z</updated>
+    <summary>A first-principles geometric deep learning guide to Riemannian Conditional Flow Matching on SE(3) and SO(3): Rodrigues matrix exponential and logarithmic maps, geodesic optimal transport, and protein backbone generation in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Outlier-Free 4-Bit &amp; FP8 LLM Systems: Hadamard Invariance (QuaRot), Stiefel Rotations (SpinQuant) &amp; Blockwise FP8</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/outlier-free-4bit-fp8-quarot-spinquant.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/outlier-free-4bit-fp8-quarot-spinquant.html</id>
+    <updated>2026-11-16T00:00:00Z</updated>
+    <summary>How orthogonal Walsh–Hadamard rotations (QuaRot), Cayley Stiefel manifold optimization (SpinQuant), and 1x128 blockwise FP8 scaling eliminate Transformer activation outliers and enable lossless W4A4KV4 inference in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Beyond Length-Biased RL: Online Dr. GRPO, Iterative RPO-DPO &amp; Rubric Verifiers Under ASR Noise</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/dr-grpo-rpo-dpo-verifiable-clinical-rl.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/dr-grpo-rpo-dpo-verifiable-clinical-rl.html</id>
+    <updated>2026-11-16T00:00:00Z</updated>
+    <summary>A practitioner&#x27;s first-principles guide to unbiased verifiable reinforcement learning (Dr. GRPO) and Iterative RPO-DPO under noisy multilingual ASR transcripts: fixing length bias, likelihood collapse, and shotgun-questioning exploits in PyTorch.</summary>
+  </entry>
   <entry>
     <title>Fourier Neural Operators (FNO) vs. PINNs: Zero-Shot Super-Resolution on Navier–Stokes</title>
     <link href="https://arman1o1.github.io/posts/ai-ml/fourier-neural-operators-navier-stokes.html"/>

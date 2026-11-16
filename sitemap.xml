@@ -8,11 +8,23 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/archives.html</loc>
-    <lastmod>2026-11-14</lastmod>
+    <lastmod>2026-11-16</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/</loc>
-    <lastmod>2026-11-14</lastmod>
+    <lastmod>2026-11-16</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/se3-equivariant-flow-matching-foldflow.html</loc>
+    <lastmod>2026-11-16</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/outlier-free-4bit-fp8-quarot-spinquant.html</loc>
+    <lastmod>2026-11-16</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/dr-grpo-rpo-dpo-verifiable-clinical-rl.html</loc>
+    <lastmod>2026-11-16</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/fourier-neural-operators-navier-stokes.html</loc>
@@ -56,7 +68,15 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/</loc>
-    <lastmod>2026-11-14</lastmod>
+    <lastmod>2026-11-16</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html</loc>
+    <lastmod>2026-11-16</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/blandford-znajek-kerr-magnetosphere-webgl.html</loc>
+    <lastmod>2026-11-16</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/superfluid-vortices-gross-pitaevskii-webgl.html</loc>
