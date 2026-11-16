@@ -259,7 +259,9 @@ gl_FragColor = vec4(Ez, Hx, Hy, Jp);</code></pre>
         let Ez = new Float32Array(N);
         let Hx = new Float32Array(N);
         let Hy = new Float32Array(N);
-        let Jp = new Float32Array(N); // Drude auxiliary polarization current
+        let Jp = new Float32Array(N); // Drude electric polarization current
+        let Mx = new Float32Array(N); // Drude magnetic polarization current (x)
+        let My = new Float32Array(N); // Drude magnetic polarization current (y)
         let maskMat = new Uint8Array(N); // 0: vacuum, 1: Drude metamaterial, 2: PEC wall/rod
         let wpRatio = 1.414;
         let fdtdMode = 'superlens';
@@ -274,14 +276,14 @@ gl_FragColor = vec4(Ez, Hx, Hy, Jp);</code></pre>
 
         function setupGeometry(mode) {
             fdtdMode = mode;
-            Ez.fill(0); Hx.fill(0); Hy.fill(0); Jp.fill(0); maskMat.fill(0);
+            Ez.fill(0); Hx.fill(0); Hy.fill(0); Jp.fill(0); Mx.fill(0); My.fill(0); maskMat.fill(0);
             stepCount = 0;
             for (let y = 0; y < NY; y++) {
                 for (let x = 0; x < NX; x++) {
                     const i = y * NX + x;
                     if (mode === 'superlens') {
-                        if (x >= Math.floor(NX * 0.42) && x <= Math.floor(NX * 0.58)) {
-                            maskMat[i] = 1; // Flat Drude negative-index superlens slab
+                        if (x >= Math.floor(NX * 0.42) && x <= Math.floor(NX * 0.62)) {
+                            maskMat[i] = 1; // Flat Drude double-negative (n = -1) superlens slab
                         }
                     } else if (mode === 'photonic') {
                         // Lattice of dielectric/PEC rods with a 90-degree waveguide channel
@@ -331,18 +333,27 @@ gl_FragColor = vec4(Ez, Hx, Hy, Jp);</code></pre>
             const omega0 = 0.34;
             const wp2 = (wpRatio * omega0) * (wpRatio * omega0);
 
-            // 1. Update Magnetic Field (Hx, Hy) on staggered half-steps
+            // 1. Update Magnetic Field (Hx, Hy) + Drude Magnetic Currents (Mx, My)
             for (let y = 0; y < NY - 1; y++) {
                 const row = y * NX;
                 for (let x = 0; x < NX - 1; x++) {
                     const i = row + x;
-                    Hx[i] -= dt * (Ez[i + NX] - Ez[i]);
-                    Hy[i] += dt * (Ez[i + 1] - Ez[i]);
+                    const dEzY = Ez[i + NX] - Ez[i];
+                    const dEzX = Ez[i + 1] - Ez[i];
+                    if (maskMat[i] === 1) {
+                        Mx[i] = 0.999 * Mx[i] + dt * wp2 * Hx[i];
+                        My[i] = 0.999 * My[i] + dt * wp2 * Hy[i];
+                        Hx[i] -= dt * (dEzY + Mx[i]);
+                        Hy[i] += dt * (dEzX - My[i]);
+                    } else {
+                        Hx[i] -= dt * dEzY;
+                        Hy[i] += dt * dEzX;
+                    }
                 }
             }
 
             // 2. Drive continuous-wave source at left focal plane
-            const srcX = Math.floor(NX * 0.24);
+            const srcX = Math.floor(NX * (fdtdMode === 'superlens' ? 0.34 : 0.24));
             const srcY = Math.floor(NY * 0.50);
             Ez[srcY * NX + srcX] += 1.8 * Math.sin(stepCount * omega0 * dt);
 
@@ -362,7 +373,7 @@ gl_FragColor = vec4(Ez, Hx, Hy, Jp);</code></pre>
                     const curlH = (Hy[i] - Hy[i - 1]) - (Hx[i] - Hx[i - NX]);
                     if (maskMat[i] === 1) {
                         // Drude dispersive medium: dJp/dt = wp^2 * Ez, dEz/dt = curlH - Jp
-                        Jp[i] = damp * Jp[i] + dt * wp2 * Ez[i];
+                        Jp[i] = 0.999 * Jp[i] + dt * wp2 * Ez[i];
                         Ez[i] = (Ez[i] + dt * (curlH - Jp[i])) * damp;
                     } else {
                         Ez[i] = (Ez[i] + dt * curlH) * damp;
