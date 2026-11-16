@@ -316,9 +316,9 @@ float evaluateKerrJetDensity(vec3 posBL, float spinA, float time) {
         function project3D(x, y, z, w, h, scale) {
             const inc = (incDeg * Math.PI) / 180.0;
             const cy = Math.cos(inc), sy = Math.sin(inc);
-            // z is spin axis (vertical on screen when inc=90)
-            const yCam = y * cy - z * sy;
-            const zCam = y * sy + z * cy;
+            // z is spin axis (vertical on screen when inc=90, polar view when inc=0)
+            const yCam = y * sy + z * cy;
+            const zCam = -y * cy + z * sy;
             const depth = 9.5 + yCam * 0.25;
             const persp = scale / Math.max(2.0, depth);
             return [w * 0.5 + x * persp, h * 0.5 - zCam * persp, yCam];
@@ -330,7 +330,7 @@ float evaluateKerrJetDensity(vec3 posBL, float spinA, float time) {
                 canvas.height = canvas.clientHeight || 360;
             }
             const w = canvas.width, h = canvas.height;
-            const scale = Math.min(w, h) * 1.15;
+            const scale = Math.min(w, h) * 0.92;
             ctx.fillStyle = '#05060a';
             ctx.fillRect(0, 0, w, h);
 
@@ -394,7 +394,7 @@ float evaluateKerrJetDensity(vec3 posBL, float spinA, float time) {
                     ctx.beginPath();
                     for (let s = 0; s <= 70; s++) {
                         const u = s / 70.0;
-                        const z = hemi * (rPlus * 0.78 + u * 4.2);
+                        const z = hemi * (rPlus * 0.92 + u * 3.1);
                         let rhoCyl;
                         if (bzMode === 'parabolic') {
                             rhoCyl = 0.28 * Math.pow(1.0 + u * 4.2, 0.58);
@@ -417,9 +417,9 @@ float evaluateKerrJetDensity(vec3 posBL, float spinA, float time) {
                 }
             }
 
-            // 5. Event Horizon Shadow r_+ (with Bardeen D-shift)
-            const pCenter = project3D(0.12 * spinA, 0, 0, w, h, scale);
-            const rPix = (rPlus * 0.72) * (scale / 9.5);
+            // 5. Event Horizon r_+ (touches r_ergo at poles, inside 2M at equator)
+            const pCenter = project3D(0, 0, 0, w, h, scale);
+            const rPix = rPlus * (scale / 9.5);
             ctx.beginPath();
             ctx.arc(pCenter[0], pCenter[1], rPix, 0, Math.PI * 2);
             ctx.fillStyle = '#020305';
