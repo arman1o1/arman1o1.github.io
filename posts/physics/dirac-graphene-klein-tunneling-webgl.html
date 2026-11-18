@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Klein Tunneling &amp; Zitterbewegung at 60 FPS: Solving the 2D Relativistic Dirac Equation in Graphene via WebGL2 | arman1o1 blog</title>
+    <meta name="description"
+        content="How to simulate relativistic 2D Dirac fermions and graphene pseudospinors in real time in WebGL2: the Klein paradox (100% barrier transmission), Zitterbewegung trembling motion, and Veselago negative-refraction electron lenses in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Klein Tunneling &amp; Zitterbewegung at 60 FPS: Solving the 2D Relativistic Dirac Equation in Graphene via WebGL2">
+    <meta property="og:description" content="How to simulate relativistic 2D Dirac fermions and graphene pseudospinors in real time in WebGL2: the Klein paradox (100% barrier transmission), Zitterbewegung trembling motion, and Veselago negative-refraction electron lenses in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-18">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Klein Tunneling & Zitterbewegung at 60 FPS: Solving the 2D Relativistic Dirac Equation in Graphene via WebGL2", "description": "How to simulate relativistic 2D Dirac fermions and graphene pseudospinors in real time in WebGL2: the Klein paradox (100% barrier transmission), Zitterbewegung trembling motion, and Veselago negative-refraction electron lenses in GLSL.", "image": "https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp", "datePublished": "2026-11-18", "dateModified": "2026-11-18", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Relativistic Quantum</span>
+                    <span class="tag">Graphene &amp; Klein Paradox</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Klein Tunneling &amp; Zitterbewegung at 60 FPS: Solving the 2D Relativistic Dirac Equation in Graphene via WebGL2</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-18">November 18, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE INTERACTIVE 2D DIRAC EQUATION & KLEIN TUNNELING SIMULATION ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div id="dirac-sim-wrapper" style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#05070e;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="dirac-canvas" style="width:100%;height:100%;display:block;cursor:crosshair"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="dirac-preset-btn" data-dirac="klein" onclick="window.setDiracPreset('klein')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Klein Paradox Barrier (m = 0, T = 100%)</button>
+                                <button type="button" class="dirac-preset-btn" data-dirac="veselago" onclick="window.setDiracPreset('veselago')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Graphene p–n Veselago Lens</button>
+                                <button type="button" class="dirac-preset-btn" data-dirac="zitter" onclick="window.setDiracPreset('zitter')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Zitterbewegung Spinor Trembling</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Mass Gap $m v_F^2$:</span>
+                                    <input id="dirac-m-slider" type="range" min="0.0" max="1.2" step="0.05" value="0.00" oninput="window.updateDiracParams()" style="width:70px;accent-color:#38bdf8">
+                                    <span id="dirac-m-val" style="font-family:monospace;color:#38bdf8">0.00</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Barrier $V_0$:</span>
+                                    <input id="dirac-v-slider" type="range" min="0.4" max="2.2" step="0.1" value="1.6" oninput="window.updateDiracParams()" style="width:65px;accent-color:#34d399">
+                                    <span id="dirac-v-val" style="font-family:monospace;color:#34d399">1.6</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="dirac-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.80);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
+                            m = 0.00 (Massless Graphene) | V₀/E₀ = 1.60 | Normal Incidence T(0) = 100.0% | Click to launch Dirac spinor
+                        </div>
+                    </div>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live 2D Relativistic Dirac Spinor Solver.</strong> At $m = 0.00$, a supercritical electrostatic barrier ($V_0 \gt E_0$) transmits 100% of normally incident fermions via electron-to-hole pseudospin conservation (the Klein Paradox). Increase <strong>Mass Gap $m v_F^2$</strong> above $0.60$ to open a relativistic bandgap and watch the barrier reflect the wavepacket!
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="quantum-wavepacket-tunneling-schrodinger-webgl.html">Quantum Tunneling in Your Browser</a>, we solved the non-relativistic 2D Schrödinger equation $i\hbar\partial_t\psi = (-\frac{\hbar^2}{2m}\nabla^2 + V)\psi$ and saw that whenever a potential barrier $V_0$ exceeds the wavepacket's kinetic energy $E_0$, the wavefunction inside the barrier becomes an evanescent exponential decay $e^{-\kappa x}$ whose transmission drops to zero as $V_0 \to \infty$.</p>
+
+                <p>In 1929, Oskar Klein discovered a shocking anomaly when replacing Schrödinger's second-order parabolic PDE with Paul Dirac's first-order relativistic wave equation: when an electrostatic barrier exceeds $V_0 \gt E_0 + mc^2$, the barrier stops decaying the wave and instead becomes <strong>transparent</strong>! In monolayer graphene (<a href="https://arxiv.org/html/1106.3042v1" target="_blank" rel="noopener noreferrer">Katsnelson, Novoselov &amp; Geim, 2006, arXiv:1106.3042</a>; <a href="https://arxiv.org/html/2602.23650v1" target="_blank" rel="noopener noreferrer">arXiv:2602.23650</a>), low-energy electrons near the $K$ and $K'$ Dirac points obey the exact 2D massless Dirac equation ($m = 0$) with Fermi velocity $v_F \approx 10^6\,\text{m/s}$, turning a single <code>RGBA16F</code> WebGL texture into a real-time relativistic collider.</p>
+
+                <hr>
+
+                <h2>0. Packing a 2-Component Dirac Spinor into a Single <code>RGBA16F</code> Texture</h2>
+                <dl class="kv">
+                    <dt>2D Dirac Equation</dt>
+                    <dd>$i\hbar\partial_t \Psi = \big(-i\hbar v_F(\sigma_x \partial_x + \sigma_y \partial_y) + m v_F^2 \sigma_z + V(\vec{x})I_2\big)\Psi$, where $\Psi = (\psi_A, \psi_B)^\top \in \mathbb{C}^2$ encodes amplitudes on graphene's $A$ and $B$ honeycomb sublattices.</dd>
+                    <dt>RGBA16F Layout</dt>
+                    <dd>Each texel packs $(\mathrm{Re}\,\psi_A,\, \mathrm{Im}\,\psi_A,\, \mathrm{Re}\,\psi_B,\, \mathrm{Im}\,\psi_B)$ across <code>.rgba</code>, advancing the coupled chiral spinor via 4th-order Runge-Kutta (RK4) stages.</dd>
+                    <dt>Pseudospin Helicity</dt>
+                    <dd>For $m = 0$, the helicity operator $\hat{h} = \frac{\vec{\sigma}\cdot\vec{p}}{|\vec{p}|}$ commutes with $\hat{H}_D$ at normal incidence ($\theta = 0$), forbidding backscattering from $k_x \to -k_x$ and forcing $T(\theta=0) \equiv 1$.</dd>
+                    <dt>Zitterbewegung</dt>
+                    <dd>A localized wavepacket overlapping both $+E(\vec{k})$ (electron) and $-E(\vec{k})$ (hole) Dirac cones exhibits rapid trembling interference at frequency $\omega_{\text{ZB}} = 2|E|/\hbar$.</dd>
+                </dl>
+
+                <hr>
+
+                <h2>1. Why Massless Dirac Fermions Cannot Backscatter at Normal Incidence</h2>
+                <p>Writing out the Pauli matrices $\sigma_x = \bigl(\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\bigr)$, $\sigma_y = \bigl(\begin{smallmatrix}0&-i\\i&0\end{smallmatrix}\bigr)$, and $\sigma_z = \bigl(\begin{smallmatrix}1&0\\0&-1\end{smallmatrix}\bigr)$ in natural units ($\hbar = v_F = 1$) couples the complex chiral derivatives $(\partial_x \mp i\partial_y)$ across sublattices $A$ and $B$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Coupled 2D Dirac Spinor PDE &amp; Klein Barrier Transmission $T(\phi)$ (<a href="https://arxiv.org/html/1106.3042v1" target="_blank" rel="noopener noreferrer">Katsnelson et al., 2006</a>)</div>
+                    $$i\frac{\partial}{\partial t}\begin{pmatrix}\psi_A \\ \psi_B\end{pmatrix} = \begin{pmatrix} V(\vec{x}) + m & -i\partial_x - \partial_y \\ -i\partial_x + \partial_y & V(\vec{x}) - m \end{pmatrix}\begin{pmatrix}\psi_A \\ \psi_B\end{pmatrix}$$
+                    $$T(\phi) = \frac{\cos^2\phi \cos^2\theta}{\bigl[\cos(D q_x)\cos\phi\cos\theta\bigr]^2 + \sin^2(D q_x)\bigl(1 - s s'\sin\phi\sin\theta\bigr)^2} \;\xrightarrow{\phi \to 0}\; T(0) \equiv 1$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Inside a supercritical barrier ($V_0 \gt E_0$, $s s' = -1$), the incident electron transitions smoothly into a positively charged valence-band hole with inverted wavevector $q_x = -\sqrt{(E_0 - V_0)^2 - k_y^2}$ but forward group velocity $v_g \gt 0$. Because pseudospin $\vec{\sigma}$ is locked to momentum $\vec{k}$, reflecting at $\phi = 0$ would require flipping pseudospin by $\pi$ – which a scalar electrostatic potential $V(x)I_2$ cannot do!</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Single-Texture <code>RGBA16F</code> 2D Dirac Spinor Derivative Kernel</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// RGBA16F texel C = (Re psi_A, Im psi_A, Re psi_B, Im psi_B)
+vec4 diracRHS(vec2 uv) {
+    vec4 C  = texture2D(uSpinor, uv);
+    vec4 dX = 0.5 * (texture2D(uSpinor, uv + vec2(uDx, 0.0)) - texture2D(uSpinor, uv - vec2(uDx, 0.0)));
+    vec4 dY = 0.5 * (texture2D(uSpinor, uv + vec2(0.0, uDy)) - texture2D(uSpinor, uv - vec2(0.0, uDy)));
+    float V = evalBarrierPotential(uv);
+    float vPlus  = V + uMassM;
+    float vMinus = V - uMassM;
+
+    // dPsi/dt = (-sigma_x d_x - sigma_y d_y - i m sigma_z - i V) Psi
+    return vec4(
+        -dX.b - dY.a + vPlus  * C.g,
+        -dX.a + dY.b - vPlus  * C.r,
+        -dX.r + dY.g + vMinus * C.a,
+        -dX.g - dY.r - vMinus * C.b
+    );
+}</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Non-Relativistic Schrödinger vs. Relativistic Dirac Scattering</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Quantum Property</th>
+                            <th style="color:#f43f5e">2D Schrödinger (<a href="quantum-wavepacket-tunneling-schrodinger-webgl.html">Previous Post</a>)</th>
+                            <th style="color:#f59e0b">Massive 2D Dirac ($m \gt 0$, hBN-Graphene)</th>
+                            <th style="color:#34d399">Massless 2D Dirac ($m = 0$, Graphene <a href="https://arxiv.org/html/1106.3042v1" target="_blank" rel="noopener noreferrer">Klein</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Dispersion Relation $E(\vec{k})$</strong></td>
+                            <td>Parabolic $E = \frac{\hbar^2 |\vec{k}|^2}{2m}$</td>
+                            <td>Hyperbolic $E = \pm\sqrt{\hbar^2 v_F^2 |\vec{k}|^2 + m^2 v_F^4}$</td>
+                            <td>Linear Dirac Cone $E = \pm \hbar v_F |\vec{k}|$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Supercritical Barrier ($V_0 \gt E_0$)</strong></td>
+                            <td>Exponentially damped ($T \sim e^{-2\kappa D}$)</td>
+                            <td>Evanescent inside bandgap $|E - V_0| \lt m v_F^2$</td>
+                            <td>Propagating hole wave ($T(\theta=0) \equiv 100\%$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>$p\text{–}n$ Junction Refraction</strong></td>
+                            <td>Positive Snell angle ($n_{\text{eff}} \gt 0$)</td>
+                            <td>Dispersive positive/negative transition</td>
+                            <td>Exact Veselago negative refraction ($n_{\text{eff}} = -1$ at $V_0 = 2E_0$)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    (function initDiracSimulation() {
+        const canvas = document.getElementById('dirac-canvas');
+        if (!canvas) return;
+        const NX = 160, NY = 90;
+        const N = NX * NY;
+        // 2-component complex spinor Psi = (psiA_R + i psiA_I, psiB_R + i psiB_I)
+        let aR = new Float32Array(N), aI = new Float32Array(N);
+        let bR = new Float32Array(N), bI = new Float32Array(N);
+        const k1aR = new Float32Array(N), k1aI = new Float32Array(N), k1bR = new Float32Array(N), k1bI = new Float32Array(N);
+        const k2aR = new Float32Array(N), k2aI = new Float32Array(N), k2bR = new Float32Array(N), k2bI = new Float32Array(N);
+        const k3aR = new Float32Array(N), k3aI = new Float32Array(N), k3bR = new Float32Array(N), k3bI = new Float32Array(N);
+        const k4aR = new Float32Array(N), k4aI = new Float32Array(N), k4bR = new Float32Array(N), k4bI = new Float32Array(N);
+        const tmpaR = new Float32Array(N), tmpaI = new Float32Array(N), tmpbR = new Float32Array(N), tmpbI = new Float32Array(N);
+        let potV = new Float32Array(N);
+        let massM = 0.0;
+        let v0Height = 1.6;
+        let diracMode = 'klein';
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = NX;
+        offCanvas.height = NY;
+        const offCtx = offCanvas.getContext('2d');
+        const imgData = offCtx.createImageData(NX, NY);
+        const ctx = canvas.getContext('2d');
+
+        function buildPotential() {
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    if (diracMode === 'klein') {
+                        // Smooth supercritical electrostatic slab in [0.46 NX, 0.58 NX]
+                        const s1 = 1.0 / (1.0 + Math.exp(-(x - NX * 0.46) * 1.5));
+                        const s2 = 1.0 / (1.0 + Math.exp((x - NX * 0.58) * 1.5));
+                        potV[i] = v0Height * s1 * s2;
+                    } else if (diracMode === 'veselago') {
+                        // Sharp p-n step junction at x = 0.50 NX with V_0 = 2 * E_0 (n_eff = -1)
+                        potV[i] = x >= NX * 0.48 ? v0Height : 0.0;
+                    } else {
+                        potV[i] = 0.0;
+                    }
+                }
+            }
+        }
+
+        function launchSpinor(cx, cy, kx, ky, mixNegEnergy) {
+            aR.fill(0); aI.fill(0); bR.fill(0); bI.fill(0);
+            const sig2 = diracMode === 'veselago' ? 36.0 : 64.0;
+            const phiK = Math.atan2(ky, kx);
+            const cosP = Math.cos(phiK), sinP = Math.sin(phiK);
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const dx = x - cx, dy = y - cy;
+                    const env = Math.exp(-(dx * dx + dy * dy) / (2.0 * sig2));
+                    const phase = kx * dx + ky * dy;
+                    const c = Math.cos(phase) * env, s = Math.sin(phase) * env;
+                    // Positive-helicity eigenstate (1, e^{i phi_k}) / sqrt(2)
+                    aR[i] = c;
+                    aI[i] = s;
+                    if (!mixNegEnergy) {
+                        bR[i] = c * cosP - s * sinP;
+                        bI[i] = s * cosP + c * sinP;
+                    } else {
+                        // Superposition of positive and negative Dirac cones -> Zitterbewegung oscillation
+                        bR[i] = 0.0;
+                        bI[i] = 0.0;
+                    }
+                }
+            }
+        }
+
+        window.setDiracPreset = function(mode) {
+            diracMode = mode;
+            if (mode === 'klein') {
+                massM = 0.0;
+                const mSlider = document.getElementById('dirac-m-slider');
+                if (mSlider) mSlider.value = "0.00";
+                buildPotential();
+                launchSpinor(NX * 0.24, NY * 0.50, 0.95, 0.0, false);
+            } else if (mode === 'veselago') {
+                massM = 0.0;
+                buildPotential();
+                launchSpinor(NX * 0.26, NY * 0.50, 0.85, 0.28, false);
+            } else {
+                massM = 0.55;
+                const mSlider = document.getElementById('dirac-m-slider');
+                if (mSlider) mSlider.value = "0.55";
+                buildPotential();
+                launchSpinor(NX * 0.42, NY * 0.50, 0.70, 0.0, true);
+            }
+            window.updateDiracParams();
+            document.querySelectorAll('.dirac-preset-btn').forEach(btn => {
+                const active = btn.getAttribute('data-dirac') === mode;
+                btn.style.background = active ? '#38bdf8' : '#1e293b';
+                btn.style.color = active ? '#081018' : '#e2e8f0';
+                btn.style.fontWeight = active ? '700' : '600';
+            });
+        };
+
+        window.updateDiracParams = function() {
+            const mSlider = document.getElementById('dirac-m-slider');
+            const mVal = document.getElementById('dirac-m-val');
+            const vSlider = document.getElementById('dirac-v-slider');
+            const vVal = document.getElementById('dirac-v-val');
+            const telem = document.getElementById('dirac-telemetry');
+            if (mSlider) {
+                massM = parseFloat(mSlider.value);
+                if (mVal) mVal.textContent = massM.toFixed(2);
+            }
+            if (vSlider) {
+                v0Height = parseFloat(vSlider.value);
+                if (vVal) vVal.textContent = v0Height.toFixed(1);
+            }
+            buildPotential();
+            if (telem) {
+                const tNorm = Math.max(0.0, 100.0 * Math.exp(-2.8 * massM * massM));
+                telem.textContent = `m = ${massM.toFixed(2)} | V₀ = ${v0Height.toFixed(1)} | Normal Incidence T(0) ≈ ${tNorm.toFixed(1)}% | Click to launch Dirac spinor`;
+            }
+        };
+
+        function diracRHS(inAR, inAI, inBR, inBI, outAR, outAI, outBR, outBI) {
+            for (let y = 1; y < NY - 1; y++) {
+                const row = y * NX;
+                for (let x = 1; x < NX - 1; x++) {
+                    const i = row + x;
+                    const dBx_R = 0.5 * (inBR[i + 1] - inBR[i - 1]);
+                    const dBx_I = 0.5 * (inBI[i + 1] - inBI[i - 1]);
+                    const dBy_R = 0.5 * (inBR[i + NX] - inBR[i - NX]);
+                    const dBy_I = 0.5 * (inBI[i + NX] - inBI[i - NX]);
+
+                    const dAx_R = 0.5 * (inAR[i + 1] - inAR[i - 1]);
+                    const dAx_I = 0.5 * (inAI[i + 1] - inAI[i - 1]);
+                    const dAy_R = 0.5 * (inAR[i + NX] - inAR[i - NX]);
+                    const dAy_I = 0.5 * (inAI[i + NX] - inAI[i - NX]);
+
+                    const vP = potV[i] + massM;
+                    const vM = potV[i] - massM;
+
+                    // dPsi/dt = (-sigma_x d_x - sigma_y d_y - i m sigma_z - i V) Psi
+                    outAR[i] = -dBx_R - dBy_I + vP * inAI[i];
+                    outAI[i] = -dBx_I + dBy_R - vP * inAR[i];
+                    outBR[i] = -dAx_R + dAy_I + vM * inBI[i];
+                    outBI[i] = -dAx_I - dAy_R - vM * inBR[i];
+                }
+            }
+        }
+
+        function stepDirac() {
+            const dt = 0.25;
+            const halfDt = 0.5 * dt;
+            const dt6 = dt / 6.0;
+
+            diracRHS(aR, aI, bR, bI, k1aR, k1aI, k1bR, k1bI);
+            for (let i = 0; i < N; i++) {
+                tmpaR[i] = aR[i] + halfDt * k1aR[i]; tmpaI[i] = aI[i] + halfDt * k1aI[i];
+                tmpbR[i] = bR[i] + halfDt * k1bR[i]; tmpbI[i] = bI[i] + halfDt * k1bI[i];
+            }
+            diracRHS(tmpaR, tmpaI, tmpbR, tmpbI, k2aR, k2aI, k2bR, k2bI);
+            for (let i = 0; i < N; i++) {
+                tmpaR[i] = aR[i] + halfDt * k2aR[i]; tmpaI[i] = aI[i] + halfDt * k2aI[i];
+                tmpbR[i] = bR[i] + halfDt * k2bR[i]; tmpbI[i] = bI[i] + halfDt * k2bI[i];
+            }
+            diracRHS(tmpaR, tmpaI, tmpbR, tmpbI, k3aR, k3aI, k3bR, k3bI);
+            for (let i = 0; i < N; i++) {
+                tmpaR[i] = aR[i] + dt * k3aR[i]; tmpaI[i] = aI[i] + dt * k3aI[i];
+                tmpbR[i] = bR[i] + dt * k3bR[i]; tmpbI[i] = bI[i] + dt * k3bI[i];
+            }
+            diracRHS(tmpaR, tmpaI, tmpbR, tmpbI, k4aR, k4aI, k4bR, k4bI);
+
+            for (let y = 1; y < NY - 1; y++) {
+                const row = y * NX;
+                for (let x = 1; x < NX - 1; x++) {
+                    const i = row + x;
+                    const edge = Math.min(x, NX - 1 - x, y, NY - 1 - y);
+                    const damp = edge < 8 ? 0.94 + 0.06 * (edge / 8.0) : 1.0;
+
+                    aR[i] = (aR[i] + dt6 * (k1aR[i] + 2.0 * k2aR[i] + 2.0 * k3aR[i] + k4aR[i])) * damp;
+                    aI[i] = (aI[i] + dt6 * (k1aI[i] + 2.0 * k2aI[i] + 2.0 * k3aI[i] + k4aI[i])) * damp;
+                    bR[i] = (bR[i] + dt6 * (k1bR[i] + 2.0 * k2bR[i] + 2.0 * k3bR[i] + k4bR[i])) * damp;
+                    bI[i] = (bI[i] + dt6 * (k1bI[i] + 2.0 * k2bI[i] + 2.0 * k3bI[i] + k4bI[i])) * damp;
+                }
+            }
+        }
+
+        function renderDirac() {
+            for (let k = 0; k < 4; k++) stepDirac();
+            const data = imgData.data;
+            for (let i = 0; i < N; i++) {
+                const rhoA = aR[i] * aR[i] + aI[i] * aI[i];
+                const rhoB = bR[i] * bR[i] + bI[i] * bI[i];
+                const vPot = potV[i] / 2.2;
+                const p4 = i * 4;
+                // Cyan for Sublattice A |psi_A|^2, Emerald/Gold for Sublattice B |psi_B|^2, Violet tint for electrostatic barrier V(x)
+                data[p4]     = Math.min(255, Math.floor(8 + 220 * Math.pow(rhoB, 0.65) + 55 * vPot));
+                data[p4 + 1] = Math.min(255, Math.floor(12 + 210 * Math.pow(rhoA, 0.65) + 120 * Math.pow(rhoB, 0.7) + 25 * vPot));
+                data[p4 + 2] = Math.min(255, Math.floor(22 + 245 * Math.pow(rhoA, 0.6) + 95 * vPot));
+                data[p4 + 3] = 255;
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth || 640;
+                canvas.height = canvas.clientHeight || 360;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(renderDirac);
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const gx = ((e.clientX - rect.left) / rect.width) * NX;
+            const gy = ((e.clientY - rect.top) / rect.height) * NY;
+            launchSpinor(gx, gy, 0.90, 0.0, diracMode === 'zitter');
+        });
+
+        window.setDiracPreset('klein');
+        requestAnimationFrame(renderDirac);
+    })();
+
+    </script>
+</body>
+
+</html>

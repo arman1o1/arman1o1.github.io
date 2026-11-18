@@ -4,8 +4,43 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-11-16T00:00:00Z</updated>
+  <updated>2026-11-18T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Klein Tunneling &amp; Zitterbewegung at 60 FPS: Solving the 2D Relativistic Dirac Equation in Graphene via WebGL2</title>
+    <link href="https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html</id>
+    <updated>2026-11-18T00:00:00Z</updated>
+    <summary>How to simulate relativistic 2D Dirac fermions and graphene pseudospinors in real time in WebGL2: the Klein paradox (100% barrier transmission), Zitterbewegung trembling motion, and Veselago negative-refraction electron lenses in GLSL.</summary>
+  </entry>
+  <entry>
+    <title>Spinodal Decomposition &amp; Ostwald Ripening at 60 FPS: Solving 4th-Order Cahn–Hilliard Biharmonic PDEs in WebGL2</title>
+    <link href="https://arman1o1.github.io/posts/physics/cahn-hilliard-spinodal-decomposition-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/cahn-hilliard-spinodal-decomposition-webgl.html</id>
+    <updated>2026-11-18T00:00:00Z</updated>
+    <summary>How to solve the fourth-order Cahn–Hilliard phase-field PDE in real time in WebGL2: conserved H^-1 gradient flow, two-pass chemical potential biharmonic splitting, Eyre convex-concave stabilization, Ostwald ripening t^(1/3) coarsening, and hyperuniformity in GLSL.</summary>
+  </entry>
+  <entry>
+    <title>Disentangling Polysemantic Superposition: TopK &amp; JumpReLU Sparse Autoencoders (SAEs) and Dead-Latent Resurrection</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/topk-jumprelu-sparse-autoencoders-superposition.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/topk-jumprelu-sparse-autoencoders-superposition.html</id>
+    <updated>2026-11-18T00:00:00Z</updated>
+    <summary>A first-principles mechanistic interpretability guide to TopK and JumpReLU Sparse Autoencoders (SAEs): eliminating L1 activation shrinkage, Riemannian tangent gradient projection on unit-norm decoders, and AuxK dead-latent revival in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Beyond AdamW: Matrix Orthogonalization (Muon), Newton–Schulz Iteration &amp; RMS Scale Alignment at 16B+ Scale</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/muon-optimizer-newton-schulz-llm-training.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/muon-optimizer-newton-schulz-llm-training.html</id>
+    <updated>2026-11-18T00:00:00Z</updated>
+    <summary>A practitioner&#x27;s first-principles guide to the Muon optimizer and Moonlight scaling laws: 5-step quintic Newton–Schulz matrix orthogonalization in BF16, 0.2*sqrt(max(m,n)) RMS update alignment, and per-head QKV splitting in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Full-Duplex Speech-to-Speech Systems: Parallel Audio-Text Streams (Moshi), Inner Monologue &amp; WebSocket Barge-In</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/full-duplex-speech-moshi-barge-in-systems.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/full-duplex-speech-moshi-barge-in-systems.html</id>
+    <updated>2026-11-18T00:00:00Z</updated>
+    <summary>How to architect sub-200ms full-duplex conversational audio systems: Dual-Stream RQ-Transformers (Moshi), time-aligned Inner Monologue text prefixes, acoustic delay patterns, and WebSocket barge-in KV-cache rollback.</summary>
+  </entry>
   <entry>
     <title>Negative-Index Metamaterials &amp; Talkbox Waveguides: Solving Yee-Grid FDTD &amp; Formant Tubes at 60 FPS</title>
     <link href="https://arman1o1.github.io/posts/physics/maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html"/>

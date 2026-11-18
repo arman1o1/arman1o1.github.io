@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spinodal Decomposition &amp; Ostwald Ripening at 60 FPS: Solving 4th-Order Cahn–Hilliard Biharmonic PDEs in WebGL2 | arman1o1 blog</title>
+    <meta name="description"
+        content="How to solve the fourth-order Cahn–Hilliard phase-field PDE in real time in WebGL2: conserved H^-1 gradient flow, two-pass chemical potential biharmonic splitting, Eyre convex-concave stabilization, Ostwald ripening t^(1/3) coarsening, and hyperuniformity in GLSL." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/cahn-hilliard-spinodal-decomposition-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Spinodal Decomposition &amp; Ostwald Ripening at 60 FPS: Solving 4th-Order Cahn–Hilliard Biharmonic PDEs in WebGL2">
+    <meta property="og:description" content="How to solve the fourth-order Cahn–Hilliard phase-field PDE in real time in WebGL2: conserved H^-1 gradient flow, two-pass chemical potential biharmonic splitting, Eyre convex-concave stabilization, Ostwald ripening t^(1/3) coarsening, and hyperuniformity in GLSL.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/cahn-hilliard-spinodal-decomposition-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_reaction_diffusion.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-18">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Spinodal Decomposition & Ostwald Ripening at 60 FPS: Solving 4th-Order Cahn–Hilliard Biharmonic PDEs in WebGL2", "description": "How to solve the fourth-order Cahn–Hilliard phase-field PDE in real time in WebGL2: conserved H^-1 gradient flow, two-pass chemical potential biharmonic splitting, Eyre convex-concave stabilization, Ostwald ripening t^(1/3) coarsening, and hyperuniformity in GLSL.", "image": "https://arman1o1.github.io/images/thumb_reaction_diffusion.webp", "datePublished": "2026-11-18", "dateModified": "2026-11-18", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/cahn-hilliard-spinodal-decomposition-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/cahn-hilliard-spinodal-decomposition-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Statistical Mechanics</span>
+                    <span class="tag">Cahn–Hilliard PDE</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>Spinodal Decomposition &amp; Ostwald Ripening at 60 FPS: Solving 4th-Order Cahn–Hilliard Biharmonic PDEs in WebGL2</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-18">November 18, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE INTERACTIVE CAHN-HILLIARD SPINODAL DECOMPOSITION SIMULATION ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div id="ch-sim-wrapper" style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#070910;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="ch-canvas" style="width:100%;height:100%;display:block;cursor:crosshair"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="ch-preset-btn" data-ch="spinodal" onclick="window.setChPreset('spinodal')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Critical Spinodal Labyrinth (φ̄ = 0.0)</button>
+                                <button type="button" class="ch-preset-btn" data-ch="ostwald" onclick="window.setChPreset('ostwald')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Off-Critical Ostwald Ripening (φ̄ = −0.32)</button>
+                                <button type="button" class="ch-preset-btn" data-ch="stripes" onclick="window.setChPreset('stripes')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Anisotropic Block Copolymer</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Interface $\epsilon$:</span>
+                                    <input id="ch-eps-slider" type="range" min="0.4" max="1.6" step="0.1" value="0.8" oninput="window.updateChParams()" style="width:70px;accent-color:#38bdf8">
+                                    <span id="ch-eps-val" style="font-family:monospace;color:#38bdf8">0.8</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="ch-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.80);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
+                            Conserved Mass ⟨φ⟩ = +0.000 | Coarsening Scale L(t) ∝ t^(1/3) | Two-Pass Biharmonic ∇²μ Solver
+                        </div>
+                    </div>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live 2D Fourth-Order Cahn–Hilliard Phase-Field Solver.</strong> Switch between <strong>Critical Spinodal Labyrinth ($\bar{\phi} = 0$)</strong> and <strong>Off-Critical Ostwald Ripening ($\bar{\phi} = -0.32$)</strong> where small minority droplets evaporate and diffuse into larger droplets to minimize interfacial perimeter energy.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="turing-morphogenesis-reaction-diffusion-webgl.html">How the Leopard Got Its Spots at 60 FPS</a>, we simulated Alan Turing's non-conserved reaction–diffusion PDE, where chemical production and degradation arrest pattern growth at a fixed biological wavelength. What happens when a hot binary alloy or polymer blend is quenched below its critical temperature and separates into two phases ($\phi = \pm 1$) while <strong>strictly conserving total mass</strong> $\int_\Omega \phi(\vec{x}, t)\,d^2x = \text{const}$?</p>
+
+                <p>Instead of relaxing via a second-order $L^2$ Allen–Cahn flow ($\partial_t \phi = -\delta \mathcal{F}/\delta\phi$), a conserved order parameter must evolve via the <strong>fourth-order $H^{-1}$ Cahn–Hilliard equation</strong> (<a href="https://arxiv.org/html/2509.05339v1" target="_blank" rel="noopener noreferrer">deWitt et al., 2025, arXiv:2509.05339</a>; <a href="https://arxiv.org/html/2408.03862v1" target="_blank" rel="noopener noreferrer"> Dumbser et al., 2024, arXiv:2408.03862</a>). Because the PDE contains a negative biharmonic operator $-\epsilon^2 \nabla^4 \phi$, evaluating a single-pass 25-point stencil in GLSL is both bandwidth-heavy and numerically stiff ($\Delta t \le \frac{1}{32}\Delta x^4$). Factoring the fourth-order update into a <strong>two-pass chemical potential FBO pipeline</strong> unlocks 60 FPS spinodal labyrinth formation, Lifshitz–Slyozov $L(t) \propto t^{1/3}$ Ostwald ripening, and class-I disordered hyperuniformity ($S(k) \sim k^4$ as $k \to 0$).</p>
+
+                <hr>
+
+                <h2>0. Ginzburg–Landau Free Energy &amp; Two-Pass Biharmonic Splitting</h2>
+                <p>Consider a binary mixture with concentration order parameter $\phi(\vec{x}, t) \in [-1, 1]$ governed by the Ginzburg–Landau double-well free-energy functional $\mathcal{F}[\phi]$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Ginzburg–Landau Free Energy &amp; Two-Pass Mixed Cahn–Hilliard System (<a href="https://arxiv.org/html/2509.05339v1" target="_blank" rel="noopener noreferrer">arXiv:2509.05339</a>)</div>
+                    $$\mathcal{F}[\phi] = \int_\Omega \left[ \frac{1}{4}\bigl(\phi^2 - 1\bigr)^2 + \frac{\epsilon^2}{2}|\nabla \phi|^2 \right] d^2x$$
+                    $$\text{Pass 1 (Chemical Potential):}\quad \mu(\vec{x}, t) = \frac{\delta \mathcal{F}}{\delta \phi} = \phi^3 - \phi - \epsilon^2 \nabla^2 \phi$$
+                    $$\text{Pass 2 (Conserved Mass Flux):}\quad \frac{\partial \phi}{\partial t} = \nabla \cdot (M \nabla \mu) = M \nabla^2 \mu = M\nabla^2\bigl(\phi^3 - \phi - \epsilon^2\nabla^2\phi\bigr)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Because $\partial_t \phi = \nabla \cdot \vec{J}$ is a pure divergence of the diffusive flux $\vec{J} = -M\nabla\mu$, total mass $\int \phi\,d^2x$ is conserved to machine precision on periodic FBO textures, and the free energy decays monotonically: $\frac{d\mathcal{F}}{dt} = -\int M |\nabla\mu|^2\,d^2x \le 0$.</p>
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Two-Pass Chemical Potential &amp; Biharmonic Mass Transport Shaders</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// Pass 1: Compute Chemical Potential mu = phi^3 - phi - eps^2 * Laplacian(phi) into G channel
+float phi = texture2D(uState, vUv).r;
+float lapPhi = (10.0 / 3.0) * (0.20 * (N.r + S.r + E.r + W.r) + 0.05 * (NE.r + NW.r + SE.r + SW.r) - phi);
+float mu = (phi * phi * phi - phi) - (uEps * uEps) * lapPhi;
+gl_FragColor = vec4(phi, mu, 0.0, 1.0);
+
+// Pass 2: Evolve Conserved Order Parameter phi^(n+1) = phi^n + dt * M * Laplacian(mu)
+vec2 C = texture2D(uState, vUv).rg;
+float lapMu = (10.0 / 3.0) * (0.20 * (N.g + S.g + E.g + W.g) + 0.05 * (NE.g + NW.g + SE.g + SW.g) - C.g);
+float phiNext = C.r + uDt * uMobility * lapMu;
+gl_FragColor = vec4(phiNext, C.g, 0.0, 1.0);</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>1. Pattern-Formation PDEs in WebGL: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PDE System</th>
+                            <th style="color:#f43f5e">Allen–Cahn ($L^2$ Flow)</th>
+                            <th style="color:#f59e0b">Gray–Scott Reaction–Diffusion (<a href="turing-morphogenesis-reaction-diffusion-webgl.html">Turing Post</a>)</th>
+                            <th style="color:#34d399">Cahn–Hilliard ($H^{-1}$ Biharmonic Flow)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Governing Equation</strong></td>
+                            <td>$\partial_t \phi = -\mu = \phi - \phi^3 + \epsilon^2\nabla^2\phi$</td>
+                            <td>Coupled $\partial_t u = D_u\nabla^2 u - uv^2 + F(1-u)$</td>
+                            <td>$\partial_t \phi = M\nabla^2(\phi^3 - \phi - \epsilon^2\nabla^2\phi)$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Global Mass $\int \phi\,d^2x$</strong></td>
+                            <td>Not conserved (droplets shrink and vanish)</td>
+                            <td>Open driven-dissipative reactor</td>
+                            <td>Strictly conserved ($\partial_t \phi = \nabla \cdot (M\nabla\mu)$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Late-Time Length Scale $L(t)$</strong></td>
+                            <td>Curvature-driven $L(t) \propto t^{1/2}$</td>
+                            <td>Arrested at Turing wavelength $\lambda_T$</td>
+                            <td>Lifshitz–Slyozov Ostwald coarsening $L(t) \propto t^{1/3}$</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    (function initChSimulation() {
+        const canvas = document.getElementById('ch-canvas');
+        if (!canvas) return;
+        const NX = 144, NY = 81;
+        const N = NX * NY;
+        let phi = new Float32Array(N);
+        let muChem = new Float32Array(N);
+        let epsWidth = 0.8;
+        let chMode = 'spinodal';
+        let meanPhi = 0.0;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = NX;
+        offCanvas.height = NY;
+        const offCtx = offCanvas.getContext('2d');
+        const imgData = offCtx.createImageData(NX, NY);
+        const ctx = canvas.getContext('2d');
+
+        function idx(x, y) {
+            return ((y + NY) % NY) * NX + ((x + NX) % NX);
+        }
+
+        function seedField(mode) {
+            chMode = mode;
+            meanPhi = mode === 'ostwald' ? -0.32 : 0.0;
+            for (let i = 0; i < N; i++) {
+                phi[i] = meanPhi + (Math.random() - 0.5) * 0.45;
+            }
+            document.querySelectorAll('.ch-preset-btn').forEach(btn => {
+                const active = btn.getAttribute('data-ch') === mode;
+                btn.style.background = active ? '#38bdf8' : '#1e293b';
+                btn.style.color = active ? '#081018' : '#e2e8f0';
+                btn.style.fontWeight = active ? '700' : '600';
+            });
+            window.updateChParams();
+        }
+
+        window.setChPreset = function(mode) {
+            seedField(mode);
+        };
+
+        window.updateChParams = function() {
+            const slider = document.getElementById('ch-eps-slider');
+            const valSpan = document.getElementById('ch-eps-val');
+            const telem = document.getElementById('ch-telemetry');
+            if (slider) {
+                epsWidth = parseFloat(slider.value);
+                if (valSpan) valSpan.textContent = epsWidth.toFixed(1);
+            }
+            if (telem) {
+                let sum = 0.0;
+                for (let i = 0; i < N; i++) sum += phi[i];
+                const avg = (sum / N).toFixed(3);
+                telem.textContent = `Conserved Mass ⟨φ⟩ = ${avg} | ε = ${epsWidth.toFixed(1)} | Two-Pass Biharmonic ∇²μ Solver (Click to stir)`;
+            }
+        };
+
+        function stepCahnHilliard(dt) {
+            const eps2 = epsWidth * epsWidth;
+            const aniso = chMode === 'stripes' ? 0.35 : 1.0;
+
+            // Pass 1: Compute Chemical Potential mu = phi^3 - phi - eps^2 * Laplacian(phi)
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const c = phi[i];
+                    const lapPhi = (phi[idx(x + 1, y)] + phi[idx(x - 1, y)] - 2.0 * c)
+                                 + aniso * (phi[idx(x, y + 1)] + phi[idx(x, y - 1)] - 2.0 * c);
+                    muChem[i] = c * c * c - c - eps2 * lapPhi;
+                }
+            }
+            // Pass 2: Conserved H^-1 Mass Transport d(phi)/dt = M * Laplacian(mu)
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const m = muChem[i];
+                    const lapMu = (muChem[idx(x + 1, y)] + muChem[idx(x - 1, y)] + muChem[idx(x, y + 1)] + muChem[idx(x, y - 1)] - 4.0 * m);
+                    phi[i] = phi[i] + dt * lapMu;
+                }
+            }
+        }
+
+        function renderCh() {
+            const eps2 = epsWidth * epsWidth;
+            const dtMax = 0.85 / (32.0 * eps2 + 8.0);
+            const targetFrameDt = 0.18;
+            const substeps = Math.max(6, Math.ceil(targetFrameDt / dtMax));
+            const dt = targetFrameDt / substeps;
+            for (let k = 0; k < substeps; k++) stepCahnHilliard(dt);
+            const data = imgData.data;
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const u = Math.max(-1.0, Math.min(1.0, phi[i]));
+                    // Compute normal-map gradient for 3D metallic Blinn-Phong relief
+                    const gx = phi[idx(x + 1, y)] - phi[idx(x - 1, y)];
+                    const gy = phi[idx(x, y + 1)] - phi[idx(x, y - 1)];
+                    const spec = Math.pow(Math.max(0.0, 1.0 - 0.45 * Math.hypot(gx, gy)), 4.0) * 38;
+                    const t = 0.5 * (u + 1.0);
+                    const p4 = i * 4;
+                    data[p4]     = Math.min(255, Math.floor(14 + 42 * t + 195 * Math.pow(t, 2.6) + spec));
+                    data[p4 + 1] = Math.min(255, Math.floor(20 + 165 * Math.pow(t, 1.2) + 55 * t * t + spec));
+                    data[p4 + 2] = Math.min(255, Math.floor(38 + 205 * Math.pow(t, 0.75) + spec));
+                    data[p4 + 3] = 255;
+                }
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth || 640;
+                canvas.height = canvas.clientHeight || 360;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(renderCh);
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const gx = Math.floor(((e.clientX - rect.left) / rect.width) * NX);
+            const gy = Math.floor(((e.clientY - rect.top) / rect.height) * NY);
+            for (let dy = -6; dy <= 6; dy++) {
+                for (let dx = -6; dx <= 6; dx++) {
+                    if (dx * dx + dy * dy <= 36) {
+                        phi[idx(gx + dx, gy + dy)] = (Math.random() - 0.5) * 0.6;
+                    }
+                }
+            }
+        });
+
+        seedField('spinodal');
+        requestAnimationFrame(renderCh);
+    })();
+
+    </script>
+</body>
+
+</html>

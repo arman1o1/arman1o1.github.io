@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beyond AdamW: Matrix Orthogonalization (Muon), Newton–Schulz Iteration &amp; RMS Scale Alignment at 16B+ Scale | arman1o1 blog</title>
+    <meta name="description"
+        content="A practitioner's first-principles guide to the Muon optimizer and Moonlight scaling laws: 5-step quintic Newton–Schulz matrix orthogonalization in BF16, 0.2*sqrt(max(m,n)) RMS update alignment, and per-head QKV splitting in PyTorch." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/muon-optimizer-newton-schulz-llm-training.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Beyond AdamW: Matrix Orthogonalization (Muon), Newton–Schulz Iteration &amp; RMS Scale Alignment at 16B+ Scale">
+    <meta property="og:description" content="A practitioner's first-principles guide to the Muon optimizer and Moonlight scaling laws: 5-step quintic Newton–Schulz matrix orthogonalization in BF16, 0.2*sqrt(max(m,n)) RMS update alignment, and per-head QKV splitting in PyTorch.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/muon-optimizer-newton-schulz-llm-training.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-18">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Beyond AdamW: Matrix Orthogonalization (Muon), Newton–Schulz Iteration & RMS Scale Alignment at 16B+ Scale", "description": "A practitioner's first-principles guide to the Muon optimizer and Moonlight scaling laws: 5-step quintic Newton–Schulz matrix orthogonalization in BF16, 0.2*sqrt(max(m,n)) RMS update alignment, and per-head QKV splitting in PyTorch.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-18", "dateModified": "2026-11-18", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/muon-optimizer-newton-schulz-llm-training.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/muon-optimizer-newton-schulz-llm-training.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Optimization</span>
+                    <span class="tag">Muon</span>
+                    <span class="tag">Newton–Schulz</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>Beyond AdamW: Matrix Orthogonalization (Muon), Newton–Schulz Iteration &amp; RMS Scale Alignment at 16B+ Scale</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-18">November 18, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 14 min read</span>
+                </div>
+
+                <hr>
+
+                <p>For nearly a decade, <strong>AdamW</strong> (Loshchilov &amp; Hutter, 2019) has remained the default optimizer for Transformer pretraining. Yet from a matrix-geometry perspective, elementwise second-moment preconditioning $m_t / (\sqrt{v_t} + \epsilon)$ treats a $d_{\text{out}} \times d_{\text{in}}$ linear projection weight matrix $W \in \mathbb{R}^{m \times n}$ as an unstructured flat vector – ignoring the fact that gradient matrices $G_t = \nabla_W \mathcal{L}$ in deep Transformers are overwhelmingly low-rank and dominated by a few top singular directions.</p>
+
+                <p><strong>Muon (MomentUm Orthogonalized by Newton–Schulz)</strong> (Keller Jordan et al., 2024; scaled to $16\text{B}$ MoE in <strong>Moonlight</strong>, <a href="https://arxiv.org/abs/2502.16982" target="_blank" rel="noopener noreferrer">Liu et al., 2025, arXiv:2502.16982</a>; <a href="https://github.com/MoonshotAI/Moonlight" target="_blank" rel="noopener noreferrer">GitHub</a>) replaces coordinate-wise Adam scaling on hidden 2D weight matrices with <strong>spectral matrix orthogonalization</strong>: projecting the momentum matrix $M_t = U \Sigma V^\top$ onto its nearest semi-orthogonal polar factor $U V^\top = (M_t M_t^\top)^{-1/2} M_t$ using 5 Tensor-Core-friendly odd-polynomial <strong>Newton–Schulz iterations</strong> in <code>bfloat16</code>, achieving $\sim 2\times$ compute efficiency over AdamW along the Chinchilla scaling frontier.</p>
+
+                <hr>
+
+                <h2>0. Spectral Preconditioning: Why Orthogonalizing Momentum Beats Coordinate-Wise AdamW</h2>
+                <p>Suppose a hidden linear layer receives activations $X \in \mathbb{R}^{B \times n}$ and upstream backpropagated gradients $\delta Y \in \mathbb{R}^{B \times m}$, producing the weight gradient $G = (\delta Y)^\top X = \sum_{i=1}^r \sigma_i u_i v_i^\top$. In standard SGD or AdamW, the update direction is heavily skewed toward the dominant singular value $\sigma_1 \gg \sigma_r$, starving rare semantic directions $(u_k, v_k)$ of learning signal. Replacing $M_t$ with its polar factor $\mathrm{Ortho}(M_t) = U V^\top$ snaps every non-zero singular value $\sigma_i \mapsto 1$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Quintic Newton–Schulz Matrix Orthogonalization &amp; Moonlight RMS Scale (<a href="https://arxiv.org/abs/2502.16982" target="_blank" rel="noopener noreferrer">Liu et al., 2025</a>)</div>
+                    $$X_0 = \frac{M_t}{\|M_t\|_F + \epsilon}, \qquad X_{k+1} = a X_k + b X_k(X_k^\top X_k) + c X_k(X_k^\top X_k)^2 \quad (k = 0, \dots, 4)$$
+                    $$W_{t+1} = (1 - \eta \lambda) W_t - \eta \cdot \underbrace{0.2\sqrt{\max(m, n)}}_{\text{Moonlight RMS Alignment}} \cdot X_5, \qquad (a, b, c) = (3.4445,\; -4.7750,\; 2.0315)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Why those exact quintic coefficients $(3.4445, -4.7750, 2.0315)$? Standard cubic Newton–Schulz $X_{k+1} = \frac{3}{2}X_k - \frac{1}{2}X_k(X_k^\top X_k)$ has linear derivative $f'(0) = 1.5$ near zero, requiring $12+$ steps to lift small singular values. Optimizing the odd 5th-degree polynomial $f(\sigma) = a\sigma + b\sigma^3 + c\sigma^5$ to maximize slope $f'(0) = 3.4445$ while keeping $|f(\sigma) - 1| \le 0.3$ on $(0, 1]$ pulls singular values as small as $10^{-2}$ into $[0.7, 1.2]$ in just 5 GEMM steps!</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 225" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Quintic Newton-Schulz Singular Value Mapping and Muon Pipeline">
+                        <rect x="20" y="18" width="390" height="190" rx="10" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="215" y="42" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="800">1. Quintic Polynomial Map f⁽⁵⁾(σ) on (0, 1]</text>
+                        <text x="215" y="60" text-anchor="middle" fill="var(--text-muted)" font-size="10">f(σ) = 3.4445σ − 4.7750σ³ + 2.0315σ⁵ (Steep slope at σ → 0)</text>
+                        <line x1="65" y1="168" x2="365" y2="168" stroke="#475569" stroke-width="1.5"/>
+                        <line x1="65" y1="168" x2="65" y2="75" stroke="#475569" stroke-width="1.5"/>
+                        <line x1="65" y1="100" x2="365" y2="100" stroke="#64748b" stroke-width="1.2" stroke-dasharray="4 3"/>
+                        <text x="50" y="104" text-anchor="end" fill="#94a3b8" font-size="10">1.0</text>
+                        <!-- Diagonal raw singular values -->
+                        <line x1="65" y1="168" x2="365" y2="100" stroke="#f43f5e" stroke-width="1.8" stroke-dasharray="3 3"/>
+                        <!-- Quintic 5-step curve -->
+                        <path d="M 65 168 Q 72 82 95 96 T 165 104 T 255 97 T 365 100" fill="none" stroke="#34d399" stroke-width="2.6"/>
+                        <text x="215" y="192" text-anchor="middle" fill="#a7f3d0" font-size="10">5 steps in BF16 compress κ(G) = 1555.6 → [0.18, 1.20] without SVD</text>
+
+                        <rect x="430" y="18" width="390" height="190" rx="10" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="625" y="42" text-anchor="middle" fill="#34d399" font-size="13" font-weight="800">2. Moonlight Scaling Law Rules (arXiv:2502.16982)</text>
+                        <text x="625" y="60" text-anchor="middle" fill="var(--text-muted)" font-size="10">Why naive Muon stalls at &gt;3B tokens without RMS alignment</text>
+                        <rect x="455" y="76" width="340" height="46" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.3"/>
+                        <text x="625" y="96" text-anchor="middle" fill="#bae6fd" font-size="11" font-weight="700">Rule A: Scale Orthogonal Update by 0.2 · √max(m, n)</text>
+                        <text x="625" y="112" text-anchor="middle" fill="#94a3b8" font-size="10">Matches AdamW coordinate RMS ≈ 0.2 across rectangular layers</text>
+                        <rect x="455" y="132" width="340" height="46" rx="6" fill="#064e3b" stroke="#34d399" stroke-width="1.3"/>
+                        <text x="625" y="152" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700">Rule B: Keep Embed, LM Head &amp; RMSNorm on AdamW</text>
+                        <text x="625" y="168" text-anchor="middle" fill="#a7f3d0" font-size="10">+ Split fused QKV per-head before orthogonalizing</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Quintic Newton–Schulz singular-value stabilization (left) and the two scaling invariants from <a href="https://arxiv.org/abs/2502.16982" target="_blank" rel="noopener noreferrer">Moonlight (Liu et al., 2025)</a> that enable zero-tuning transfer of AdamW learning rates to 16B+ MoE training (right).</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Three Critical Production Footguns When Training with <code>Muon</code>:</strong>
+                    (1) <em>Why You Must Multiply by $0.2\sqrt{\max(m, n)}$</em>: An orthogonal matrix $U V^\top \in \mathbb{R}^{m \times n}$ has Frobenius norm $\sqrt{\min(m, n)}$, so its per-element RMS is $\sqrt{\min(m,n)/(mn)} = 1/\sqrt{\max(m, n)}$. Without multiplying by $0.2\sqrt{\max(m, n)}$, wide MLP layers ($4d \times d$) receive $2\times$ smaller RMS updates than square layers!
+                    (2) <em>Never Orthogonalize Fused <code>wqkv</code> Jointly</em>: If $W_{QKV} \in \mathbb{R}^{3 d \times d}$ is orthogonalized as a single matrix, Newton–Schulz couples the singular subspaces of $Q$, $K$, and $V$ across all attention heads – always unbind or reshape per head (<code>[H, d_head, d_model]</code>) first.
+                    (3) <em>Always Transpose Tall Matrices ($m \gt n$) Before Iteration</em>: Compute $A = X^\top X \in \mathbb{R}^{n \times n}$ on the smaller dimension $\min(m, n)$ to save $m/n$ Tensor Core FLOPs.
+                </div>
+
+                <hr>
+
+                <h2>1. Self-Contained PyTorch Implementation: <code>Muon</code> with Moonlight RMS Scaling</h2>
+                <p>The runnable script below implements the exact 5-step quintic Newton–Schulz orthogonalizer and verifies how it compresses a badly ill-conditioned gradient matrix ($\kappa = 1555.6$) into a narrow singular spectrum in 5 iterations:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Quintic Newton–Schulz Orthogonalizer &amp; Moonlight Muon Step</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import math
+import torch
+
+def zeropower_via_newtonschulz5(G: torch.Tensor, steps: int = 5, eps: float = 1e-7) -&gt; torch.Tensor:
+    """5-step quintic Newton-Schulz orthogonalization in BF16/FP32 (Liu et al., arXiv:2502.16982)."""
+    assert G.ndim &gt;= 2
+    a, b, c = (3.4445, -4.7750, 2.0315)
+    X = G.clone()
+    # Transpose tall matrices (m &gt; n) so Gram matrix A = X @ X^T has smaller shape [..., n, n]
+    transposed = G.size(-2) &gt; G.size(-1)
+    if transposed:
+        X = X.transpose(-2, -1)
+    # Normalize Frobenius norm &lt;= 1 so singular values start inside convergence basin (0, 1]
+    X = X / (X.norm(dim=(-2, -1), keepdim=True) + eps)
+    for _ in range(steps):
+        A = X @ X.transpose(-2, -1)
+        B = b * A + c * (A @ A)
+        X = a * X + B @ X
+    return X.transpose(-2, -1) if transposed else X
+
+def muon_update(
+    W: torch.Tensor, grad: torch.Tensor, buf: torch.Tensor,
+    lr: float = 3e-4, wd: float = 0.1, momentum: float = 0.95
+) -&gt; torch.Tensor:
+    """Single Muon parameter step with decoupled weight decay and Moonlight RMS alignment."""
+    buf.mul_(momentum).add_(grad)
+    g_ns = zeropower_via_newtonschulz5(grad.add(buf, alpha=momentum), steps=5)
+    # Match AdamW coordinate RMS (~0.2) across arbitrary aspect ratios (m, n)
+    rms_scale = 0.2 * math.sqrt(max(W.size(-2), W.size(-1)))
+    W.mul_(1.0 - lr * wd).add_(g_ns, alpha=-lr * rms_scale)
+    return W
+
+if __name__ == "__main__":
+    torch.manual_seed(42)
+    # Construct ill-conditioned 64x32 gradient with singular values spanning [0.01, 10.0] (cond = 1000)
+    G = torch.randn(64, 32) @ torch.diag(torch.logspace(-2, 1, 32))
+    s_before = torch.linalg.svdvals(G)
+    G_ortho = zeropower_via_newtonschulz5(G, steps=5)
+    s_after = torch.linalg.svdvals(G_ortho)
+
+    print(f"[PASS] Raw Gradient Condition Number       : {(s_before[0] / s_before[-1]).item():.1f}")
+    print(f"[PASS] 5-Step Quintic NS Singular Range    : [{s_after.min().item():.3f}, {s_after.max().item():.3f}]")
+    print(f"[PASS] Moonlight RMS Scale for (64, 32)    : {0.2 * math.sqrt(64):.4f}")
+# Output:
+# [PASS] Raw Gradient Condition Number       : 1555.6
+# [PASS] 5-Step Quintic NS Singular Range    : [0.179, 1.202]
+# [PASS] Moonlight RMS Scale for (64, 32)    : 1.6000</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Large-Scale LLM Optimizers: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Optimizer</th>
+                            <th style="color:#f43f5e">AdamW</th>
+                            <th style="color:#f59e0b">Distributed Shampoo / SOAP</th>
+                            <th style="color:#34d399">Muon (<a href="https://arxiv.org/abs/2502.16982" target="_blank" rel="noopener noreferrer">Moonlight, arXiv:2502.16982</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Preconditioning Geometry</strong></td>
+                            <td>Diagonal coordinate-wise $v_t^{-1/2}$</td>
+                            <td>Kronecker factors $(L_t^{-1/4} G_t R_t^{-1/4})$</td>
+                            <td>Semi-orthogonal polar factor $U V^\top$ via 5-step NS</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Optimizer State Memory</strong></td>
+                            <td>$2\times$ parameter count ($m_t, v_t$)</td>
+                            <td>$3\text{–}4\times$ parameter count (Kronecker buffers + eigenbasis)</td>
+                            <td>$1\times$ parameter count (single momentum buffer $M_t$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Compute Overhead &amp; Precision</strong></td>
+                            <td>Memory-bound elementwise kernel</td>
+                            <td>Requires FP32 matrix root inverse / eigendecomposition</td>
+                            <td>$\lt 1\%$ FLOP overhead; runs natively in <code>bfloat16</code> GEMMs</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

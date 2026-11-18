@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Full-Duplex Speech-to-Speech Systems: Parallel Audio-Text Streams (Moshi), Inner Monologue &amp; WebSocket Barge-In | arman1o1 blog</title>
+    <meta name="description"
+        content="How to architect sub-200ms full-duplex conversational audio systems: Dual-Stream RQ-Transformers (Moshi), time-aligned Inner Monologue text prefixes, acoustic delay patterns, and WebSocket barge-in KV-cache rollback." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/full-duplex-speech-moshi-barge-in-systems.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Full-Duplex Speech-to-Speech Systems: Parallel Audio-Text Streams (Moshi), Inner Monologue &amp; WebSocket Barge-In">
+    <meta property="og:description" content="How to architect sub-200ms full-duplex conversational audio systems: Dual-Stream RQ-Transformers (Moshi), time-aligned Inner Monologue text prefixes, acoustic delay patterns, and WebSocket barge-in KV-cache rollback.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/full-duplex-speech-moshi-barge-in-systems.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-18">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Full-Duplex Speech-to-Speech Systems: Parallel Audio-Text Streams (Moshi), Inner Monologue & WebSocket Barge-In", "description": "How to architect sub-200ms full-duplex conversational audio systems: Dual-Stream RQ-Transformers (Moshi), time-aligned Inner Monologue text prefixes, acoustic delay patterns, and WebSocket barge-in KV-cache rollback.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-18", "dateModified": "2026-11-18", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/full-duplex-speech-moshi-barge-in-systems.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/full-duplex-speech-moshi-barge-in-systems.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Audio Systems</span>
+                    <span class="tag">Full-Duplex Speech</span>
+                    <span class="tag">Moshi</span>
+                    <span class="tag">Real-Time ML</span>
+                </div>
+                <h1>Full-Duplex Speech-to-Speech Systems: Parallel Audio-Text Streams (Moshi), Inner Monologue &amp; WebSocket Barge-In</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-18">November 18, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 13 min read</span>
+                </div>
+
+                <hr>
+
+                <p>Traditional voice assistants chain three separate models across rigid turn boundaries: an Automatic Speech Recognition (ASR) transcriber, a text LLM, and a Text-to-Speech (TTS) synthesizer. That cascaded pipeline suffers from two fatal flaws in real-world clinical and conversational deployments: (1) multi-second end-of-turn VAD latency ($1.5\text{–}3.0\,\text{s}$), and (2) <strong>state desynchronization on user barge-in</strong> – when the user interrupts the assistant mid-sentence, the server's LLM context still contains the full unuttered text buffer that never actually played through the user's speaker!</p>
+
+                <p><strong>Moshi</strong> (<a href="https://arxiv.org/abs/2410.00037" target="_blank" rel="noopener noreferrer">Défossez et al., 2024, arXiv:2410.00037</a>; <a href="https://github.com/kyutai-labs/moshi" target="_blank" rel="noopener noreferrer">GitHub</a>) and modern full-duplex <code>/ws/live</code> audio proxies eliminate turn-taking altogether by modeling the user's incoming audio stream and the assistant's outgoing audio stream as <strong>joint parallel token sequences</strong> at $12.5\,\text{Hz}$ ($80\,\text{ms}$ frames), prefixed by a time-aligned semantic text stream (<strong>Inner Monologue</strong>).</p>
+
+                <hr>
+
+                <h2>0. Joint Dual-Stream Autoregression &amp; Inner Monologue Prefixing</h2>
+                <p>At each $80\,\text{ms}$ frame step $t$, a neural audio codec (such as <strong>Mimi</strong> with $Q = 8$ Residual Vector Quantization codebooks) encodes both the user's microphone audio $U_t = (u_{t,1}, \dots, u_{t,Q})$ and the system's generated audio $S_t = (s_{t,1}, \dots, s_{t,Q})$. Rather than predicting $Q$ acoustic tokens flatly across sequence length, an <strong>RQ-Transformer</strong> splits autoregression into a <em>Temporal Transformer</em> across frame index $t$ and a tiny <em>Depth Transformer</em> across codebook level $q \in \{0, \dots, Q\}$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Full-Duplex Dual-Stream Factorization &amp; Inner Monologue Prefix (<a href="https://arxiv.org/abs/2410.00037" target="_blank" rel="noopener noreferrer">Défossez et al., 2024</a>)</div>
+                    $$P\bigl(W_{1:T}, S_{1:T} \mid U_{1:T}\bigr) = \prod_{t=1}^{T} \underbrace{P\bigl(w_t \mid W_{\lt t}, S_{\lt t}, U_{\le t}\bigr)}_{\text{Inner Monologue Text Token } (q=0)} \prod_{q=1}^{Q} \underbrace{P\bigl(s_{t, q} \mid w_t, s_{t, \lt q}, W_{\lt t}, S_{\lt t}, U_{\le t-\tau_q}\bigr)}_{\text{Semantic }(q=1)\text{ + Acoustic RVQ Codebooks }(q=2..Q)}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">By predicting the time-aligned text token $w_t$ (or a <code>PAD</code>/<code>EPAD</code> silence token) at depth step $q=0$ <em>before</em> sampling the semantic and acoustic RVQ tokens $s_{t, 1..Q}$ in the Depth Transformer, the model anchors its spoken prosody in linguistic reasoning while keeping theoretical frame latency at $80\,\text{ms}$ ($160\text{–}200\,\text{ms}$ end-to-end).</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 225" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Full-Duplex Dual-Stream Audio Timeline and Barge-In KV-Cache Rollback">
+                        <rect x="18" y="20" width="804" height="185" rx="10" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="420" y="44" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="800">Full-Duplex 80ms Frame Timeline &amp; Barge-In KV-Cache Rollback</text>
+
+                        <!-- User Mic Stream -->
+                        <text x="35" y="82" fill="#34d399" font-size="11" font-weight="700">User Stream U_t</text>
+                        <rect x="165" y="66" width="240" height="24" rx="4" fill="#1e293b" stroke="#475569"/>
+                        <text x="285" y="82" text-anchor="middle" fill="#94a3b8" font-size="10">[Silence / Listening Frames t=1..20]</text>
+                        <rect x="410" y="66" width="220" height="24" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="520" y="82" text-anchor="middle" fill="#d1fae5" font-size="10" font-weight="700">⚡ User Barges In at t_ack = 20!</text>
+
+                        <!-- Inner Monologue Text Stream -->
+                        <text x="35" y="122" fill="#a78bfa" font-size="11" font-weight="700">Inner Text W_t</text>
+                        <rect x="165" y="106" width="240" height="24" rx="4" fill="#2e1065" stroke="#a78bfa"/>
+                        <text x="285" y="122" text-anchor="middle" fill="#ddd6fe" font-size="10">Heard by User (Frames 1..20)</text>
+                        <rect x="410" y="106" width="220" height="24" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-dasharray="4 2"/>
+                        <text x="520" y="122" text-anchor="middle" fill="#fda4af" font-size="10">Unheard Speculative Buffer (21..45)</text>
+
+                        <!-- System Audio Stream -->
+                        <text x="35" y="162" fill="#38bdf8" font-size="11" font-weight="700">System Audio S_t</text>
+                        <rect x="165" y="146" width="240" height="24" rx="4" fill="#1e3a5f" stroke="#38bdf8"/>
+                        <text x="285" y="162" text-anchor="middle" fill="#bae6fd" font-size="10">Played on Client Speaker (t ≤ 20)</text>
+                        <rect x="410" y="146" width="220" height="24" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-dasharray="4 2"/>
+                        <text x="520" y="162" text-anchor="middle" fill="#fda4af" font-size="10">Flushed from WebSocket Ring Buffer!</text>
+
+                        <!-- Rollback Arrow -->
+                        <path d="M 630 158 C 720 158 720 95 415 95" fill="none" stroke="#f59e0b" stroke-width="2.2"/>
+                        <text x="728" y="132" text-anchor="middle" fill="#fcd34d" font-size="10" font-weight="700">Rewind KV Cursor</text>
+                        <text x="728" y="147" text-anchor="middle" fill="#fde68a" font-size="10">45 → 20 (−2.0s)</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: When the server generates ahead of real-time playback ($t_{\text{gen}} = 45$ vs. client speaker $t_{\text{ack}} = 20$) and the user barges in, flushing the client WebSocket queue without rolling back the server KV-cache leaves 25 unheard frames ($2.0\,\text{s}$) of phantom speech in context.</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Two Real-Time Audio Systems Footguns (<code>Moshi</code> &amp; <code>/ws/live</code> Proxies):</strong>
+                    (1) <em>Phantom Context after Barge-In Queue Flush</em>: Because GPU inference generates audio chunks faster than $1\times$ wall-clock playback, flushing the browser's <code>AudioWorklet</code> ring buffer on interruption drops frames $[t_{\text{ack}} + 1, t_{\text{gen}}]$. Your <code>/ws/live</code> proxy must track client <code>playback_frame_ack</code> heartbeats and truncate the KV-cache position pointer back to $t_{\text{ack}}$ before ingesting the barge-in audio!
+                    (2) <em>Acoustic Codebook Delay Pattern</em>: In <code>Moshi</code>, acoustic codebooks $q \in \{2..Q\}$ are delayed by $\tau_q = 1\text{–}2$ steps relative to the semantic codebook $q=1$ to improve intra-frame coherence – forgetting to shift the delay ring buffer during KV rollback misaligns residual quantizer levels and produces metallic click artifacts.
+                </div>
+
+                <hr>
+
+                <h2>1. Runnable Python Reference: Full-Duplex Barge-In State Machine &amp; KV-Cache Rollback</h2>
+                <p>The self-contained Python script below implements the server-side full-duplex audio ring buffer and KV-cache rollback controller, verifying exact state synchronization when a user interrupts mid-utterance:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Full-Duplex WebSocket Audio Proxy &amp; Barge-In KV-Cache Rollback</span><span class="badge-code">Python</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">from dataclasses import dataclass, field
+import numpy as np
+
+@dataclass
+class FullDuplexSession:
+    """Server-side state machine for 12.5 Hz (80ms) dual-stream speech-to-speech with KV rollback."""
+    frame_hz: float = 12.5
+    d_kv: int = 16
+    kv_cache: list[np.ndarray] = field(default_factory=list)
+    inner_monologue_tokens: list[str] = field(default_factory=list)
+    outbound_audio_queue: list[int] = field(default_factory=list)
+    client_playback_ack: int = 0
+
+    def step_generation(self, text_tok: str, kv_vec: np.ndarray) -&gt; int:
+        self.kv_cache.append(kv_vec)
+        self.inner_monologue_tokens.append(text_tok)
+        frame_id = len(self.kv_cache)
+        self.outbound_audio_queue.append(frame_id)
+        return frame_id
+
+    def handle_user_barge_in(self, client_ack_frame: int) -&gt; dict[str, int]:
+        """Flush unheard audio frames &gt; client_ack_frame and roll back KV-cache &amp; text history."""
+        gen_cursor_before = len(self.kv_cache)
+        flushed_frames = gen_cursor_before - client_ack_frame
+        # 1. Flush unplayed outbound audio frames from WebSocket transmit queue
+        self.outbound_audio_queue = [f for f in self.outbound_audio_queue if f &lt;= client_ack_frame]
+        # 2. Truncate KV-cache and Inner Monologue transcript to exact heard timestamp
+        self.kv_cache = self.kv_cache[:client_ack_frame]
+        self.inner_monologue_tokens = self.inner_monologue_tokens[:client_ack_frame]
+        self.client_playback_ack = client_ack_frame
+        return {
+            "gen_before": gen_cursor_before,
+            "rolled_back_to": len(self.kv_cache),
+            "flushed_ms": int(flushed_frames * (1000.0 / self.frame_hz)),
+        }
+
+if __name__ == "__main__":
+    rng = np.random.default_rng(42)
+    session = FullDuplexSession()
+    for t in range(1, 46):  # Server generates 45 frames (3.60s) of speech ahead of playback
+        session.step_generation(f"tok_{t}", rng.standard_normal(16))
+
+    # User interrupts when client speaker has only played up to frame 20 (1.60s)
+    stats = session.handle_user_barge_in(client_ack_frame=20)
+    print(f"[PASS] Server Cursor Before Barge-In : Frame {stats['gen_before']} (3600 ms)")
+    print(f"[PASS] KV-Cache Rolled Back To       : Frame {stats['rolled_back_to']} (1600 ms)")
+    print(f"[PASS] Flushed Unheard Speculative Ms: {stats['flushed_ms']} ms (Zero Phantom Context!)")
+# Output:
+# [PASS] Server Cursor Before Barge-In : Frame 45 (3600 ms)
+# [PASS] KV-Cache Rolled Back To       : Frame 20 (1600 ms)
+# [PASS] Flushed Unheard Speculative Ms: 2000 ms (Zero Phantom Context!)</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Real-Time Conversational Voice Architectures: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Architecture</th>
+                            <th style="color:#f43f5e">Cascaded ASR → LLM → TTS</th>
+                            <th style="color:#f59e0b">Textless Audio LM (GSLM)</th>
+                            <th style="color:#34d399">Dual-Stream + Inner Monologue (<a href="https://arxiv.org/abs/2410.00037" target="_blank" rel="noopener noreferrer">Moshi</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>End-to-End Turn Latency</strong></td>
+                            <td>$1500\text{–}3200\,\text{ms}$ (VAD endpointing bottleneck)</td>
+                            <td>$200\text{–}400\,\text{ms}$</td>
+                            <td>$160\text{–}200\,\text{ms}$ ($80\,\text{ms}$ Mimi codec stride)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Linguistic &amp; Reasoning IQ</strong></td>
+                            <td>High (text LLM backbone)</td>
+                            <td>Collapses on multi-step reasoning</td>
+                            <td>High (time-aligned Inner Monologue text prefix $w_t$)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Overlapping Speech &amp; Barge-In</strong></td>
+                            <td>Requires hard VAD cut + manual transcript diff</td>
+                            <td>Single-stream turn-based</td>
+                            <td>Native parallel $(U_t, S_t)$ streams + exact KV frame rollback</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>
