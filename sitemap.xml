@@ -8,11 +8,23 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/archives.html</loc>
-    <lastmod>2026-11-18</lastmod>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/</loc>
-    <lastmod>2026-11-18</lastmod>
+    <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/ttt-fast-weight-rnns-test-time-training.html</loc>
+    <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/triton-fused-kernels-liger-cross-entropy.html</loc>
+    <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/masked-diffusion-language-models-mdlm-llada.html</loc>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/topk-jumprelu-sparse-autoencoders-superposition.html</loc>
@@ -80,7 +92,15 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/</loc>
-    <lastmod>2026-11-18</lastmod>
+    <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html</loc>
+    <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/lattice-boltzmann-d2q9-fluid-webgl.html</loc>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html</loc>

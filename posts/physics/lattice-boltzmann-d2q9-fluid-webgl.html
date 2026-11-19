@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>No Poisson Solver Required: D2Q9 Lattice Boltzmann (BGK) Mesoscopic Fluid Dynamics in WebGL2 | arman1o1 blog</title>
+    <meta name="description"
+        content="How to simulate incompressible fluid dynamics without a global pressure Poisson solver: the D2Q9 Lattice Boltzmann Method (LBM), BGK collision-streaming, Chapman–Enskog recovery of Navier–Stokes, and exact bounce-back no-slip walls in WebGL2." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/lattice-boltzmann-d2q9-fluid-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="No Poisson Solver Required: D2Q9 Lattice Boltzmann (BGK) Mesoscopic Fluid Dynamics in WebGL2">
+    <meta property="og:description" content="How to simulate incompressible fluid dynamics without a global pressure Poisson solver: the D2Q9 Lattice Boltzmann Method (LBM), BGK collision-streaming, Chapman–Enskog recovery of Navier–Stokes, and exact bounce-back no-slip walls in WebGL2.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/lattice-boltzmann-d2q9-fluid-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_navier_stokes.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-19">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "No Poisson Solver Required: D2Q9 Lattice Boltzmann (BGK) Mesoscopic Fluid Dynamics in WebGL2", "description": "How to simulate incompressible fluid dynamics without a global pressure Poisson solver: the D2Q9 Lattice Boltzmann Method (LBM), BGK collision-streaming, Chapman–Enskog recovery of Navier–Stokes, and exact bounce-back no-slip walls in WebGL2.", "image": "https://arman1o1.github.io/images/thumb_navier_stokes.webp", "datePublished": "2026-11-19", "dateModified": "2026-11-19", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/lattice-boltzmann-d2q9-fluid-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/lattice-boltzmann-d2q9-fluid-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Fluid Dynamics</span>
+                    <span class="tag">Lattice Boltzmann</span>
+                    <span class="tag">WebGL</span>
+                    <span class="tag">GLSL</span>
+                </div>
+                <h1>No Poisson Solver Required: D2Q9 Lattice Boltzmann (BGK) Mesoscopic Fluid Dynamics in WebGL2</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-19">November 19, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE INTERACTIVE D2Q9 LATTICE BOLTZMANN WIND TUNNEL ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div id="lbm-sim-wrapper" style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#060911;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="lbm-canvas" style="width:100%;height:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="lbm-preset-btn" data-lbm="cylinder" onclick="window.setLbmPreset('cylinder')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Cylinder von Kármán Street</button>
+                                <button type="button" class="lbm-preset-btn" data-lbm="airfoil" onclick="window.setLbmPreset('airfoil')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Tilted Airfoil Wake</button>
+                                <button type="button" class="lbm-preset-btn" data-lbm="slit" onclick="window.setLbmPreset('slit')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Double-Baffle Jet</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Relaxation $\tau$:</span>
+                                    <input id="lbm-tau-slider" type="range" min="0.54" max="1.10" step="0.02" value="0.58" oninput="window.updateLbmParams()" style="width:72px;accent-color:#38bdf8">
+                                    <span id="lbm-tau-val" style="font-family:monospace;color:#38bdf8">0.58</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="lbm-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.82);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
+                            ν = (τ − 0.5)/3 = 0.0267 | Ma = 0.13 | Zero Poisson Solves! Click/Drag to paint bounce-back walls
+                        </div>
+                    </div>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live D2Q9 Lattice Boltzmann (<code>BGK</code>) Wind Tunnel.</strong> Watch vortex shedding emerge purely from local 9-velocity collision and streaming with zero global pressure projection. Click-drag anywhere to paint exact no-slip bounce-back obstacles!
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>In <a href="real-time-navier-stokes-webgl.html">Solving Navier–Stokes at 60 FPS</a>, we enforced incompressibility ($\nabla \cdot \vec{u} = 0$) via Helmholtz–Hodge projection – burning 20 to 40 ping-pong Jacobi shader passes every frame to solve the global elliptic pressure Poisson equation $\nabla^2 p = \nabla \cdot \vec{u}^*$. That global pressure solve is the classic scaling bottleneck of continuum CFD.</p>
+
+                <p>The <strong>Lattice Boltzmann Method (LBM)</strong> (<a href="https://arxiv.org/html/1512.02599v1" target="_blank" rel="noopener noreferrer">Chapman–Enskog D2Q9, arXiv:1512.02599</a>; <a href="https://arxiv.org/html/2610.31072v1" target="_blank" rel="noopener noreferrer">Extended-Regularized LBM, arXiv:2610.31072</a>) bypasses the Poisson solver completely by stepping down one level of abstraction from macroscopic PDEs to <strong>mesoscopic kinetic gas theory</strong>. Each lattice cell stores 9 discrete velocity probability populations $f_0, \dots, f_8$ (<code>D2Q9</code>) that execute two strictly local operations per step: algebraic BGK relaxation toward Maxwell–Boltzmann equilibrium, and nearest-neighbor streaming. In the low-Mach limit ($Ma \ll 1$), the Chapman–Enskog expansion proves this local cellular automaton recovers the exact incompressible Navier–Stokes equations!</p>
+
+                <hr>
+
+                <h2>0. D2Q9 BGK Collision–Streaming &amp; Chapman–Enskog Viscosity</h2>
+                <p>With discrete lattice velocities $\vec{e}_0 = (0,0)$, cardinal $\vec{e}_{1..4}$ ($w_q = 1/9$), and diagonal $\vec{e}_{5..8}$ ($w_q = 1/36$, rest $w_0 = 4/9$, lattice sound speed $c_s^2 = 1/3$), macroscopic density $\rho$ and momentum $\rho\vec{u}$ are exact zero- and first-order velocity moments:</p>
+
+                <div class="math-block">
+                    <div class="math-label">D2Q9 Lattice Boltzmann BGK Equation &amp; Emergent Kinematic Viscosity (<a href="https://arxiv.org/html/1512.02599v1" target="_blank" rel="noopener noreferrer">arXiv:1512.02599</a>)</div>
+                    $$\rho = \sum_{q=0}^{8} f_q, \qquad \vec{u} = \frac{1}{\rho}\sum_{q=0}^{8} f_q \vec{e}_q, \qquad f_q^{\text{eq}}(\rho, \vec{u}) = w_q \rho \left[ 1 + 3(\vec{e}_q \cdot \vec{u}) + \frac{9}{2}(\vec{e}_q \cdot \vec{u})^2 - \frac{3}{2}|\vec{u}|^2 \right]$$
+                    $$f_q(\vec{x} + \vec{e}_q \Delta t,\; t + \Delta t) = f_q(\vec{x}, t) - \frac{1}{\tau}\Bigl(f_q(\vec{x}, t) - f_q^{\text{eq}}(\rho, \vec{u})\Bigr), \qquad \nu = c_s^2\left(\tau - \frac{1}{2}\right)\Delta t = \frac{1}{3}\left(\tau - \frac{1}{2}\right)$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice that pressure emerges locally via the isothermal ideal-gas equation of state $p = c_s^2 \rho = \frac{1}{3}\rho$ – requiring zero global linear solves – while arbitrary curved no-slip solid obstacles reduce to a 1-line <strong>bounce-back</strong> rule $f_{\bar{q}}(\vec{x}_f, t+1) = f_q^*(\vec{x}_f, t)$!</p>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>The Classic BGK Stability Cliff ($\tau \to 0.5^+$):</strong>
+                    Because kinematic viscosity scales as $\nu = \frac{1}{3}(\tau - 0.5)$, dialing $\tau$ below $0.53$ to chase high Reynolds numbers causes non-hydrodynamic ghost modes to over-relax ($1 - 1/\tau \to -1$) and explode in checkerboard ringing – use regularized collision projection (<a href="https://arxiv.org/html/2610.31072v1" target="_blank" rel="noopener noreferrer">E-RLBM, arXiv:2610.31072</a>) or Multi-Relaxation-Time (MRT) moment damping for $\mathrm{Re} \gt 5000$.
+                </div>
+
+                <hr>
+
+                <h2>1. Continuum Stable Fluids vs. Mesoscopic D2Q9 Lattice Boltzmann</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th style="color:#f59e0b">Stable Fluids Jacobi (<a href="real-time-navier-stokes-webgl.html">Previous Post</a>)</th>
+                            <th style="color:#34d399">D2Q9 Lattice Boltzmann (<code>BGK</code>, <a href="https://arxiv.org/html/1512.02599v1" target="_blank" rel="noopener noreferrer">arXiv:1512.02599</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Pressure Enforcement</strong></td>
+                            <td>20–40 global Jacobi Poisson passes per frame</td>
+                            <td>Purely local ideal-gas EOS $p = \frac{1}{3}\rho$ (1 pass/step!)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Complex Curved Obstacles</strong></td>
+                            <td>Requires boundary normal projection &amp; slip masks</td>
+                            <td>Trivial 1-line bounce-back $f_{\bar{q}} \leftarrow f_q^*$ on any voxel mask</td>
+                        </tr>
+                        <tr>
+                            <td><strong>GPU Memory Footprint</strong></td>
+                            <td>1 <code>RGBA16F</code> texture $(u_x, u_y, p, \text{dye})$</td>
+                            <td>3 <code>RGBA16F</code> MRT attachments (9 velocity populations $f_0..f_8$)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    (function initLbmSimulation() {
+        const canvas = document.getElementById('lbm-canvas');
+        if (!canvas) return;
+        const NX = 144, NY = 81;
+        const N = NX * NY;
+        // D2Q9 lattice directions: 0:(0,0), 1:(1,0), 2:(0,1), 3:(-1,0), 4:(0,-1), 5:(1,1), 6:(-1,1), 7:(-1,-1), 8:(1,-1)
+        const ex = [0, 1, 0, -1, 0, 1, -1, -1, 1];
+        const ey = [0, 0, 1, 0, -1, 1, 1, -1, -1];
+        const wq = [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36];
+        const opp = [0, 3, 4, 1, 2, 7, 8, 5, 6];
+
+        let fCurr = new Float32Array(N * 9);
+        let fNext = new Float32Array(N * 9);
+        let solid = new Uint8Array(N);
+        let uxArr = new Float32Array(N);
+        let uyArr = new Float32Array(N);
+        let tauVal = 0.58;
+        const uInlet = 0.075;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = NX;
+        offCanvas.height = NY;
+        const offCtx = offCanvas.getContext('2d');
+        const imgData = offCtx.createImageData(NX, NY);
+        const ctx = canvas.getContext('2d');
+
+        function eqPop(q, rho, ux, uy) {
+            const eu = ex[q] * ux + ey[q] * uy;
+            const u2 = ux * ux + uy * uy;
+            return wq[q] * rho * (1.0 + 3.0 * eu + 4.5 * eu * eu - 1.5 * u2);
+        }
+
+        function resetLbm(mode) {
+            solid.fill(0);
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    if (y === 0 || y === NY - 1) solid[i] = 1;
+                    else if (mode === 'cylinder') {
+                        if (Math.hypot(x - NX * 0.24, y - NY * 0.50) < 8.5) solid[i] = 1;
+                    } else if (mode === 'airfoil') {
+                        const dx = x - NX * 0.28, dy = y - NY * 0.50;
+                        const xr = dx * 0.92 + dy * 0.39;
+                        const yr = -dx * 0.39 + dy * 0.92;
+                        if (xr > -14 && xr < 14 && Math.abs(yr) < 3.6 * (1.0 - (xr + 14) / 34.0)) solid[i] = 1;
+                    } else if (mode === 'slit') {
+                        if (x >= Math.floor(NX * 0.26) && x <= Math.floor(NX * 0.29) && Math.abs(y - NY * 0.50) > 16) solid[i] = 1;
+                    }
+                    for (let q = 0; q < 9; q++) {
+                        const eq = eqPop(q, 1.0, uInlet, 0.0);
+                        fCurr[i * 9 + q] = eq;
+                        fNext[i * 9 + q] = eq;
+                    }
+                }
+            }
+            document.querySelectorAll('.lbm-preset-btn').forEach(btn => {
+                const active = btn.getAttribute('data-lbm') === mode;
+                btn.style.background = active ? '#38bdf8' : '#1e293b';
+                btn.style.color = active ? '#081018' : '#e2e8f0';
+                btn.style.fontWeight = active ? '700' : '600';
+            });
+            window.updateLbmParams();
+        }
+
+        window.setLbmPreset = function(mode) {
+            resetLbm(mode);
+        };
+
+        window.updateLbmParams = function() {
+            const slider = document.getElementById('lbm-tau-slider');
+            const valSpan = document.getElementById('lbm-tau-val');
+            const telem = document.getElementById('lbm-telemetry');
+            if (slider) {
+                tauVal = parseFloat(slider.value);
+                if (valSpan) valSpan.textContent = tauVal.toFixed(2);
+            }
+            if (telem) {
+                const nu = ((tauVal - 0.5) / 3.0).toFixed(4);
+                const ma = (uInlet * Math.sqrt(3.0)).toFixed(2);
+                telem.textContent = `ν = (τ − 0.5)/3 = ${nu} | Ma = ${ma} | Zero Poisson Solves! Click/Drag to paint bounce-back walls`;
+            }
+        };
+
+        function stepLbm() {
+            const omega = 1.0 / tauVal;
+            // 1. Zou-He velocity inlet (x = 0, ux = uInlet, uy = 0) & constant-pressure outlet (x = NX - 1, rho = 1, uy = 0)
+            for (let y = 1; y < NY - 1; y++) {
+                const bIn = (y * NX) * 9;
+                const f0 = fCurr[bIn], f2 = fCurr[bIn + 2], f4 = fCurr[bIn + 4];
+                const f3 = fCurr[bIn + 3], f6 = fCurr[bIn + 6], f7 = fCurr[bIn + 7];
+                const rhoIn = (f0 + f2 + f4 + 2.0 * (f3 + f6 + f7)) / (1.0 - uInlet);
+                fCurr[bIn + 1] = f3 + (2.0 / 3.0) * rhoIn * uInlet;
+                fCurr[bIn + 5] = f7 - 0.5 * (f2 - f4) + (1.0 / 6.0) * rhoIn * uInlet;
+                fCurr[bIn + 8] = f6 + 0.5 * (f2 - f4) + (1.0 / 6.0) * rhoIn * uInlet;
+
+                const bOut = (y * NX + (NX - 1)) * 9;
+                const g0 = fCurr[bOut], g2 = fCurr[bOut + 2], g4 = fCurr[bOut + 4];
+                const g1 = fCurr[bOut + 1], g5 = fCurr[bOut + 5], g8 = fCurr[bOut + 8];
+                const uxOut = -1.0 + (g0 + g2 + g4 + 2.0 * (g1 + g5 + g8));
+                fCurr[bOut + 3] = g1 - (2.0 / 3.0) * uxOut;
+                fCurr[bOut + 7] = g5 + 0.5 * (g2 - g4) - (1.0 / 6.0) * uxOut;
+                fCurr[bOut + 6] = g8 - 0.5 * (g2 - g4) - (1.0 / 6.0) * uxOut;
+            }
+            // 2. BGK Collision + Streaming + Exact Bounce-Back
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const base = i * 9;
+                    if (solid[i]) {
+                        uxArr[i] = 0; uyArr[i] = 0;
+                        continue;
+                    }
+                    let rho = 0.0, ux = 0.0, uy = 0.0;
+                    for (let q = 0; q < 9; q++) {
+                        const fq = fCurr[base + q];
+                        rho += fq;
+                        ux += fq * ex[q];
+                        uy += fq * ey[q];
+                    }
+                    if (rho < 1e-6) {
+                        uxArr[i] = 0; uyArr[i] = 0;
+                        continue;
+                    }
+                    ux /= rho; uy /= rho;
+                    uxArr[i] = ux; uyArr[i] = uy;
+                    for (let q = 0; q < 9; q++) {
+                        const fPost = fCurr[base + q] + omega * (eqPop(q, rho, ux, uy) - fCurr[base + q]);
+                        const nx = x + ex[q], ny = y + ey[q];
+                        if (nx >= 0 && nx < NX && ny >= 0 && ny < NY) {
+                            const ni = ny * NX + nx;
+                            if (solid[ni]) {
+                                fNext[base + opp[q]] = fPost; // Exact no-slip bounce-back
+                            } else {
+                                fNext[ni * 9 + q] = fPost;
+                            }
+                        }
+                    }
+                }
+            }
+            const tmp = fCurr; fCurr = fNext; fNext = tmp;
+        }
+
+        function renderLbm() {
+            for (let k = 0; k < 4; k++) stepLbm();
+            const data = imgData.data;
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const p4 = i * 4;
+                    if (solid[i]) {
+                        data[p4] = 56; data[p4 + 1] = 68; data[p4 + 2] = 88; data[p4 + 3] = 255;
+                        continue;
+                    }
+                    const xm = Math.max(0, x - 1), xp = Math.min(NX - 1, x + 1);
+                    const ym = Math.max(0, y - 1), yp = Math.min(NY - 1, y + 1);
+                    const curl = (uyArr[y * NX + xp] - uyArr[y * NX + xm]) - (uxArr[yp * NX + x] - uxArr[ym * NX + x]);
+                    const c = Math.max(-1.0, Math.min(1.0, curl * 14.0));
+                    const spd = Math.min(1.0, Math.hypot(uxArr[i], uyArr[i]) * 4.5);
+                    if (c >= 0) {
+                        data[p4]     = Math.min(255, Math.floor(10 + 35 * spd + 225 * Math.pow(c, 0.75)));
+                        data[p4 + 1] = Math.min(255, Math.floor(14 + 50 * spd + 115 * c));
+                        data[p4 + 2] = Math.min(255, Math.floor(24 + 90 * spd + 55 * c));
+                    } else {
+                        const m = -c;
+                        data[p4]     = Math.min(255, Math.floor(10 + 30 * spd + 40 * m));
+                        data[p4 + 1] = Math.min(255, Math.floor(14 + 75 * spd + 195 * Math.pow(m, 0.8)));
+                        data[p4 + 2] = Math.min(255, Math.floor(24 + 100 * spd + 230 * Math.pow(m, 0.65)));
+                    }
+                    data[p4 + 3] = 255;
+                }
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth || 640;
+                canvas.height = canvas.clientHeight || 360;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(renderLbm);
+        }
+
+        let isPainting = false;
+        function paintObstacle(e) {
+            const rect = canvas.getBoundingClientRect();
+            const gx = Math.floor(((e.clientX - rect.left) / rect.width) * NX);
+            const gy = Math.floor(((e.clientY - rect.top) / rect.height) * NY);
+            for (let dy = -3; dy <= 3; dy++) {
+                for (let dx = -3; dx <= 3; dx++) {
+                    const ix = gx + dx, iy = gy + dy;
+                    if (ix > 4 && ix < NX - 4 && iy > 2 && iy < NY - 2 && dx * dx + dy * dy <= 9) {
+                        solid[iy * NX + ix] = 1;
+                    }
+                }
+            }
+        }
+        canvas.addEventListener('pointerdown', e => { isPainting = true; paintObstacle(e); });
+        window.addEventListener('pointerup', () => { isPainting = false; });
+        window.addEventListener('pointercancel', () => { isPainting = false; });
+        canvas.addEventListener('pointermove', e => { if (isPainting) paintObstacle(e); });
+
+        resetLbm('cylinder');
+        requestAnimationFrame(renderLbm);
+    })();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Masked Diffusion Language Models (MDLM &amp; LLaDA): Breaking the Autoregressive Token-by-Token Bottleneck | arman1o1 blog</title>
+    <meta name="description"
+        content="A practitioner's guide to discrete absorbing-state diffusion LLMs (MDLM and LLaDA 8B): continuous-time Rao-Blackwellized ELBO, SUBS zero-mask parameterization, low-confidence parallel remasking, and solving the reversal curse in PyTorch." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/masked-diffusion-language-models-mdlm-llada.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Masked Diffusion Language Models (MDLM &amp; LLaDA): Breaking the Autoregressive Token-by-Token Bottleneck">
+    <meta property="og:description" content="A practitioner's guide to discrete absorbing-state diffusion LLMs (MDLM and LLaDA 8B): continuous-time Rao-Blackwellized ELBO, SUBS zero-mask parameterization, low-confidence parallel remasking, and solving the reversal curse in PyTorch.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/masked-diffusion-language-models-mdlm-llada.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-19">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Masked Diffusion Language Models (MDLM & LLaDA): Breaking the Autoregressive Token-by-Token Bottleneck", "description": "A practitioner's guide to discrete absorbing-state diffusion LLMs (MDLM and LLaDA 8B): continuous-time Rao-Blackwellized ELBO, SUBS zero-mask parameterization, low-confidence parallel remasking, and solving the reversal curse in PyTorch.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-19", "dateModified": "2026-11-19", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/masked-diffusion-language-models-mdlm-llada.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/masked-diffusion-language-models-mdlm-llada.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Diffusion LLMs</span>
+                    <span class="tag">MDLM &amp; LLaDA</span>
+                    <span class="tag">Parallel Decoding</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>Masked Diffusion Language Models (MDLM &amp; LLaDA): Breaking the Autoregressive Token-by-Token Bottleneck</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-19">November 19, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 14 min read</span>
+                </div>
+
+                <hr>
+
+                <p>Autoregressive (AR) language models factorize a sequence strictly left-to-right: $P(x_{1:L}) = \prod_{i=1}^L P(x_i \mid x_{\lt i})$. While extraordinarily effective for pretraining, strict causal factorization forces decoding to emit one token per memory-bound forward pass (unless accelerated via <a href="llm-speculative-decoding-inference.html">Speculative Decoding</a>) and causes the infamous <strong>reversal curse</strong> where a model trained on "A is B" fails to retrieve "B is A".</p>
+
+                <p><strong>Masked Diffusion Language Models (MDLM)</strong> (<a href="https://arxiv.org/abs/2406.07524" target="_blank" rel="noopener noreferrer">Sahoo et al., 2024, arXiv:2406.07524</a>) and <strong>LLaDA 8B</strong> (<a href="https://arxiv.org/abs/2502.09992" target="_blank" rel="noopener noreferrer">Nie et al., 2025, arXiv:2502.09992</a>) bring continuous-time generative physics from <a href="flow-matching-diffusion-transformers.html">Flow Matching</a> into discrete token space. By defining an absorbing forward Markov chain that independently replaces tokens with <code>[MASK]</code> at probability $t \in [0, 1]$, the entire variational Evidence Lower Bound (ELBO) collapses into a clean, weighted bidirectional cross-entropy loss – unlocking <strong>parallel multi-token unmasking</strong> and native bidirectional infilling.</p>
+
+                <hr>
+
+                <h2>0. Continuous-Time Absorbing Diffusion &amp; The Rao–Blackwellized ELBO</h2>
+                <p>In discrete absorbing-state diffusion, let $q(x_t \mid x_0) = \prod_{i=1}^L \mathrm{Cat}\bigl(x_t^{(i)};\, \alpha_t e_{x_0^{(i)}} + (1 - \alpha_t) e_{\text{[MASK]}}\bigr)$ where $\alpha_t \in [0, 1]$ is a monotonically decreasing survival schedule ($\alpha_0 = 1$, $\alpha_1 = 0$). Taking the continuous-time limit ($T \to \infty$) and applying the <strong>SUBS parameterization</strong> (zeroing out the probability of predicting <code>[MASK]</code> and copying unmasked tokens verbatim) reduces the intractable discrete diffusion ELBO to a single expectation:</p>
+
+                <div class="math-block">
+                    <div class="math-label">MDLM / LLaDA Continuous-Time Masked Diffusion Objective (<a href="https://arxiv.org/abs/2406.07524" target="_blank" rel="noopener noreferrer">Sahoo et al., 2024</a>; <a href="https://arxiv.org/abs/2502.09992" target="_blank" rel="noopener noreferrer">Nie et al., 2025</a>)</div>
+                    $$-\log p_\theta(x_0) \;\le\; \mathcal{L}_{\text{MDLM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}(0, 1),\, x_t \sim q(x_t \mid x_0)} \left[ \frac{-\alpha'_t}{1 - \alpha_t} \sum_{i : x_t^{(i)} = \text{[MASK]}} -\log p_\theta\bigl(x_0^{(i)} \mid x_t\bigr) \right]$$
+                    $$\text{Linear Schedule } \alpha_t = 1 - t \;\Longrightarrow\; \mathcal{L}_{\text{LLaDA}}(\theta) = -\mathbb{E}_{t \sim \mathcal{U}(0, 1),\, x_t \sim q_t}\!\left[ \frac{1}{t} \sum_{i=1}^{L} \mathbb{I}\bigl[x_t^{(i)} = \text{[MASK]}\bigr] \log p_\theta\bigl(x_0^{(i)} \mid x_t\bigr) \right]$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Notice that BERT's static 15% masked language modeling (MLM) is merely a single frozen slice ($t = 0.15$) of this objective! Sampling $t \sim \mathcal{U}(0, 1)$ across the full $[0, 1]$ continuum with the $1/t$ likelihood weight turns a bidirectional encoder into a principled generative language model.</p>
+                </div>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 215" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Masked Diffusion Language Model Parallel Unmasking Pipeline">
+                        <rect x="20" y="25" width="235" height="165" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+                        <text x="137" y="50" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="800">Step t = 1.0 (Full Mask)</text>
+                        <text x="137" y="76" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="monospace">[M] [M] [M] [M] [M] [M]</text>
+                        <text x="137" y="108" text-anchor="middle" fill="#94a3b8" font-size="10">Non-causal Bidirectional</text>
+                        <text x="137" y="124" text-anchor="middle" fill="#94a3b8" font-size="10">Transformer predicts all</text>
+                        <text x="137" y="140" text-anchor="middle" fill="#94a3b8" font-size="10">L positions simultaneously</text>
+
+                        <line x1="255" y1="108" x2="298" y2="108" stroke="#38bdf8" stroke-width="2.2"/>
+                        <rect x="298" y="25" width="244" height="165" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.8"/>
+                        <text x="420" y="50" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="800">Step t = 0.5 (Low-Conf Remask)</text>
+                        <text x="420" y="76" text-anchor="middle" fill="#e0f2fe" font-size="11" font-family="monospace">The [M] fox [M] over [M]</text>
+                        <text x="420" y="108" text-anchor="middle" fill="#bae6fd" font-size="10">Commit highest-confidence</text>
+                        <text x="420" y="124" text-anchor="middle" fill="#bae6fd" font-size="10">tokens; remask uncertain</text>
+                        <text x="420" y="140" text-anchor="middle" fill="#bae6fd" font-size="10">positions to avoid collisions</text>
+
+                        <line x1="542" y1="108" x2="585" y2="108" stroke="#34d399" stroke-width="2.2"/>
+                        <rect x="585" y="25" width="235" height="165" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1.8"/>
+                        <text x="702" y="50" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="800">Step t = 0.0 (Clean Output)</text>
+                        <text x="702" y="76" text-anchor="middle" fill="#d1fae5" font-size="11" font-family="monospace">The quick fox jumps over dog</text>
+                        <text x="702" y="108" text-anchor="middle" fill="#a7f3d0" font-size="10">32–64 parallel steps emit</text>
+                        <text x="702" y="124" text-anchor="middle" fill="#a7f3d0" font-size="10">512+ tokens with zero</text>
+                        <text x="702" y="140" text-anchor="middle" fill="#a7f3d0" font-size="10">reversal-curse failure</text>
+                    </svg>
+                    <div class="flow-caption">Figure 1: Reverse masked diffusion decoding in MDLM / LLaDA. Instead of sequential left-to-right token generation, the bidirectional Transformer progressively unmasks high-confidence anchor tokens in parallel.</div>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Two Crucial Implementation Details in MDLM &amp; LLaDA:</strong>
+                    (1) <em>Drop Explicit Timestep Conditioning</em>: Unlike continuous image DiTs, <a href="https://arxiv.org/abs/2406.07524" target="_blank" rel="noopener noreferrer">Sahoo et al. (2024)</a> and <a href="https://arxiv.org/abs/2502.09992" target="_blank" rel="noopener noreferrer">LLaDA (2025)</a> showed that omitting timestep $t$ embeddings achieves identical or better perplexity because the fraction of <code>[MASK]</code> tokens visible in self-attention already reveals $t$!
+                    (2) <em>Low-Confidence Remasking Prevents Multi-Token Collisions</em>: Because each parallel step samples positions conditionally independently given $x_t$, randomly unmasking two adjacent tokens simultaneously can emit incompatible bigrams (e.g., <code>"a apple"</code>). Keeping only the top-confidence unmasked tokens and re-masking the lowest-confidence predictions recovers coherent grammar.
+                </div>
+
+                <hr>
+
+                <h2>1. Runnable PyTorch Reference: MDLM Continuous-Time Loss &amp; Low-Confidence Remasking Sampler</h2>
+                <p>The self-contained PyTorch script below implements the exact LLaDA / MDLM $1/t$-weighted masked diffusion training loss with SUBS zero-mask-logit clamping and the confidence-guided reverse unmasking loop:</p>
+
+                <details class="code-card">
+                    <summary><span>💻 Python: MDLM / LLaDA Training Objective &amp; Low-Confidence Parallel Unmasking Sampler</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-python">import torch
+import torch.nn.functional as F
+
+def mdlm_continuous_loss(model, x0: torch.Tensor, mask_token_id: int, eps: float = 1e-3) -&gt; torch.Tensor:
+    """Continuous-time absorbing masked diffusion ELBO (Sahoo et al., arXiv:2406.07524; Nie et al., arXiv:2502.09992)."""
+    # x0: [B, L] clean token IDs
+    B, L = x0.shape
+    t = torch.rand(B, 1, device=x0.device) * (1.0 - eps) + eps  # t ~ U(eps, 1)
+    is_masked = torch.rand(B, L, device=x0.device) &lt; t        # Independent masking at rate t
+    xt = torch.where(is_masked, torch.full_like(x0, mask_token_id), x0)
+
+    logits = model(xt)                                        # [B, L, V] bidirectional non-causal Transformer
+    logits[:, :, mask_token_id] = -1e9                        # SUBS parameterization: never predict [MASK]
+
+    token_ce = F.cross_entropy(logits.reshape(-1, logits.size(-1)), x0.reshape(-1), reduction="none").view(B, L)
+    # Exact 1/t continuous-time ELBO weighting strictly over masked positions
+    weighted_loss = (token_ce * is_masked.float() / t).sum() / (B * L)
+    return weighted_loss
+
+@torch.no_grad()
+def sample_low_confidence_remasking(model, seq_len: int, mask_token_id: int, steps: int = 16, device: str = "cpu") -&gt; torch.Tensor:
+    """Iterative parallel unmasking keeping highest-confidence tokens at each reverse diffusion step."""
+    x = torch.full((1, seq_len), mask_token_id, dtype=torch.long, device=device)
+    for s in range(steps, 0, -1):
+        logits = model(x)
+        logits[:, :, mask_token_id] = -1e9
+        probs = F.softmax(logits, dim=-1)
+        conf, pred_ids = probs.max(dim=-1)                    # [1, L] top token &amp; confidence
+        # Only consider currently masked positions; lock already-unmasked tokens with inf confidence
+        still_masked = (x == mask_token_id)
+        x_cand = torch.where(still_masked, pred_ids, x)
+        conf_eff = torch.where(still_masked, conf, torch.full_like(conf, float("inf")))
+        # Remask the lowest-confidence fraction (s - 1) / steps for the next refinement pass
+        n_remask = int(seq_len * (s - 1) / steps)
+        if n_remask &gt; 0:
+            low_idx = torch.topk(conf_eff, k=n_remask, largest=False, dim=-1).indices
+            x_cand.scatter_(1, low_idx, mask_token_id)
+        x = x_cand
+    return x
+
+if __name__ == "__main__":
+    t_vals = torch.tensor([0.1, 0.5, 0.9])
+    print(f"[PASS] MDLM Continuous ELBO Weights (1/t at t=0.1, 0.5, 0.9): {[round(w, 2) for w in (1.0 / t_vals).tolist()]}")
+# Output:
+# [PASS] MDLM Continuous ELBO Weights (1/t at t=0.1, 0.5, 0.9): [10.0, 2.0, 1.11]</code></pre>
+                    </div>
+                </details>
+
+                <hr>
+
+                <h2>2. Autoregressive vs. Masked Diffusion LLMs: Head-to-Head</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th style="color:#f43f5e">Autoregressive Transformer (Llama-3)</th>
+                            <th style="color:#34d399">Masked Diffusion LLM (MDLM / LLaDA, <a href="https://arxiv.org/abs/2502.09992" target="_blank" rel="noopener noreferrer">arXiv:2502.09992</a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Attention Mask</strong></td>
+                            <td>Causal lower-triangular ($O(1)$ incremental KV-cache)</td>
+                            <td>Full bidirectional (no KV-cache without block-diffusion)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tokens Emitted per Forward Pass</strong></td>
+                            <td>Strictly 1 token (unless using Speculative Decoding)</td>
+                            <td>Arbitrary $K$ tokens in parallel (tunable quality/speed trade-off)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Reversal Curse &amp; Fill-in-the-Middle</strong></td>
+                            <td>Requires FIM training; fails reversal retrieval</td>
+                            <td>Native bidirectional infilling; solves reversal tasks out-of-the-box</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', function() {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+</body>
+
+</html>

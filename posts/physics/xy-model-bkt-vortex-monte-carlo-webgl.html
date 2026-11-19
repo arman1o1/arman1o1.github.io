@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Topological Phase Transitions in Your Browser: The 2D XY Model &amp; BKT Vortex Unbinding via Checkerboard Monte Carlo | arman1o1 blog</title>
+    <meta name="description"
+        content="How to simulate the 2D XY spin model and Berezinskii–Kosterlitz–Thouless (BKT) topological phase transition at 60 FPS on the GPU: red-black checkerboard Metropolis–Hastings Monte Carlo, plaquette winding numbers, and vortex–antivortex unbinding at T_BKT ≈ 0.893." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Topological Phase Transitions in Your Browser: The 2D XY Model &amp; BKT Vortex Unbinding via Checkerboard Monte Carlo">
+    <meta property="og:description" content="How to simulate the 2D XY spin model and Berezinskii–Kosterlitz–Thouless (BKT) topological phase transition at 60 FPS on the GPU: red-black checkerboard Metropolis–Hastings Monte Carlo, plaquette winding numbers, and vortex–antivortex unbinding at T_BKT ≈ 0.893.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-19">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Topological Phase Transitions in Your Browser: The 2D XY Model & BKT Vortex Unbinding via Checkerboard Monte Carlo", "description": "How to simulate the 2D XY spin model and Berezinskii–Kosterlitz–Thouless (BKT) topological phase transition at 60 FPS on the GPU: red-black checkerboard Metropolis–Hastings Monte Carlo, plaquette winding numbers, and vortex–antivortex unbinding at T_BKT ≈ 0.893.", "image": "https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp", "datePublished": "2026-11-19", "dateModified": "2026-11-19", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode">
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Statistical Mechanics</span>
+                    <span class="tag">BKT Phase Transition</span>
+                    <span class="tag">Monte Carlo</span>
+                    <span class="tag">WebGL</span>
+                </div>
+                <h1>Topological Phase Transitions in Your Browser: The 2D XY Model &amp; BKT Vortex Unbinding via Checkerboard Monte Carlo</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-19">November 19, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+                <!-- ===== LIVE INTERACTIVE 2D XY MODEL & BKT MONTE CARLO SIMULATION ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div id="xy-sim-wrapper" style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#07080f;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="xy-canvas" style="width:100%;height:100%;display:block;cursor:crosshair"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="xy-preset-btn" data-xy="ordered" onclick="window.setXyPreset('ordered')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Quasi-Ordered (T = 0.45)</button>
+                                <button type="button" class="xy-preset-btn" data-xy="bkt" onclick="window.setXyPreset('bkt')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">BKT Critical Point (T = 0.89)</button>
+                                <button type="button" class="xy-preset-btn" data-xy="plasma" onclick="window.setXyPreset('plasma')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Vortex Plasma (T = 1.65)</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Temp $T / J$:</span>
+                                    <input id="xy-temp-slider" type="range" min="0.15" max="2.00" step="0.02" value="0.89" oninput="window.updateXyParams()" style="width:80px;accent-color:#38bdf8">
+                                    <span id="xy-temp-val" style="font-family:monospace;color:#38bdf8">0.89</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer">
+                                    <input id="xy-vortex-cb" type="checkbox" checked onchange="window.updateXyParams()" style="accent-color:#34d399">
+                                    <span>Highlight $\pm 2\pi$ Vortices</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="xy-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.82);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
+                            T = 0.89 (T_BKT ≈ 0.893) | Free Vortices (+1 / −1): 0 / 0 | Click/Drag to heat local quench
+                        </div>
+                    </div>
+                    <div class="flow-caption" style="margin-top:.6rem">
+                        <strong>Live 2D XY Spin Lattice (Red–Black Checkerboard Metropolis Monte Carlo).</strong> Drag <strong>Temp $T / J$</strong> across $T_{\text{BKT}} \approx 0.893$: below $T_{\text{BKT}}$ topological vortices ($+1$ white circles) and antivortices ($-1$ dark circles) stay tightly bound in dipole pairs; above $T_{\text{BKT}}$ they unbind into a disordered plasma.
+                    </div>
+                </figure>
+
+                <hr>
+
+                <p>Every physics simulation we have built so far – from <a href="superfluid-vortices-gross-pitaevskii-webgl.html">Gross–Pitaevskii superfluids</a> to <a href="cahn-hilliard-spinodal-decomposition-webgl.html">Cahn–Hilliard spinodal decomposition</a> – evolved a deterministic PDE forward in time. Here we switch to a completely different computational paradigm on the GPU: <strong>stochastic Markov Chain Monte Carlo (MCMC)</strong> for the <strong>2D classical XY spin model</strong> (<a href="https://arxiv.org/pdf/2105.14112" target="_blank" rel="noopener noreferrer">Nguyen &amp; Boninsegni, 2021, arXiv:2105.14112</a>; <a href="https://arxiv.org/pdf/2407.17507" target="_blank" rel="noopener noreferrer">arXiv:2407.17507</a>).</p>
+
+                <p>By the <strong>Mermin–Wagner theorem</strong>, a 2D system with continuous $U(1)$ rotational symmetry cannot undergo conventional spontaneous symmetry breaking at any non-zero temperature $T \gt 0$ because long-wavelength spin waves destroy true long-range magnetization ($\langle \vec{s} \rangle = 0$). Yet in the early 1970s, Berezinskii (1971), Kosterlitz, and Thouless (1973) discovered an infinite-order <strong>topological phase transition</strong> at $T_{\text{BKT}} \approx 0.893\,J/k_B$ driven entirely by the unbinding of quantized $\pm 2\pi$ spin vortex–antivortex pairs!</p>
+
+                <hr>
+
+                <h2>0. Energy–Entropy Balance of a Single Topological Vortex &amp; Checkerboard Detailed Balance</h2>
+                <p>Assign each site $(i, j)$ on a 2D square lattice a unit planar spin $\vec{s}_i = (\cos\theta_i, \sin\theta_i)$ interacting with its four nearest neighbors via $H = -J \sum_{\langle i, j \rangle} \cos(\theta_i - \theta_j)$. A single isolated $+2\pi$ vortex on a lattice of size $L \times L$ costs elastic energy $E_v \approx \pi J \ln(L/a)$ while gaining configurational entropy $S_v = k_B \ln(L^2 / a^2) = 2 k_B \ln(L/a)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">BKT Free Energy Unbinding Criterion &amp; Plaquette Topological Winding Number</div>
+                    $$F_{\text{vortex}} = E_v - T S_v = (\pi J - 2 k_B T)\ln\!\left(\frac{L}{a}\right) \;\Longrightarrow\; T_{\text{BKT}}^{\text{mean-field}} = \frac{\pi J}{2 k_B}, \qquad T_{\text{BKT}}^{\text{MC}} \approx 0.893\, \frac{J}{k_B}$$
+                    $$q_{\square} = \frac{1}{2\pi}\Bigl[\mathrm{wrap}(\theta_{10}-\theta_{00}) + \mathrm{wrap}(\theta_{11}-\theta_{10}) + \mathrm{wrap}(\theta_{01}-\theta_{11}) + \mathrm{wrap}(\theta_{00}-\theta_{01})\Bigr] \in \{-1, 0, +1\}$$
+                    <p style="margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">Below $T_{\text{BKT}}$, $F_{\text{vortex}} \to +\infty$ as $L \to \infty$, locking vortices into neutral $+1/-1$ dipole pairs with algebraic correlation decay $\langle \vec{s}_0 \cdot \vec{s}_r \rangle \sim r^{-\eta(T)}$. Above $T_{\text{BKT}}$, $F_{\text{vortex}} \to -\infty$ and free vortices proliferate exponentially.</p>
+                </div>
+
+                <div class="callout callout-warn">
+                    <strong>Why Naive Parallel GPU Metropolis Breaks Detailed Balance:</strong>
+                    In a standard fragment shader, every texel $(x, y)$ reads the previous frame's neighbors simultaneously. If two adjacent spins both flip in the same pass, the true energy change $\Delta E$ differs from the locally computed $\Delta E$, violating detailed balance and creating artificial checkerboard oscillations! Splitting each Monte Carlo sweep into <strong>Pass A (even parity <code>(x + y) % 2 == 0</code>)</strong> and <strong>Pass B (odd parity <code>(x + y) % 2 == 1</code>)</strong> guarantees that no two simultaneously updated spins ever share a bond.
+                </div>
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Red–Black Checkerboard Metropolis–Hastings Sweep with Stateless PCG PRNG</span><span class="badge-code">GLSL</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code class="language-glsl">// WebGL 2 (GLSL ES 3.00): #version 300 es / precision highp float;
+// Only update texels matching current checkerboard parity (0 = red, 1 = black)
+ivec2 px = ivec2(gl_FragCoord.xy);
+float thOld = texelFetch(uTheta, px, 0).r;
+if (((px.x + px.y) &amp; 1) != uParity) {
+    fragColor = vec4(thOld, 0.0, 0.0, 1.0);
+    return;
+}
+// Stateless per-texel PCG hash PRNG driven by (px, uFrameSeed)
+vec2 r = pcg2d(uvec2(px) ^ uFrameSeed);
+float thNew = wrapPi(thOld + (r.x * 2.0 - 1.0) * 3.14159265);
+float eOld = -(cos(thOld - N) + cos(thOld - S) + cos(thOld - E) + cos(thOld - W));
+float eNew = -(cos(thNew - N) + cos(thNew - S) + cos(thNew - E) + cos(thNew - W));
+float dE   = eNew - eOld;
+float thOut = (dE &lt;= 0.0 || r.y &lt; exp(-dE / max(0.05, uTemp))) ? thNew : thOld;
+fragColor = vec4(thOut, 0.0, 0.0, 1.0);</code></pre>
+                    </div>
+                </details>
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    function copyCode(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.classList.remove('copied');
+            }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else {
+            fallbackCopy(text, onCopied);
+        }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    (function initXySimulation() {
+        const canvas = document.getElementById('xy-canvas');
+        if (!canvas) return;
+        const NX = 128, NY = 72;
+        const N = NX * NY;
+        let theta = new Float32Array(N);
+        let tempT = 0.89;
+        let showVortices = true;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = NX;
+        offCanvas.height = NY;
+        const offCtx = offCanvas.getContext('2d');
+        const imgData = offCtx.createImageData(NX, NY);
+        const ctx = canvas.getContext('2d');
+
+        function idx(x, y) {
+            return ((y + NY) % NY) * NX + ((x + NX) % NX);
+        }
+
+        const TWO_PI = 2.0 * Math.PI;
+        function wrapPi(d) {
+            return d - TWO_PI * Math.floor((d + Math.PI) / TWO_PI);
+        }
+
+        function initSpins(mode) {
+            for (let i = 0; i < N; i++) {
+                theta[i] = mode === 'ordered' ? (Math.random() - 0.5) * 0.4 : (Math.random() * 2.0 - 1.0) * Math.PI;
+            }
+            if (mode === 'ordered') tempT = 0.45;
+            else if (mode === 'bkt') tempT = 0.89;
+            else tempT = 1.65;
+
+            const slider = document.getElementById('xy-temp-slider');
+            if (slider) slider.value = tempT.toFixed(2);
+            document.querySelectorAll('.xy-preset-btn').forEach(btn => {
+                const active = btn.getAttribute('data-xy') === mode;
+                btn.style.background = active ? '#38bdf8' : '#1e293b';
+                btn.style.color = active ? '#081018' : '#e2e8f0';
+                btn.style.border = active ? '1px solid #38bdf8' : '1px solid #475569';
+                btn.style.fontWeight = active ? '700' : '600';
+            });
+            window.updateXyParams();
+        }
+
+        window.setXyPreset = function(mode) {
+            initSpins(mode);
+        };
+
+        window.updateXyParams = function() {
+            const slider = document.getElementById('xy-temp-slider');
+            const valSpan = document.getElementById('xy-temp-val');
+            const cb = document.getElementById('xy-vortex-cb');
+            if (slider) {
+                tempT = parseFloat(slider.value);
+                if (valSpan) valSpan.textContent = tempT.toFixed(2);
+            }
+            if (cb) showVortices = cb.checked;
+        };
+
+        function sweepCheckerboard(parity) {
+            const invT = 1.0 / Math.max(0.05, tempT);
+            const stepAmp = Math.min(Math.PI, 0.75 + 1.4 * tempT);
+            for (let y = 0; y < NY; y++) {
+                for (let x = (y + parity) & 1; x < NX; x += 2) {
+                    const i = y * NX + x;
+                    const thOld = theta[i];
+                    const thNew = wrapPi(thOld + (Math.random() * 2.0 - 1.0) * stepAmp);
+                    const n1 = theta[idx(x + 1, y)], n2 = theta[idx(x - 1, y)];
+                    const n3 = theta[idx(x, y + 1)], n4 = theta[idx(x, y - 1)];
+                    const eOld = -(Math.cos(thOld - n1) + Math.cos(thOld - n2) + Math.cos(thOld - n3) + Math.cos(thOld - n4));
+                    const eNew = -(Math.cos(thNew - n1) + Math.cos(thNew - n2) + Math.cos(thNew - n3) + Math.cos(thNew - n4));
+                    const dE = eNew - eOld;
+                    if (dE <= 0.0 || Math.random() < Math.exp(-dE * invT)) {
+                        theta[i] = thNew;
+                    }
+                }
+            }
+        }
+
+        function hsvToRgb(h, s, v) {
+            const i = Math.floor(h * 6);
+            const f = h * 6 - i;
+            const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+            switch (((i % 6) + 6) % 6) {
+                case 0: return [v, t, p];
+                case 1: return [q, v, p];
+                case 2: return [p, v, t];
+                case 3: return [p, q, v];
+                case 4: return [t, p, v];
+                default: return [v, p, q];
+            }
+        }
+
+        let frameCounter = 0;
+        function renderXy() {
+            // 2 full Monte Carlo sweeps per frame (Pass A even parity, Pass B odd parity)
+            for (let s = 0; s < 2; s++) {
+                sweepCheckerboard(0);
+                sweepCheckerboard(1);
+            }
+            const data = imgData.data;
+            for (let i = 0; i < N; i++) {
+                const hue = (theta[i] / (2.0 * Math.PI)) + 0.5;
+                const rgb = hsvToRgb(hue, 0.78, 0.86);
+                const p4 = i * 4;
+                data[p4] = rgb[0] * 255;
+                data[p4 + 1] = rgb[1] * 255;
+                data[p4 + 2] = rgb[2] * 255;
+                data[p4 + 3] = 255;
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth || 640;
+                canvas.height = canvas.clientHeight || 360;
+            }
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+
+            // Detect topological plaquette winding numbers w = (1 / 2pi) sum d_theta over the full periodic torus
+            let posV = 0, negV = 0;
+            const sx = canvas.width / NX, sy = canvas.height / NY;
+            for (let y = 0; y < NY; y++) {
+                const y1 = (y + 1) % NY;
+                for (let x = 0; x < NX; x++) {
+                    const x1 = (x + 1) % NX;
+                    const t00 = theta[y * NX + x];
+                    const t10 = theta[y * NX + x1];
+                    const t11 = theta[y1 * NX + x1];
+                    const t01 = theta[y1 * NX + x];
+                    const wind = (wrapPi(t10 - t00) + wrapPi(t11 - t10) + wrapPi(t01 - t11) + wrapPi(t00 - t01)) / TWO_PI;
+                    if (wind > 0.6) {
+                        posV++;
+                        if (showVortices) {
+                            ctx.beginPath();
+                            ctx.arc((x + 0.5) * sx, (y + 0.5) * sy, Math.max(3, sx * 0.55), 0, TWO_PI);
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 1.8;
+                            ctx.stroke();
+                        }
+                    } else if (wind < -0.6) {
+                        negV++;
+                        if (showVortices) {
+                            ctx.beginPath();
+                            ctx.arc((x + 0.5) * sx, (y + 0.5) * sy, Math.max(3, sx * 0.55), 0, TWO_PI);
+                            ctx.strokeStyle = '#090a0f';
+                            ctx.lineWidth = 2.0;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+            frameCounter++;
+            if (frameCounter % 10 === 0) {
+                const telem = document.getElementById('xy-telemetry');
+                if (telem) {
+                    const regime = tempT < 0.85 ? 'Quasi-Long-Range Ordered (Bound Pairs)' : (tempT <= 0.95 ? 'BKT Critical Transition (T_BKT ≈ 0.893)' : 'Disordered Vortex Plasma');
+                    telem.textContent = `T = ${tempT.toFixed(2)} (${regime}) | Vortices (+1 / −1): ${posV} / ${negV}`;
+                }
+            }
+            requestAnimationFrame(renderXy);
+        }
+
+        let isHeating = false;
+        function applyLocalQuench(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            const gx = Math.floor(((e.clientX - rect.left) / rect.width) * NX);
+            const gy = Math.floor(((e.clientY - rect.top) / rect.height) * NY);
+            for (let dy = -7; dy <= 7; dy++) {
+                for (let dx = -7; dx <= 7; dx++) {
+                    if (dx * dx + dy * dy <= 49) {
+                        theta[idx(gx + dx, gy + dy)] = (Math.random() * 2.0 - 1.0) * Math.PI;
+                    }
+                }
+            }
+        }
+        canvas.addEventListener('pointerdown', e => {
+            isHeating = true;
+            applyLocalQuench(e);
+        });
+        canvas.addEventListener('pointermove', e => {
+            if (isHeating) applyLocalQuench(e);
+        });
+        window.addEventListener('pointerup', () => { isHeating = false; });
+        window.addEventListener('pointercancel', () => { isHeating = false; });
+
+        initSpins('bkt');
+        requestAnimationFrame(renderXy);
+    })();
+
+    </script>
+</body>
+
+</html>

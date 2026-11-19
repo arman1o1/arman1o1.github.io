@@ -4,8 +4,43 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-11-18T00:00:00Z</updated>
+  <updated>2026-11-19T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Topological Phase Transitions in Your Browser: The 2D XY Model &amp; BKT Vortex Unbinding via Checkerboard Monte Carlo</title>
+    <link href="https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html</id>
+    <updated>2026-11-19T00:00:00Z</updated>
+    <summary>How to simulate the 2D XY spin model and Berezinskii–Kosterlitz–Thouless (BKT) topological phase transition at 60 FPS on the GPU: red-black checkerboard Metropolis–Hastings Monte Carlo, plaquette winding numbers, and vortex–antivortex unbinding at T_BKT ≈ 0.893.</summary>
+  </entry>
+  <entry>
+    <title>No Poisson Solver Required: D2Q9 Lattice Boltzmann (BGK) Mesoscopic Fluid Dynamics in WebGL2</title>
+    <link href="https://arman1o1.github.io/posts/physics/lattice-boltzmann-d2q9-fluid-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/lattice-boltzmann-d2q9-fluid-webgl.html</id>
+    <updated>2026-11-19T00:00:00Z</updated>
+    <summary>How to simulate incompressible fluid dynamics without a global pressure Poisson solver: the D2Q9 Lattice Boltzmann Method (LBM), BGK collision-streaming, Chapman–Enskog recovery of Navier–Stokes, and exact bounce-back no-slip walls in WebGL2.</summary>
+  </entry>
+  <entry>
+    <title>Test-Time Training (TTT) &amp; Fast-Weight RNNs: Updating an MLP Hidden State via Gradient Descent on Every Token</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/ttt-fast-weight-rnns-test-time-training.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/ttt-fast-weight-rnns-test-time-training.html</id>
+    <updated>2026-11-19T00:00:00Z</updated>
+    <summary>A first-principles guide to Test-Time Training (TTT) layers and fast-weight neural memory: replacing linear SSM hidden states with online self-supervised SGD, TTT-Linear vs TTT-MLP, and the parallel mini-batch dual form in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Writing Fused LLM Kernels in Triton (Liger-Kernel): Eliminating the 128k-Vocab Logits VRAM Cliff</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/triton-fused-kernels-liger-cross-entropy.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/triton-fused-kernels-liger-cross-entropy.html</id>
+    <updated>2026-11-19T00:00:00Z</updated>
+    <summary>How fused GPU kernels in Triton (Liger-Kernel) cut LLM training VRAM by 80%: chunked FusedLinearCrossEntropy with in-place gradient overwriting, online SRAM log-sum-exp, and FP32 accumulation footguns in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>Masked Diffusion Language Models (MDLM &amp; LLaDA): Breaking the Autoregressive Token-by-Token Bottleneck</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/masked-diffusion-language-models-mdlm-llada.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/masked-diffusion-language-models-mdlm-llada.html</id>
+    <updated>2026-11-19T00:00:00Z</updated>
+    <summary>A practitioner&#x27;s guide to discrete absorbing-state diffusion LLMs (MDLM and LLaDA 8B): continuous-time Rao-Blackwellized ELBO, SUBS zero-mask parameterization, low-confidence parallel remasking, and solving the reversal curse in PyTorch.</summary>
+  </entry>
   <entry>
     <title>Klein Tunneling &amp; Zitterbewegung at 60 FPS: Solving the 2D Relativistic Dirac Equation in Graphene via WebGL2</title>
     <link href="https://arman1o1.github.io/posts/physics/dirac-graphene-klein-tunneling-webgl.html"/>
