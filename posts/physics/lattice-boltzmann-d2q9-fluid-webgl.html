@@ -122,7 +122,7 @@
                             </div>
                         </div>
                         <div id="lbm-telemetry" style="position:absolute;bottom:10px;left:12px;pointer-events:none;background:rgba(12,13,18,0.82);padding:4px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.18);font-family:monospace;font-size:11px;color:#94a3b8">
-                            ν = (τ − 0.5)/3 = 0.0267 | Ma = 0.13 | Zero Poisson Solves! Click/Drag to paint bounce-back walls
+                            ν = (τ − 0.5)/3 = 0.0267 | Ma = 0.11 | Zero Poisson Solves! Click/Drag to paint bounce-back walls
                         </div>
                     </div>
                     <div class="flow-caption" style="margin-top:.6rem">
@@ -249,7 +249,15 @@
         let uxArr = new Float32Array(N);
         let uyArr = new Float32Array(N);
         let tauVal = 0.58;
-        const uInlet = 0.075;
+        const uInlet = 0.065;
+        const uProf = new Float32Array(NY);
+        for (let y = 1; y < NY - 1; y++) {
+            const d = Math.min(y, NY - 1 - y);
+            uProf[y] = uInlet * Math.min(1.0, d / 4.0);
+        }
+        const SPONGE_W = 24, SPONGE_X0 = NX - SPONGE_W;
+        const omegaPlusSponge = new Float32Array(SPONGE_W);
+        const omegaMinusSponge = new Float32Array(SPONGE_W);
 
         const offCanvas = document.createElement('canvas');
         offCanvas.width = NX;
@@ -278,10 +286,11 @@
                         const yr = -dx * 0.39 + dy * 0.92;
                         if (xr > -14 && xr < 14 && Math.abs(yr) < 3.6 * (1.0 - (xr + 14) / 34.0)) solid[i] = 1;
                     } else if (mode === 'slit') {
-                        if (x >= Math.floor(NX * 0.26) && x <= Math.floor(NX * 0.29) && Math.abs(y - NY * 0.50) > 16) solid[i] = 1;
+                        if (x >= Math.floor(NX * 0.26) && x <= Math.floor(NX * 0.29) && Math.abs(y - NY * 0.50) > 18) solid[i] = 1;
                     }
+                    const u0 = uProf[y] || 0.0;
                     for (let q = 0; q < 9; q++) {
-                        const eq = eqPop(q, 1.0, uInlet, 0.0);
+                        const eq = eqPop(q, 1.0, u0, 0.0);
                         fCurr[i * 9 + q] = eq;
                         fNext[i * 9 + q] = eq;
                     }
@@ -316,16 +325,25 @@
         };
 
         function stepLbm() {
-            const omega = 1.0 / tauVal;
-            // 1. Zou-He velocity inlet (x = 0, ux = uInlet, uy = 0) & constant-pressure outlet (x = NX - 1, rho = 1, uy = 0)
+            const omegaPlusBulk = 1.0 / tauVal;
+            const omegaMinusBulk = 1.0 / (0.5 + 0.25 / (tauVal - 0.5)); // TRT magic parameter Lambda = 1/4
+            // Outlet sponge: ramp tau quadratically up to 1.0 over the last SPONGE_W columns
+            for (let k = 0; k < SPONGE_W; k++) {
+                const s = (k + 1) / SPONGE_W;
+                const tauLoc = tauVal + (Math.max(tauVal, 1.0) - tauVal) * s * s;
+                omegaPlusSponge[k] = 1.0 / tauLoc;
+                omegaMinusSponge[k] = 1.0 / (0.5 + 0.25 / (tauLoc - 0.5));
+            }
+            // 1. Zou-He velocity inlet (x = 0, ux = uProf[y], uy = 0) & constant-pressure outlet (x = NX - 1, rho = 1, uy = 0)
             for (let y = 1; y < NY - 1; y++) {
+                const uIn = uProf[y];
                 const bIn = (y * NX) * 9;
                 const f0 = fCurr[bIn], f2 = fCurr[bIn + 2], f4 = fCurr[bIn + 4];
                 const f3 = fCurr[bIn + 3], f6 = fCurr[bIn + 6], f7 = fCurr[bIn + 7];
-                const rhoIn = (f0 + f2 + f4 + 2.0 * (f3 + f6 + f7)) / (1.0 - uInlet);
-                fCurr[bIn + 1] = f3 + (2.0 / 3.0) * rhoIn * uInlet;
-                fCurr[bIn + 5] = f7 - 0.5 * (f2 - f4) + (1.0 / 6.0) * rhoIn * uInlet;
-                fCurr[bIn + 8] = f6 + 0.5 * (f2 - f4) + (1.0 / 6.0) * rhoIn * uInlet;
+                const rhoIn = (f0 + f2 + f4 + 2.0 * (f3 + f6 + f7)) / (1.0 - uIn);
+                fCurr[bIn + 1] = f3 + (2.0 / 3.0) * rhoIn * uIn;
+                fCurr[bIn + 5] = f7 - 0.5 * (f2 - f4) + (1.0 / 6.0) * rhoIn * uIn;
+                fCurr[bIn + 8] = f6 + 0.5 * (f2 - f4) + (1.0 / 6.0) * rhoIn * uIn;
 
                 const bOut = (y * NX + (NX - 1)) * 9;
                 const g0 = fCurr[bOut], g2 = fCurr[bOut + 2], g4 = fCurr[bOut + 4];
@@ -335,7 +353,8 @@
                 fCurr[bOut + 7] = g5 + 0.5 * (g2 - g4) - (1.0 / 6.0) * uxOut;
                 fCurr[bOut + 6] = g8 - 0.5 * (g2 - g4) - (1.0 / 6.0) * uxOut;
             }
-            // 2. BGK Collision + Streaming + Exact Bounce-Back
+            // 2. TRT Collision (exact BGK viscosity nu = (tau - 0.5)/3 + damped odd-even modes) + Streaming + Exact Bounce-Back
+            const feq = new Float32Array(9);
             for (let y = 0; y < NY; y++) {
                 for (let x = 0; x < NX; x++) {
                     const i = y * NX + x;
@@ -357,13 +376,25 @@
                     }
                     ux /= rho; uy /= rho;
                     uxArr[i] = ux; uyArr[i] = uy;
+                    const op = x >= SPONGE_X0 ? omegaPlusSponge[x - SPONGE_X0] : omegaPlusBulk;
+                    const om = x >= SPONGE_X0 ? omegaMinusSponge[x - SPONGE_X0] : omegaMinusBulk;
+                    const u2 = ux * ux + uy * uy;
                     for (let q = 0; q < 9; q++) {
-                        const fPost = fCurr[base + q] + omega * (eqPop(q, rho, ux, uy) - fCurr[base + q]);
+                        const eu = ex[q] * ux + ey[q] * uy;
+                        feq[q] = wq[q] * rho * (1.0 + 3.0 * eu + 4.5 * eu * eu - 1.5 * u2);
+                    }
+                    for (let q = 0; q < 9; q++) {
+                        const qo = opp[q];
+                        const fp = 0.5 * (fCurr[base + q] + fCurr[base + qo]);
+                        const fm = 0.5 * (fCurr[base + q] - fCurr[base + qo]);
+                        const ep = 0.5 * (feq[q] + feq[qo]);
+                        const em = 0.5 * (feq[q] - feq[qo]);
+                        const fPost = fCurr[base + q] - op * (fp - ep) - om * (fm - em);
                         const nx = x + ex[q], ny = y + ey[q];
                         if (nx >= 0 && nx < NX && ny >= 0 && ny < NY) {
                             const ni = ny * NX + nx;
                             if (solid[ni]) {
-                                fNext[base + opp[q]] = fPost; // Exact no-slip bounce-back
+                                fNext[base + qo] = fPost; // Exact no-slip bounce-back
                             } else {
                                 fNext[ni * 9 + q] = fPost;
                             }
