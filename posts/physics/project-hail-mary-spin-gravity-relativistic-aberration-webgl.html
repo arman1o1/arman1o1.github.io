@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulating the Hail Mary: Centrifugal Gravity &amp; Relativistic Aberration at 0.92c | arman1o1 blog</title>
+    <meta name="description" content="Interactive browser physics lab for Project Hail Mary: relativistic starfield aberration and blackbody Doppler blueshift at 0.92c alongside tethered spin-gravity Coriolis trajectories." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/project-hail-mary-spin-gravity-relativistic-aberration-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Simulating the Hail Mary: Centrifugal Gravity &amp; Relativistic Aberration at 0.92c">
+    <meta property="og:description" content="Interactive browser physics lab for Project Hail Mary: relativistic starfield aberration and blackbody Doppler blueshift at 0.92c alongside tethered spin-gravity Coriolis trajectories.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/project-hail-mary-spin-gravity-relativistic-aberration-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/project_hail_mary.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Simulating the Hail Mary: Centrifugal Gravity & Relativistic Aberration at 0.92c", "description": "Interactive browser physics lab for Project Hail Mary: relativistic starfield aberration and blackbody Doppler blueshift at 0.92c alongside tethered spin-gravity Coriolis trajectories.", "image": "https://arman1o1.github.io/images/project_hail_mary.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/project-hail-mary-spin-gravity-relativistic-aberration-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/project-hail-mary-spin-gravity-relativistic-aberration-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Relativity</span>
+                    <span class="tag">Project Hail Mary</span>
+                    <span class="tag">Coriolis</span>
+                    <span class="tag">WebGL</span>
+                </div>
+                <h1>Simulating the Hail Mary: Centrifugal Gravity &amp; Relativistic Aberration at 0.92c</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+
+                <!-- ===== LIVE INTERACTIVE HAIL MARY RELATIVISTIC & SPIN GRAVITY SIM ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#05070e;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="hm-canvas" style="width:100%;height:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="hm-btn" data-mode="aberration" onclick="window.setHmMode('aberration')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">0.92c Tau Ceti Starfield</button>
+                                <button type="button" class="hm-btn" data-mode="centrifuge" onclick="window.setHmMode('centrifuge')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Spin-Gravity Centrifuge</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span id="hm-lbl-a">Velocity $\beta = v/c$:</span>
+                                    <input id="hm-slider-a" type="range" min="0" max="0.98" step="0.01" value="0.92" style="width:92px">
+                                    <span id="hm-val-a" style="min-width:34px;font-variant-numeric:tabular-nums">0.92</span>
+                                </label>
+                                <button type="button" onclick="window.hmAction()" id="hm-act-btn" style="background:#f59e0b;color:#0b0f19;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Reset View</button>
+                            </div>
+                        </div>
+                        <div id="hm-hud" style="position:absolute;bottom:10px;left:12px;background:rgba(12,13,18,0.82);backdrop-filter:blur(6px);padding:5px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#cbd5e1;font-family:monospace;font-size:11px">γ = 2.55 · Blueshift D(0°) = 4.90x · Headlight boost = 576.0x</div>
+                    </div>
+                    <figcaption style="font-size:.86rem;color:var(--text-muted);margin-top:.55rem">
+                        Interactive WebGL2 &amp; physics lab: switch between the relativistic Tau Ceti starfield (aberration + Planck Doppler shift) and the tethered centrifuge cabin (click anywhere inside the rotating ring to drop a test mass and watch the Coriolis curve).
+                    </figcaption>
+                </figure>
+
+                <p>After reviewing <a href="../movies/project-hail-mary-2026-movie-review.html"><em>Project Hail Mary</em> (2026)</a>, two physics set-pieces stayed stuck in my head: the <strong>1.5g brachistochrone burn</strong> powered by Astrophage that accelerates the ship past $0.92c$ on its way to Tau Ceti, and the <strong>tethered centrifuge mode</strong> where the crew module separates from the fuel tanks and spins on cables to restore Earth gravity in orbit. Both look deceptively simple on screen, yet hiding underneath are two of the cleanest coordinate transformations in classical and relativistic mechanics.</p>
+
+                <hr>
+
+                <h2>1. Relativistic Aberration &amp; the Forward Starbow</h2>
+                <p>At $\beta = v/c = 0.92$, the Lorentz factor is $\gamma = (1 - \beta^2)^{-1/2} \approx 2.55$. Photons emitted by a star at rest-frame polar angle $\theta$ relative to the ship's velocity vector arrive at an apparent angle $\theta'$ compressed toward the nose of the ship:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Relativistic Aberration, Doppler Factor &amp; Headlight Intensity</div>
+                    $$\cos\theta' = \frac{\cos\theta + \beta}{1 + \beta\cos\theta}, \qquad D(\theta') = \frac{1}{\gamma(1 - \beta\cos\theta')}, \qquad I'_{\text{bol}} = D^4 I_{\text{bol}}$$
+                </div>
+
+                <p>Every star ahead of the ship is both <strong>pulled forward into a tight cone</strong> and <strong>blueshifted</strong> by $D(0) = \sqrt{(1+\beta)/(1-\beta)} \approx 4.9\times$ at $\beta = 0.92$. A yellow G-type star ($T \approx 5800\,\text{K}$) directly ahead shifts to an effective blackbody temperature of $T' = D \cdot T \approx 28{,}400\,\text{K}$ (searing ultraviolet-blue), while stars behind the ship redshift toward deep infrared and dim by $D^4 \approx 0.0017\times$.</p>
+
+                <h2>2. Rotating Tether Centrifuge &amp; Coriolis Deflection</h2>
+                <p>Once in orbit around Tau Ceti, the <em>Hail Mary</em> splits along a tether of radius $R \approx 50\,\text{m}$ and spins at angular velocity $\omega = \sqrt{g / R} \approx 0.443\,\text{rad/s}$ ($\approx 4.2\,\text{RPM}$). Inside the rotating cabin frame, a dropped wrench obeys the non-inertial equation of motion:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Equation of Motion in the Rotating Cabin Frame</div>
+                    $$\ddot{\mathbf{r}} = -\underbrace{\boldsymbol{\omega} \times (\boldsymbol{\omega} \times \mathbf{r})}_{\text{centrifugal } (+\omega^2 \mathbf{r})} - \underbrace{2\boldsymbol{\omega} \times \dot{\mathbf{r}}}_{\text{Coriolis deflection}}$$
+                </div>
+
+                <p>Drop a pen from height $h = 2\,\text{m}$ above the deck and it does <em>not</em> hit the floor directly below your hand. Because the pen starts at a smaller radius $R - h$ with lower tangential speed $\omega(R - h)$, it lags behind the faster-moving deck below it – deflecting <strong>anti-spinward</strong> by $\Delta s \approx \frac{2}{3}\omega \sqrt{2 h^3 / g} \approx 37.7\,\text{cm}$! Toggle to <strong>Spin-Gravity Centrifuge</strong> above and click inside the ring to verify the curve against the straight inertial trajectory.</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Relativistic Starfield Aberration &amp; Blackbody Doppler Shift</span><span class="badge-code">GLSL (WebGL2)</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-glsl">// Fragment shader core: Relativistic Starfield Aberration + Blackbody Shift
+vec3 blackbodyRGB(float T) {
+    T = clamp(T, 1200.0, 35000.0) / 1000.0;
+    float r = (T &lt;= 6.6) ? 1.0 : clamp(1.292936 * pow(T - 6.0, -0.133204), 0.0, 1.0);
+    float g = (T &lt;= 6.6) ? clamp(0.390081 * log(T) - 0.631841, 0.0, 1.0)
+                         : clamp(1.129891 * pow(T - 6.0, -0.075514), 0.0, 1.0);
+    float b = (T &gt;= 6.6) ? 1.0 : ((T &lt;= 1.9) ? 0.0 : clamp(0.543206 * log(T - 1.0) - 1.196254, 0.0, 1.0));
+    return vec3(r, g, b);
+}
+
+// Invert aberration to find rest-frame direction from ship-frame view ray
+float cosThPrime = normalize(rayDir).z;
+float cosTh = (cosThPrime - uBeta) / (1.0 - uBeta * cosThPrime);
+float gamma = inversesqrt(max(1e-5, 1.0 - uBeta * uBeta));
+float doppler = 1.0 / (gamma * (1.0 - uBeta * cosThPrime));</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Brachistochrone Fuel Budget Reality Check:</strong> A constant $1.5g$ flip-and-burn trip to Tau Ceti ($11.9\,\text{ly}$) takes only $\sim 3.9\,\text{years}$ of ship proper time ($\sim 13.1\,\text{years}$ Earth time). Even at a peak speed of $\beta \approx 0.985$ ($\gamma \approx 5.8$), the relativistic photon-rocket equation gives $m_0/m_f = \exp(\eta) = \sqrt{\frac{1+\beta}{1-\beta}} \approx 11.5$ per burn leg, or $\frac{1+\beta}{1-\beta} \approx 132$ for a one-way flip-and-burn – requiring a total mass ratio of $\sim 17{,}500$ for a full round trip, which is why Andy Weir needed mass-energy conversion via Astrophage.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Flight Regime</th><th>Ship Speed $\beta$</th><th>Lorentz $\gamma$</th><th>Forward Doppler $D(0^\circ)$</th><th>Visual Effect</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Earth Departure</td><td>0.00c</td><td>1.00</td><td>1.00×</td><td>Normal sky, isotropic star distribution</td></tr>
+                        <tr><td>Mid-Cruise</td><td>0.75c</td><td>1.51</td><td>2.65×</td><td>Forward stars crowd inward and turn ice-blue</td></tr>
+                        <tr><td>Peak Pre-Flip</td><td>0.92c</td><td>2.55</td><td>4.90×</td><td>Starbow ring forms; aft sky fades to deep red</td></tr>
+                        <tr><td>Relativistic Limit</td><td>0.98c</td><td>5.03</td><td>9.95×</td><td>Optical stars pushed to UV; IR background enters visible</td></tr>
+                    </tbody>
+                </table>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('hm-canvas');
+        const ctx = canvas.getContext('2d');
+        const hud = document.getElementById('hm-hud');
+        const sliderA = document.getElementById('hm-slider-a');
+        const valA = document.getElementById('hm-val-a');
+        const lblA = document.getElementById('hm-lbl-a');
+        const actBtn = document.getElementById('hm-act-btn');
+
+        let mode = 'aberration';
+        let beta = 0.92;
+        let omega = 0.85; // visual rad/s for centrifuge
+        let ringAngle = 0;
+
+        // Generate 900 rest-frame stars on the unit sphere
+        const stars = [];
+        for (let i = 0; i < 900; i++) {
+            const u = Math.random() * 2 - 1;
+            const phi = Math.random() * Math.PI * 2;
+            const s = Math.sqrt(1 - u * u);
+            stars.push({
+                x: s * Math.cos(phi), y: s * Math.sin(phi), z: u,
+                temp: 2800 + Math.pow(Math.random(), 2) * 9000,
+                mag: 0.4 + Math.random() * 1.4
+            });
+        }
+
+        // Dropped test particles in inertial coords + trail in rotating frame
+        let drops = [];
+
+        function blackbody(T) {
+            T = Math.max(1200, Math.min(35000, T)) / 1000;
+            let r = T <= 6.6 ? 255 : Math.max(0, Math.min(255, 329.698 * Math.pow(T - 6.0, -0.1332)));
+            let g = T <= 6.6 ? Math.max(0, Math.min(255, 99.47 * Math.log(T) - 161.12))
+                             : Math.max(0, Math.min(255, 288.12 * Math.pow(T - 6.0, -0.0755)));
+            let b = T >= 6.6 ? 255 : (T <= 1.9 ? 0 : Math.max(0, Math.min(255, 138.52 * Math.log(T - 1.0) - 305.04)));
+            return `rgb(${r|0},${g|0},${b|0})`;
+        }
+
+        function resize() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.floor(canvas.clientWidth * dpr);
+            canvas.height = Math.floor(canvas.clientHeight * dpr);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function spawnDrop(localRFrac, localTheta) {
+            const R = Math.min(canvas.width, canvas.height) * 0.36;
+            const r = R * localRFrac;
+            const th = ringAngle + localTheta;
+            // Inertial release velocity = omega x r
+            const x = r * Math.cos(th), y = r * Math.sin(th);
+            const vx = -omega * r * Math.sin(th);
+            const vy =  omega * r * Math.cos(th);
+            if (drops.length >= 20) drops.shift();
+            drops.push({ x, y, vx, vy, rotTrail: [], alive: true, hit: false, hitAngle: 0 });
+        }
+
+        window.setHmMode = function(m) {
+            mode = m;
+            document.querySelectorAll('.hm-btn').forEach(b => {
+                const active = b.dataset.mode === m;
+                b.style.background = active ? '#38bdf8' : '#1e293b';
+                b.style.color = active ? '#081018' : '#e2e8f0';
+            });
+            if (m === 'aberration') {
+                lblA.textContent = 'Velocity β = v/c:';
+                sliderA.min = '0'; sliderA.max = '0.98'; sliderA.step = '0.01'; sliderA.value = beta.toFixed(2);
+                valA.textContent = beta.toFixed(2);
+                actBtn.textContent = 'Reset View';
+            } else {
+                lblA.textContent = 'Spin ω (rad/s):';
+                sliderA.min = '0.2'; sliderA.max = '2.0'; sliderA.step = '0.05'; sliderA.value = omega.toFixed(2);
+                valA.textContent = omega.toFixed(2);
+                actBtn.textContent = 'Drop Lab Object';
+                drops = [];
+                spawnDrop(0.52, -Math.PI / 2);
+            }
+        };
+
+        window.hmAction = function() {
+            if (mode === 'aberration') {
+                beta = 0.92; sliderA.value = '0.92'; valA.textContent = '0.92';
+            } else {
+                spawnDrop(0.45 + Math.random() * 0.2, -Math.PI / 2 + (Math.random() - 0.5) * 0.6);
+            }
+        };
+
+        sliderA.addEventListener('input', () => {
+            const v = parseFloat(sliderA.value);
+            valA.textContent = v.toFixed(2);
+            if (mode === 'aberration') beta = v; else omega = v;
+        });
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (mode !== 'centrifuge') return;
+            const rect = canvas.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            const dpr = canvas.width / rect.width;
+            const cx = canvas.width * 0.5, cy = canvas.height * 0.52;
+            const dx = (e.clientX - rect.left) * dpr - cx;
+            const dy = (e.clientY - rect.top) * dpr - cy;
+            const R = Math.min(canvas.width, canvas.height) * 0.36;
+            const r = Math.hypot(dx, dy);
+            if (r < R * 0.94 && r > 12) {
+                spawnDrop(r / R, Math.atan2(dy, dx) - ringAngle);
+            }
+        });
+
+        let last = performance.now();
+        function frame(now) {
+            const dt = Math.min(0.033, (now - last) / 1000);
+            last = now;
+            const W = canvas.width, H = canvas.height;
+            if (W <= 0 || H <= 0) { requestAnimationFrame(frame); return; }
+            ctx.fillStyle = '#05070e';
+            ctx.fillRect(0, 0, W, H);
+
+            if (mode === 'aberration') {
+                const gamma = 1 / Math.sqrt(Math.max(1e-5, 1 - beta * beta));
+                const f = Math.min(W, H) * 0.62;
+                const cx = W * 0.5, cy = H * 0.52;
+
+                // Subtle forward starbow glow
+                const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, f * 0.65);
+                grad.addColorStop(0, `rgba(96, 165, 250, ${0.18 * beta})`);
+                grad.addColorStop(0.5, `rgba(56, 189, 248, ${0.06 * beta})`);
+                grad.addColorStop(1, 'rgba(5,7,14,0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+
+                for (const s of stars) {
+                    const cosTh = s.z;
+                    const cosThP = (cosTh + beta) / (1 + beta * cosTh);
+                    if (cosThP <= 0.05) continue;
+                    const sinTh = Math.sqrt(Math.max(1e-6, 1 - cosTh * cosTh));
+                    const sinThP = Math.sqrt(Math.max(0, 1 - cosThP * cosThP));
+                    const scale = sinThP / sinTh;
+                    const xp = s.x * scale, yp = s.y * scale;
+                    const sx = cx + (xp / cosThP) * f * 0.72;
+                    const sy = cy + (yp / cosThP) * f * 0.72;
+                    if (sx < -10 || sx > W + 10 || sy < -10 || sy > H + 10) continue;
+
+                    const D = 1 / (gamma * (1 - beta * cosThP));
+                    const Tprime = s.temp * D;
+                    const rad = Math.min(4.2, s.mag * Math.pow(D, 0.35));
+                    ctx.fillStyle = blackbody(Tprime);
+                    ctx.globalAlpha = Math.min(1, 0.35 + 0.35 * Math.pow(D, 0.7));
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, rad, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+                // Reticle
+                ctx.strokeStyle = 'rgba(148,163,184,0.28)';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI * 2); ctx.stroke();
+                ctx.fillStyle = 'rgba(148,163,184,0.75)';
+                ctx.font = '11px monospace';
+                ctx.fillText('TAU CETI HEADING (+Z)', cx - 72, cy + 40);
+
+                const D0 = Math.sqrt((1 + beta) / Math.max(1e-5, 1 - beta));
+                hud.textContent = `γ = ${gamma.toFixed(2)} · Forward Blueshift D(0°) = ${D0.toFixed(2)}x · Headlight D⁴ = ${(D0**4).toFixed(1)}x`;
+            } else {
+                ringAngle += omega * dt;
+                const cx = W * 0.5, cy = H * 0.52;
+                const R = Math.min(W, H) * 0.36;
+
+                // Draw rotating tether + habitat ring
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.strokeStyle = 'rgba(56,189,248,0.45)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+
+                // Tether cable across diameter
+                ctx.strokeStyle = 'rgba(148,163,184,0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-R * Math.cos(ringAngle), -R * Math.sin(ringAngle));
+                ctx.lineTo(R * Math.cos(ringAngle), R * Math.sin(ringAngle));
+                ctx.stroke();
+
+                // Crew cabin & fuel tanks at ends
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath(); ctx.arc(R * Math.cos(ringAngle), R * Math.sin(ringAngle), 9, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(-R * Math.cos(ringAngle), -R * Math.sin(ringAngle), 9, 0, Math.PI * 2); ctx.fill();
+
+                // Step & draw drops
+                for (const d of drops) {
+                    if (!d.hit) {
+                        d.x += d.vx * dt;
+                        d.y += d.vy * dt;
+                        const r = Math.hypot(d.x, d.y);
+                        if (r >= R - 3) {
+                            const s = (R - 3) / r;
+                            d.x *= s; d.y *= s;
+                            d.hit = true;
+                            d.hitAngle = Math.atan2(d.y, d.x) - ringAngle;
+                        }
+                        // Store rotating-frame coords
+                        const ca = Math.cos(-ringAngle), sa = Math.sin(-ringAngle);
+                        d.rotTrail.push([d.x * ca - d.y * sa, d.x * sa + d.y * ca]);
+                    } else {
+                        // Keep landed object anchored to the rotating deck floor
+                        const th = ringAngle + d.hitAngle;
+                        d.x = (R - 3) * Math.cos(th);
+                        d.y = (R - 3) * Math.sin(th);
+                    }
+                    // Draw curved Coriolis trail in current rotating frame
+                    if (d.rotTrail.length > 1) {
+                        const ca = Math.cos(ringAngle), sa = Math.sin(ringAngle);
+                        ctx.strokeStyle = '#fb7185';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        d.rotTrail.forEach((pt, idx) => {
+                            const rx = pt[0] * ca - pt[1] * sa;
+                            const ry = pt[0] * sa + pt[1] * ca;
+                            if (idx === 0) ctx.moveTo(rx, ry); else ctx.lineTo(rx, ry);
+                        });
+                        ctx.stroke();
+                    }
+                    ctx.fillStyle = d.hit ? '#22c55e' : '#f43f5e';
+                    ctx.beginPath(); ctx.arc(d.x, d.y, 4.5, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.restore();
+
+                const gEff = (omega * omega * 50) / 9.81;
+                hud.textContent = `Tether R = 50 m · ω = ${omega.toFixed(2)} rad/s · Artificial Gravity = ${gEff.toFixed(2)} g · Click inside ring to drop`;
+            }
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    })();
+    </script>
+
+</body>
+
+</html>

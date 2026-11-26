@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Native Sparse Attention (NSA) &amp; KV-Cache Eviction at 1M+ Context | arman1o1 blog</title>
+    <meta name="description" content="Hardware-aligned, natively trainable sparse attention: 3-branch gated decomposition (compressed, selected, sliding window), GQA group-shared block loading, and attention-sink eviction mechanics." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/native-sparse-attention-kv-cache-eviction.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Native Sparse Attention (NSA) &amp; KV-Cache Eviction at 1M+ Context">
+    <meta property="og:description" content="Hardware-aligned, natively trainable sparse attention: 3-branch gated decomposition (compressed, selected, sliding window), GQA group-shared block loading, and attention-sink eviction mechanics.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/native-sparse-attention-kv-cache-eviction.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Native Sparse Attention (NSA) & KV-Cache Eviction at 1M+ Context", "description": "Hardware-aligned, natively trainable sparse attention: 3-branch gated decomposition (compressed, selected, sliding window), GQA group-shared block loading, and attention-sink eviction mechanics.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/native-sparse-attention-kv-cache-eviction.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/native-sparse-attention-kv-cache-eviction.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Sparse Attention</span>
+                    <span class="tag">DeepSeek NSA</span>
+                    <span class="tag">KV-Cache</span>
+                    <span class="tag">Long Context</span>
+                </div>
+                <h1>Native Sparse Attention (NSA) &amp; KV-Cache Eviction at 1M+ Context</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+
+                <p>In <a href="llm-attention-engineering.html">Attention Engineering: From MHA to GQA, MLA &amp; FlashAttention</a>, we cut attention HBM traffic via tiled SRAM kernels and compressed KV latents – yet full attention still scales quadratically $O(T^2)$ in prefill and reads $O(T)$ KV bytes per decoded token. Post-hoc KV eviction heuristics (dropping low-attention tokens at inference) break down on needle-in-a-haystack reasoning because the model was never trained to survive sparse masks. <strong>Native Sparse Attention (NSA)</strong> (<a href="https://arxiv.org/abs/2502.11089" target="_blank" rel="noopener noreferrer">Yuan et al., DeepSeek-AI 2025, arXiv:2502.11089</a>) solves both problems at once: it is <strong>end-to-end trainable from pretraining</strong> and <strong>hardware-aligned to GPU Tensor Cores</strong>.</p>
+
+                <hr>
+
+                <h2>1. The Three-Branch Hierarchical Sparse Decomposition</h2>
+                <p>For every query $\mathbf{q}_t$, NSA constructs three complementary key-value representations – <strong>Coarse Compression</strong> ($\tilde{K}_{\text{cmp}}, \tilde{V}_{\text{cmp}}$), <strong>Fine-Grained Top-$n$ Block Selection</strong> ($\tilde{K}_{\text{slc}}, \tilde{V}_{\text{slc}}$), and a <strong>Local Sliding Window</strong> ($\tilde{K}_{\text{win}}, \tilde{V}_{\text{win}}$) – and blends their attention outputs with learned sigmoid gates:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Native Sparse Attention Gated 3-Branch Output (<a href="https://arxiv.org/abs/2502.11089" target="_blank" rel="noopener noreferrer">Yuan et al., 2025</a>)</div>
+                    $$\mathbf{o}_t^* = \sum_{c \in \{\text{cmp},\, \text{slc},\, \text{win}\}} g_t^c \cdot \mathrm{Attn}\!\left(\mathbf{q}_t,\, \tilde{K}_t^c,\, \tilde{V}_t^c\right), \qquad g_t^c = \sigma\big(W_g^c \mathbf{x}_t\big) \in [0, 1]$$
+                </div>
+
+                <p>Why keep the sliding window separate from block selection? If a single attention head handles both local syntax and distant retrieval, local tokens dominate the gradient early in training and starve the learned block selector. Decoupling the three branches with independent gates lets the sliding window handle local fluency while the compression and selection branches specialize purely in long-range retrieval.</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 170" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Native Sparse Attention three parallel branches">
+                        <rect x="16" y="55" width="130" height="60" rx="8" fill="var(--surface-elevated)" stroke="#e2e8f0" stroke-width="1.5"/>
+                        <text x="81" y="82" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="800">Query q_t</text>
+                        <text x="81" y="100" text-anchor="middle" fill="var(--text-muted)" font-size="10">GQA Group (16 Q)</text>
+
+                        <rect x="195" y="12" width="215" height="44" rx="8" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="302" y="32" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">1. Compressed Blocks (l=32, d=16)</text>
+                        <text x="302" y="47" text-anchor="middle" fill="var(--text-muted)" font-size="9.5">Global summary + importance scores</text>
+
+                        <rect x="195" y="64" width="215" height="44" rx="8" fill="var(--surface-elevated)" stroke="#a78bfa" stroke-width="1.6"/>
+                        <text x="302" y="84" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700">2. Top-n Selected Blocks (n=16)</text>
+                        <text x="302" y="99" text-anchor="middle" fill="var(--text-muted)" font-size="9.5">Shared across all GQA query heads</text>
+
+                        <rect x="195" y="116" width="215" height="44" rx="8" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.6"/>
+                        <text x="302" y="136" text-anchor="middle" fill="#34d399" font-size="11" font-weight="700">3. Sliding Window (w=512)</text>
+                        <text x="302" y="151" text-anchor="middle" fill="var(--text-muted)" font-size="9.5">Exact recent local context</text>
+
+                        <rect x="465" y="45" width="165" height="80" rx="10" fill="var(--surface-elevated)" stroke="#f59e0b" stroke-width="1.6"/>
+                        <text x="547" y="76" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="800">Gated Fusion</text>
+                        <text x="547" y="96" text-anchor="middle" fill="var(--text-muted)" font-size="10">g_cmp·o + g_slc·o + g_win·o</text>
+                        <text x="547" y="112" text-anchor="middle" fill="var(--text-muted)" font-size="9.5">Zero gradient starvation</text>
+
+                        <rect x="675" y="55" width="148" height="60" rx="8" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.6"/>
+                        <text x="749" y="82" text-anchor="middle" fill="#34d399" font-size="12" font-weight="800">Output o_t*</text>
+                        <text x="749" y="100" text-anchor="middle" fill="var(--text-muted)" font-size="10">~9x faster @ 64k</text>
+                    </svg>
+                    <div class="flow-caption">NSA derives block selection scores directly from the compressed attention weights – zero extra scoring network required.</div>
+                </div>
+
+                <h2>2. Hardware Alignment: Why GQA Group-Shared Selection Matters</h2>
+                <p>Naive token-level sparsity destroys GPU utilization: if each query head fetches different scattered tokens from HBM, memory coalescing collapses and Tensor Cores stall. NSA fixes this with two hardware rules:</p>
+                <ol>
+                    <li><strong>Contiguous Block Granularity ($l' = 64$):</strong> Loading contiguous 64-token KV blocks saturates HBM burst bandwidth and matches Triton MMA tile dimensions.</li>
+                    <li><strong>GQA Head-Group Sharing:</strong> All $h = 16$ query heads sharing one KV head aggregate their compressed importance scores ($\mathbf{p}_{\text{slc}} = \sum_{m=1}^{h} \mathbf{p}_{\text{cmp}}^{(m)}$) and load the <em>exact same</em> top-$n$ KV blocks into SRAM – boosting arithmetic intensity by $16\times$!</li>
+                </ol>
+
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Native Sparse Attention 3-Branch Compression &amp; Gated Fusion</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-python">import torch
+import torch.nn as nn
+
+class NativeSparseAttentionBlock(nn.Module):
+    &quot;&quot;&quot;Simplified 3-branch Native Sparse Attention (Compress + Select + Window) with GQA group sharing.&quot;&quot;&quot;
+    def __init__(self, d_model: int, n_heads: int, n_kv_heads: int,
+                 block_len: int = 32, stride: int = 16, top_n: int = 16, window: int = 512):
+        super().__init__()
+        self.d_head = d_model // n_heads
+        self.n_heads, self.n_kv_heads = n_heads, n_kv_heads
+        self.block_len, self.stride, self.top_n, self.window = block_len, stride, top_n, window
+        self.compress_k = nn.Linear(block_len * self.d_head, self.d_head, bias=False)
+        self.compress_v = nn.Linear(block_len * self.d_head, self.d_head, bias=False)
+        self.gate_proj = nn.Linear(d_model, 3 * n_heads)
+
+    def compress_kv(self, k: torch.Tensor, v: torch.Tensor):
+        # k, v: [B, H_kv, T, D] -&gt; coarse blocks [B, H_kv, N_blk, D]
+        B, H, T, D = k.shape
+        k_unf = k.unfold(2, self.block_len, self.stride).transpose(-1, -2).reshape(B, H, -1, self.block_len * D)
+        v_unf = v.unfold(2, self.block_len, self.stride).transpose(-1, -2).reshape(B, H, -1, self.block_len * D)
+        return self.compress_k(k_unf), self.compress_v(v_unf)
+
+    def combine_branches(self, x_q, o_cmp, o_slc, o_win):
+        # x_q: [B, T, d_model], o_*: [B, T, n_heads, d_head]
+        # Learned per-head sigmoid gates prevent gradient starvation between branches
+        g = torch.sigmoid(self.gate_proj(x_q)).view(*o_cmp.shape[:-1], 3, 1)
+        return g[..., 0, :] * o_cmp + g[..., 1, :] * o_slc + g[..., 2, :] * o_win</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Serving &amp; KV-Eviction Engineering Footgun:</strong> In <em>StreamingLLM</em> or <em>H2O</em> post-hoc eviction, never evict the first 4–8 <strong>attention sink tokens</strong> – softmax must sum to 1, and when no semantic token is relevant, heads dump excess probability mass onto BOS/initial tokens. Evicting sinks causes immediate perplexity explosion, whereas NSA naturally preserves global anchors through its compressed branch.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Method</th><th>Trainable End-to-End?</th><th>Hardware-Aligned Tiles?</th><th>64k Decode HBM Traffic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Full FlashAttention-2</strong></td><td>Yes</td><td>Yes</td><td>$100\%$ ($O(T)$ KV reads/token)</td></tr>
+                        <tr><td><strong>Post-Hoc Eviction (H2O / SnapKV)</strong></td><td>No (inference heuristic)</td><td>Scattered tokens</td><td>$15$–$25\%$ (quality degrades on multi-hop)</td></tr>
+                        <tr><td><strong>Native Sparse Attention (NSA)</strong></td><td><strong>Yes (from pretraining)</strong></td><td><strong>Yes (GQA block tiles)</strong></td><td><strong>$\sim 8$–$12\%$</strong> (matches/beats full attn)</td></tr>
+                    </tbody>
+                </table>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+</body>
+
+</html>

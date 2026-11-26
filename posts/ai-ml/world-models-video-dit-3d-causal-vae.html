@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>World Models &amp; Video DiTs: 3D Causal VAEs, Spatiotemporal RoPE &amp; Action-Conditioned Rollouts | arman1o1 blog</title>
+    <meta name="description" content="From 2D Flow Matching to interactive World Models: 3D Causal VAE temporal padding, factorized 3D RoPE, Diffusion Forcing per-frame noise schedules, and fighting autoregressive drift." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/world-models-video-dit-3d-causal-vae.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="World Models &amp; Video DiTs: 3D Causal VAEs, Spatiotemporal RoPE &amp; Action-Conditioned Rollouts">
+    <meta property="og:description" content="From 2D Flow Matching to interactive World Models: 3D Causal VAE temporal padding, factorized 3D RoPE, Diffusion Forcing per-frame noise schedules, and fighting autoregressive drift.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/world-models-video-dit-3d-causal-vae.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "World Models & Video DiTs: 3D Causal VAEs, Spatiotemporal RoPE & Action-Conditioned Rollouts", "description": "From 2D Flow Matching to interactive World Models: 3D Causal VAE temporal padding, factorized 3D RoPE, Diffusion Forcing per-frame noise schedules, and fighting autoregressive drift.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/world-models-video-dit-3d-causal-vae.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/world-models-video-dit-3d-causal-vae.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">World Models</span>
+                    <span class="tag">Video DiT</span>
+                    <span class="tag">3D Causal VAE</span>
+                    <span class="tag">Flow Matching</span>
+                </div>
+                <h1>World Models &amp; Video DiTs: 3D Causal VAEs, Spatiotemporal RoPE &amp; Action-Conditioned Rollouts</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+
+                <p>When I tested Gemini Omni in <a href="testing-gemini-omni.html">Making a Still Bird Fly</a> and derived continuous-time transport in <a href="flow-matching-diffusion-transformers.html">Flow Matching &amp; Diffusion Transformers (DiT)</a>, one engineering question loomed over everything: how do you scale a 2D image DiT to coherent 3D video – and then turn a passive video generator into an <strong>interactive, action-conditioned World Model</strong>? Three architectural pillars make it work: a <strong>3D Causal VAE</strong>, <strong>Factorized 3D RoPE</strong>, and <strong>Diffusion Forcing</strong> (<a href="https://arxiv.org/abs/2408.06072" target="_blank" rel="noopener noreferrer">CogVideoX, Yang et al., 2024, arXiv:2408.06072</a>).</p>
+
+                <hr>
+
+                <h2>1. The 3D Causal VAE &amp; Spatiotemporal Compression</h2>
+                <p>A 5-second 720p video at 24 FPS has $120 \times 720 \times 1280 \times 3 \approx 332\text{ million}$ pixel values. A 3D Causal VAE compresses this by $4\times$ temporally and $8\times 8$ spatially (a $256\times$ reduction) into a latent tube $\mathbf{z} \in \mathbb{R}^{C \times (1 + (T-1)/4) \times (H/8) \times (W/8)}$. Crucially, <strong>frame 0 is compressed independently</strong> as a standalone image while every subsequent temporal convolution uses <strong>causal (left-only) padding</strong>:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Causal 3D Latent Compression &amp; Per-Frame Diffusion Forcing Velocity Loss</div>
+                    $$\mathbf{z}_t = \mathcal{E}_{\text{causal}}(\mathbf{x}_{0:t}), \qquad \mathbf{z}_t^{(\tau_t)} = (1 - \tau_t)\mathbf{z}_t + \tau_t \boldsymbol{\epsilon}_t, \quad \tau_t \stackrel{\text{i.i.d.}}{\sim} \mathrm{LogitNormal}(0, 1)$$
+                    $$\mathcal{L}_{\text{DF}} = \mathbb{E}\!\left[\sum_{t=1}^{L} \left\| v_\theta\!\left(\mathbf{z}_{1:L}^{(\boldsymbol{\tau})},\, \boldsymbol{\tau},\, \mathbf{a}_{1:L}\right)_t - (\boldsymbol{\epsilon}_t - \mathbf{z}_t) \right\|_2^2\right]$$
+                </div>
+
+                <p>Notice two superpowers here: (1) Because frame 0 is encoded causally without future lookahead, the exact same VAE and DiT seamlessly train on <strong>mixed batches of still images ($T=1$) and videos ($T=49$)</strong>. (2) Giving every frame $t$ its own independent noise level $\tau_t \in [0, 1]$ (Diffusion Forcing) lets the model keep clean past history frames at $\tau_{\lt t} \approx 0$ while denoising future frames $\tau_t \to 0$ conditioned on user actions $\mathbf{a}_t$ (keyboard/camera pose) – turning a video DiT into a real-time interactive World Model!</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 160" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="World Model Video DiT pipeline">
+                        <rect x="16" y="34" width="175" height="92" rx="10" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="103" y="64" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="800">3D Causal VAE</text>
+                        <text x="103" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="10">4×8×8 compression</text>
+                        <text x="103" y="102" text-anchor="middle" fill="var(--text-muted)" font-size="10">Frame 0 = image compatible</text>
+
+                        <rect x="226" y="34" width="185" height="92" rx="10" fill="var(--surface-elevated)" stroke="#a78bfa" stroke-width="1.6"/>
+                        <text x="318" y="64" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="800">3D Patchify + 3D RoPE</text>
+                        <text x="318" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="10">Split head_dim: (d_t, d_h, d_w)</text>
+                        <text x="318" y="102" text-anchor="middle" fill="var(--text-muted)" font-size="10">Handles variable aspect ratios</text>
+
+                        <rect x="446" y="34" width="185" height="92" rx="10" fill="var(--surface-elevated)" stroke="#f59e0b" stroke-width="1.6"/>
+                        <text x="538" y="64" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="800">Expert 3D DiT</text>
+                        <text x="538" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="10">AdaLN(τ_t, action a_t)</text>
+                        <text x="538" y="102" text-anchor="middle" fill="var(--text-muted)" font-size="10">Full 3D / Causal block attn</text>
+
+                        <rect x="666" y="34" width="158" height="92" rx="10" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.6"/>
+                        <text x="745" y="64" text-anchor="middle" fill="#34d399" font-size="12" font-weight="800">Autoregressive Rollout</text>
+                        <text x="745" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="10">KV-cached past frames</text>
+                        <text x="745" y="102" text-anchor="middle" fill="var(--text-muted)" font-size="10">Noise-augmented stability</text>
+                    </svg>
+                    <div class="flow-caption">Replacing shared global timesteps with per-frame noise levels τ_t bridges bidirectional Video DiTs and autoregressive interactive World Models.</div>
+                </div>
+
+
+                <details class="code-card">
+                    <summary><span>PyTorch Implementation: CausalConv3d &amp; Factorized 3D RoPE</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class CausalConv3d(nn.Module):
+    &quot;&quot;&quot;Left-only temporal padding so frame t never leaks information from future frames t+1.&quot;&quot;&quot;
+    def __init__(self, c_in: int, c_out: int, kt: int = 3, ks: int = 3, st: int = 1, ss: int = 1):
+        super().__init__()
+        self.pad_t = kt - 1
+        self.pad_s = ks // 2
+        self.conv = nn.Conv3d(c_in, c_out, (kt, ks, ks), stride=(st, ss, ss), padding=0)
+
+    def forward(self, x: torch.Tensor) -&gt; torch.Tensor:
+        # x: [B, C, T, H, W] -&gt; F.pad order is (W_l, W_r, H_l, H_r, T_l, T_r)
+        x = F.pad(x, (self.pad_s, self.pad_s, self.pad_s, self.pad_s, self.pad_t, 0), mode=&quot;replicate&quot;)
+        return self.conv(x)
+
+def apply_3d_rope(q: torch.Tensor, freqs_t, freqs_h, freqs_w):
+    &quot;&quot;&quot;Factorized 3D RoPE: splits head_dim into (d_t, d_h, d_w) orthogonal rotary subspaces.&quot;&quot;&quot;
+    dt, dh, dw = freqs_t.shape[-1] * 2, freqs_h.shape[-1] * 2, freqs_w.shape[-1] * 2
+    qt, qh, qw = q.split([dt, dh, dw], dim=-1)
+    def rot(x, f):
+        x1, x2 = x[..., 0::2], x[..., 1::2]
+        c, s = f.cos(), f.sin()
+        return torch.stack([x1 * c - x2 * s, x1 * s + x2 * c], dim=-1).flatten(-2)
+    return torch.cat([rot(qt, freqs_t), rot(qh, freqs_h), rot(qw, freqs_w)], dim=-1)</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>World-Model Exposure Bias Footgun:</strong> If you condition autoregressive rollouts on strictly clean ($\tau_{\lt t} = 0$) history frames, tiny per-frame VAE reconstruction errors compound into gray mush within 30 frames. Adding a small <strong>history noise augmentation</strong> ($\tau_{\lt t} \approx 0.05$–$0.10$) during both training and rollout teaches the DiT to project slightly drifted frames back onto the natural video manifold!
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Architecture</th><th>Attention Pattern</th><th>Rollout Horizon</th><th>Interactive Action Control</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Bidirectional Video DiT (CogVideoX)</strong></td><td>Full 3D spatiotemporal</td><td>Fixed clip (5–10 s)</td><td>Text/image prompt only</td></tr>
+                        <tr><td><strong>Diffusion Forcing World Model</strong></td><td>Block-causal + per-frame $\tau_t$</td><td>Open-ended streaming</td><td>Per-frame keyboard/camera $\mathbf{a}_t$ via AdaLN</td></tr>
+                    </tbody>
+                </table>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+</body>
+
+</html>

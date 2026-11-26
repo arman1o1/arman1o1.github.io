@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Gaussian Splatting from First Principles: EWA Projection, Differentiable Rasterization &amp; Tile Sorting | arman1o1 blog</title>
+    <meta name="description" content="A practitioner&#x27;s first-principles guide to 3D Gaussian Splatting: quaternion-scale covariance factorization, EWA Jacobian projection, 16x16 GPU tile radix sorting, and exact reverse-order backward gradients." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/3d-gaussian-splatting-differentiable-rasterization.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="3D Gaussian Splatting from First Principles: EWA Projection, Differentiable Rasterization &amp; Tile Sorting">
+    <meta property="og:description" content="A practitioner&#x27;s first-principles guide to 3D Gaussian Splatting: quaternion-scale covariance factorization, EWA Jacobian projection, 16x16 GPU tile radix sorting, and exact reverse-order backward gradients.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/3d-gaussian-splatting-differentiable-rasterization.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "3D Gaussian Splatting from First Principles: EWA Projection, Differentiable Rasterization & Tile Sorting", "description": "A practitioner's first-principles guide to 3D Gaussian Splatting: quaternion-scale covariance factorization, EWA Jacobian projection, 16x16 GPU tile radix sorting, and exact reverse-order backward gradients.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/3d-gaussian-splatting-differentiable-rasterization.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/3d-gaussian-splatting-differentiable-rasterization.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">3D Vision</span>
+                    <span class="tag">Gaussian Splatting</span>
+                    <span class="tag">Differentiable Rendering</span>
+                    <span class="tag">GPU Systems</span>
+                </div>
+                <h1>3D Gaussian Splatting from First Principles: EWA Projection, Differentiable Rasterization &amp; Tile Sorting</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 13 min read</span>
+                </div>
+
+                <hr>
+
+
+                <p>For three years, Neural Radiance Fields (NeRFs) dominated novel-view synthesis – but paid a brutal price: marching hundreds of rays per pixel through an MLP kept frame rates stuck in seconds-per-frame. <strong>3D Gaussian Splatting (3DGS)</strong> (<a href="https://arxiv.org/abs/2308.04079" target="_blank" rel="noopener noreferrer">Kerbl et al., SIGGRAPH 2023, arXiv:2308.04079</a>) flipped the paradigm completely: represent the scene explicitly as millions of learnable anisotropic 3D Gaussians, project them analytically onto the image plane via EWA splatting, and rasterize them in <strong>sorted $16\times 16$ GPU tiles</strong> at $100+$ FPS – all while staying 100% end-to-end differentiable.</p>
+
+                <hr>
+
+                <h2>1. Parameterizing Positive-Semi-Definite 3D Covariances</h2>
+                <p>An unnormalized 3D Gaussian centered at $\boldsymbol{\mu} \in \mathbb{R}^3$ with covariance $\Sigma \in \mathbb{R}^{3\times 3}$ has density $G(\mathbf{x}) = \exp\big(-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^\top \Sigma^{-1}(\mathbf{x}-\boldsymbol{\mu})\big)$. You cannot optimize the 9 entries of $\Sigma$ directly with gradient descent because arbitrary updates break positive-semi-definiteness ($\Sigma \succeq 0$). Instead, 3DGS factorizes $\Sigma$ into a unit quaternion $\mathbf{q} \in \mathbb{S}^3$ (converted to rotation matrix $R$) and a 3D log-scale vector $\mathbf{s} \in \mathbb{R}^3$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">3D Covariance Factorization &amp; EWA Screen-Space Projection (<a href="https://arxiv.org/abs/2308.04079" target="_blank" rel="noopener noreferrer">Kerbl et al., 2023</a>)</div>
+                    $$\Sigma = R\,S\,S^\top\,R^\top, \qquad S = \mathrm{diag}(e^{s_x}, e^{s_y}, e^{s_z})$$
+                    $$\Sigma' = J\,W\,\Sigma\,W^\top\,J^\top \in \mathbb{R}^{2\times 2}, \qquad J = \begin{pmatrix} \frac{f_x}{t_z} & 0 & -\frac{f_x t_x}{t_z^2} \\ 0 & \frac{f_y}{t_z} & -\frac{f_y t_y}{t_z^2} \end{pmatrix}$$
+                </div>
+
+                <p>Here $W$ is the world-to-camera rotation, $\mathbf{t} = (t_x, t_y, t_z)^\top$ is the Gaussian center in camera coordinates, and $J \in \mathbb{R}^{2\times 3}$ is the first-order affine Jacobian of the perspective projection (with the depth row already dropped), so $\Sigma'$ directly yields the exact 2D screen-space conic ellipse!</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 165" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="3D Gaussian Splatting Differentiable Tile Rasterization Pipeline">
+                        <rect x="16" y="30" width="175" height="96" rx="10" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="103" y="60" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="800">1. 3D Gaussians</text>
+                        <text x="103" y="80" text-anchor="middle" fill="var(--text-muted)" font-size="10">μ, q, s, α, SH (deg 3)</text>
+                        <text x="103" y="98" text-anchor="middle" fill="var(--text-muted)" font-size="10">Frustum cull + EWA Σ′</text>
+
+                        <path d="M 191 78 L 228 78" stroke="#94a3b8" stroke-width="2"/>
+
+                        <rect x="228" y="30" width="185" height="96" rx="10" fill="var(--surface-elevated)" stroke="#a78bfa" stroke-width="1.6"/>
+                        <text x="320" y="60" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="800">2. Tile Duplication</text>
+                        <text x="320" y="80" text-anchor="middle" fill="var(--text-muted)" font-size="10">16×16 screen tiles</text>
+                        <text x="320" y="98" text-anchor="middle" fill="var(--text-muted)" font-size="10">64-bit key = (tile_id | depth)</text>
+
+                        <path d="M 413 78 L 450 78" stroke="#94a3b8" stroke-width="2"/>
+
+                        <rect x="450" y="30" width="170" height="96" rx="10" fill="var(--surface-elevated)" stroke="#f59e0b" stroke-width="1.6"/>
+                        <text x="535" y="60" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="800">3. GPU Radix Sort</text>
+                        <text x="535" y="80" text-anchor="middle" fill="var(--text-muted)" font-size="10">Single CUB DeviceRadixSort</text>
+                        <text x="535" y="98" text-anchor="middle" fill="var(--text-muted)" font-size="10">Front-to-back per tile</text>
+
+                        <path d="M 620 78 L 657 78" stroke="#94a3b8" stroke-width="2"/>
+
+                        <rect x="657" y="30" width="167" height="96" rx="10" fill="var(--surface-elevated)" stroke="#34d399" stroke-width="1.6"/>
+                        <text x="740" y="60" text-anchor="middle" fill="#34d399" font-size="12" font-weight="800">4. Tile Alpha Blend</text>
+                        <text x="740" y="80" text-anchor="middle" fill="var(--text-muted)" font-size="10">Shared SRAM batch loads</text>
+                        <text x="740" y="98" text-anchor="middle" fill="var(--text-muted)" font-size="10">Early exit when T &lt; 10⁻⁴</text>
+                    </svg>
+                    <div class="flow-caption">The 3DGS differentiable rasterizer replaces per-pixel ray-marching with a single global GPU radix sort and shared-memory tile blending.</div>
+                </div>
+
+                <h2>2. Front-to-Back Alpha Compositing &amp; Exact Reverse-Order Gradients</h2>
+                <p>Once sorted front-to-back within each $16\times 16$ tile, every pixel accumulates color $C$ and remaining transmittance $T_i = \prod_{j=1}^{i-1}(1 - \alpha_j)$ until $T_i \lt 10^{-4}$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Differentiable Volume Compositing &amp; Backward Recurrence</div>
+                    $$C = \sum_{i=1}^{N} c_i\,\alpha_i\,T_i, \qquad \alpha_i = \sigma(o_i)\exp\!\left(-\frac{1}{2}\Delta\mathbf{p}_i^\top (\Sigma'_i)^{-1}\Delta\mathbf{p}_i\right)$$
+                    $$\frac{\partial C}{\partial \alpha_i} = T_i\,c_i - \frac{1}{1 - \alpha_i}\sum_{k=i+1}^{N} c_k\,\alpha_k\,T_k$$
+                </div>
+
+                <p>Notice the beauty of the backward pass: because the forward pass only stores the final transmittance $T_{\text{final}}$ and last-contributed index per pixel, the backward kernel traverses the exact same tile list <strong>back-to-front</strong>, recovering $T_i = T_{i+1} / (1 - \alpha_i)$ on the fly in registers – zero per-splat activation storage in HBM!</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 Python: Analytic EWA 3D-to-2D Gaussian Projection</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-python">import torch
+
+def project_gaussians_2d(means3d, quats, log_scales, W_cam, fx, fy):
+    # Analytic EWA projection of 3D Gaussians to 2D screen-space conics
+    q = quats / (quats.norm(dim=-1, keepdim=True) + 1e-8)
+    w, x, y, z = q.unbind(-1)
+    R = torch.stack([
+        1 - 2*(y*y + z*z), 2*(x*y - z*w),     2*(x*z + y*w),
+        2*(x*y + z*w),     1 - 2*(x*x + z*z), 2*(y*z - x*w),
+        2*(x*z - y*w),     2*(y*z + x*w),     1 - 2*(x*x + y*y),
+    ], dim=-1).view(-1, 3, 3)
+
+    S = torch.diag_embed(torch.exp(log_scales))
+    M = R @ S
+    Sigma = M @ M.transpose(-1, -2)                 # [N, 3, 3] PSD covariance
+
+    t = (means3d @ W_cam[:3, :3].T) + W_cam[:3, 3]  # camera-space centers
+    tx, ty, tz = t.unbind(-1)
+    tz_inv = 1.0 / tz.clamp(min=0.1)
+    J = torch.zeros(means3d.shape[0], 2, 3, device=means3d.device, dtype=means3d.dtype)
+    J[:, 0, 0] = fx * tz_inv
+    J[:, 0, 2] = -fx * tx * tz_inv * tz_inv
+    J[:, 1, 1] = fy * tz_inv
+    J[:, 1, 2] = -fy * ty * tz_inv * tz_inv
+
+    W = W_cam[:3, :3].unsqueeze(0)
+    T = J @ W
+    cov2d = T @ Sigma @ T.transpose(-1, -2)         # [N, 2, 2]
+    # Low-pass anti-aliasing filter (out-of-place for autograd safety)
+    return cov2d + 0.3 * torch.eye(2, device=means3d.device, dtype=means3d.dtype)</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Adaptive Density Control Footguns:</strong> (1) <em>View-space positional gradient threshold</em>: Gaussians in under-reconstructed regions accumulate large average screen-space gradients $\|\nabla_{\text{ndc}} \mathcal{L}\| \gt \tau_{\text{pos}}$; small Gaussians get <strong>cloned</strong> while large over-reconstructed ones get <strong>split</strong> along their principal scale axis by $1.6\times$. (2) <em>Periodic opacity reset</em>: resetting all $\alpha_i \leftarrow 0.01$ every 3,000 steps flushes out "floater" clouds stuck right in front of training cameras.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Dimension</th><th>NeRF / Instant-NGP</th><th>3D Gaussian Splatting</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Scene Representation</td><td>Implicit MLP + hash grid</td><td>Explicit 3D Gaussians + Spherical Harmonics</td></tr>
+                        <tr><td>Rendering Algorithm</td><td>Volumetric ray-marching ($64$–$256$ MLP evals/px)</td><td>Tile-based radix-sorted rasterization</td></tr>
+                        <tr><td>Real-Time 1080p FPS</td><td>5–15 FPS (even with hash grids)</td><td><strong>100–250+ FPS</strong> on consumer GPUs</td></tr>
+                        <tr><td>Memory Footprint</td><td>Tiny (10–50 MB)</td><td>Large (200 MB–1.2 GB for millions of splats)</td></tr>
+                    </tbody>
+                </table>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+</body>
+
+</html>

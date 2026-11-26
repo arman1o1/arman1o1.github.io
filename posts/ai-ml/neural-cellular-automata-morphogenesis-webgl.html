@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neural Cellular Automata (NCA) in WebGL2: Self-Healing Morphogenesis on the GPU | arman1o1 blog</title>
+    <meta name="description" content="Bridging Gray-Scott reaction-diffusion with deep learning: Sobel perception stencils, asynchronous stochastic updates, pool-based BPTT in PyTorch, and a live 60 FPS WebGL2 ping-pong FBO simulator." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/neural-cellular-automata-morphogenesis-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Neural Cellular Automata (NCA) in WebGL2: Self-Healing Morphogenesis on the GPU">
+    <meta property="og:description" content="Bridging Gray-Scott reaction-diffusion with deep learning: Sobel perception stencils, asynchronous stochastic updates, pool-based BPTT in PyTorch, and a live 60 FPS WebGL2 ping-pong FBO simulator.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/neural-cellular-automata-morphogenesis-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_reaction_diffusion.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Neural Cellular Automata (NCA) in WebGL2: Self-Healing Morphogenesis on the GPU", "description": "Bridging Gray-Scott reaction-diffusion with deep learning: Sobel perception stencils, asynchronous stochastic updates, pool-based BPTT in PyTorch, and a live 60 FPS WebGL2 ping-pong FBO simulator.", "image": "https://arman1o1.github.io/images/thumb_reaction_diffusion.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/neural-cellular-automata-morphogenesis-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/neural-cellular-automata-morphogenesis-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Neural Cellular Automata</span>
+                    <span class="tag">WebGL2</span>
+                    <span class="tag">Morphogenesis</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>Neural Cellular Automata (NCA) in WebGL2: Self-Healing Morphogenesis on the GPU</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+
+                <!-- ===== LIVE INTERACTIVE NEURAL CELLULAR AUTOMATA IN WEBGL2 ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#070a12;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="nca-canvas" style="width:100%;height:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="nca-btn" data-p="coral" onclick="window.setNcaPreset('coral')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Self-Healing Coral</button>
+                                <button type="button" class="nca-btn" data-p="mitosis" onclick="window.setNcaPreset('mitosis')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Morphogen Mitosis</button>
+                                <button type="button" class="nca-btn" data-p="worms" onclick="window.setNcaPreset('worms')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Bioelectric Waves</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Update Rate $p$:</span>
+                                    <input id="nca-rate" type="range" min="0.2" max="1.0" step="0.05" value="0.50" style="width:76px">
+                                    <span id="nca-rate-val">0.50</span>
+                                </label>
+                                <button type="button" onclick="window.resetNca()" style="background:#f43f5e;color:#fff;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Reseed</button>
+                            </div>
+                        </div>
+                        <div style="position:absolute;bottom:10px;left:12px;background:rgba(12,13,18,0.82);backdrop-filter:blur(6px);padding:5px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#cbd5e1;font-family:monospace;font-size:11px">WebGL2 Ping-Pong FBO · Drag to slice/damage tissue and watch local regeneration</div>
+                    </div>
+                    <figcaption style="font-size:.86rem;color:var(--text-muted);margin-top:.55rem">
+                        Live GPU Neural Cellular Automaton: every pixel runs an identical Sobel + Laplacian perception stencil followed by a learned $1\times 1$ MLP residual update with asynchronous stochastic masking.
+                    </figcaption>
+                </figure>
+
+                <p>In <a href="../physics/turing-morphogenesis-reaction-diffusion-webgl.html">How the Leopard Got Its Spots at 60 FPS</a>, two hand-crafted PDEs (Gray–Scott) generated spots and stripes from local diffusion. <strong>Neural Cellular Automata (NCA)</strong> (<a href="https://distill.pub/2020/growing-ca/" target="_blank" rel="noopener noreferrer">Mordvintsev et al., Distill 2020</a>; <a href="https://distill.pub/selforg/2021/textures/" target="_blank" rel="noopener noreferrer">Self-Organising Textures, 2021</a>) replace the hand-crafted reaction term with a tiny neural network (~8,000 parameters) shared identically by every cell on a 2D grid. Even more remarkably, the entire inference loop maps natively to a <strong>WebGL2 fragment shader</strong>.</p>
+
+                <hr>
+
+                <h2>1. Local Perception + Learned Residual Update</h2>
+                <p>Each cell at coordinate $(x, y)$ holds a $C$-channel state vector $\mathbf{s}_{x,y}^{(t)} \in \mathbb{R}^C$ (typically $C = 16$: RGB, an alive mask $\alpha$, and 12 hidden morphogen channels). One NCA tick applies fixed spatial perception kernels ($K_{\text{id}}, K_{\nabla x}, K_{\nabla y}, K_{\nabla^2}$) per channel, concatenates them into a $4C$-dimensional perception vector $\mathbf{z}$, and feeds $\mathbf{z}$ through a $1\times 1$ two-layer MLP:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Differentiable Neural Cellular Automaton Update (<a href="https://distill.pub/2020/growing-ca/" target="_blank" rel="noopener noreferrer">Mordvintsev et al., 2020</a>)</div>
+                    $$\mathbf{z}_{x,y} = \big[\mathbf{s},\; K_{\nabla x} * \mathbf{s},\; K_{\nabla y} * \mathbf{s},\; K_{\nabla^2} * \mathbf{s}\big] \in \mathbb{R}^{4C}$$
+                    $$\mathbf{s}_{x,y}^{(t+1)} = \mathbf{s}_{x,y}^{(t)} + m_{x,y}^{(t)} \cdot W_2\,\mathrm{ReLU}\big(W_1 \mathbf{z}_{x,y} + \mathbf{b}_1\big), \qquad m_{x,y}^{(t)} \sim \mathrm{Bernoulli}(p)$$
+                </div>
+
+                <p>The stochastic mask $m_{x,y}^{(t)} \in \{0, 1\}$ is crucial: biological cells have no global clock. By updating only $p = 50\%$ of cells at random each tick, the learned rule cannot cheat by relying on synchronous parity oscillations and instead converges to a genuine continuous-time PDE attractor.</p>
+
+                <h2>2. Pool-Based Sample Replay &amp; Damage Training in PyTorch</h2>
+                <p>If you only train an NCA for $T \in [64, 96]$ steps from a single seed pixel, the pattern will grow and then explode at $t = 200$. The trick from Distill is a <strong>sample pool</strong> of 1,024 evolved states: at every training step, replace the highest-loss sample with a fresh seed, punch circular holes in 2–3 samples from the pool, roll them forward $64$–$96$ steps, and backpropagate through time (BPTT):</p>
+
+
+                <details class="code-card">
+                    <summary><span>PyTorch Implementation: NeuralCA Module with Sobel/Laplacian Perception</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class NeuralCA(nn.Module):
+    def __init__(self, channels: int = 16, hidden: int = 128):
+        super().__init__()
+        self.channels = channels
+        self.w1 = nn.Conv2d(channels * 4, hidden, kernel_size=1)
+        self.w2 = nn.Conv2d(hidden, channels, kernel_size=1, bias=False)
+        nn.init.zeros_(self.w2.weight)  # do-nothing identity initialization
+
+        # Fixed depthwise perception filters: identity, Sobel-X, Sobel-Y, 9-pt Laplacian
+        k_id = torch.tensor([[0, 0, 0], [0, 1, 0], [0, 0, 0]], dtype=torch.float32)
+        k_gx = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32) / 8.0
+        k_gy = k_gx.T
+        k_lap = torch.tensor([[1, 2, 1], [2, -12, 2], [1, 2, 1]], dtype=torch.float32) / 16.0
+        filters = torch.stack([k_id, k_gx, k_gy, k_lap])[:, None, :, :]
+        self.register_buffer(&quot;filters&quot;, filters.repeat(channels, 1, 1, 1))
+
+    def perceive(self, x: torch.Tensor) -&gt; torch.Tensor:
+        return F.conv2d(x, self.filters, padding=1, groups=self.channels)
+
+    def forward(self, x: torch.Tensor, fire_rate: float = 0.5) -&gt; torch.Tensor:
+        pre_alive = F.max_pool2d(x[:, 3:4], 3, stride=1, padding=1) &gt; 0.1
+        dx = self.w2(F.relu(self.w1(self.perceive(x))))
+        mask = (torch.rand_like(x[:, :1]) &lt;= fire_rate).float()
+        x = x + dx * mask
+        post_alive = F.max_pool2d(x[:, 3:4], 3, stride=1, padding=1) &gt; 0.1
+        return x * (pre_alive &amp; post_alive).float()</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Two NCA Training Footguns:</strong> (1) <em>Always zero-initialize <code>w2.weight</code></em> so the initial automaton is an exact identity map; random weights blow up exponentially over 96 unrolled BPTT steps. (2) <em>Normalize parameter gradients per tensor</em> (<code>g /= g.norm() + 1e-8</code>) rather than global clipping – recurrent spatial Jacobians have wildly different spectral norms across <code>w1</code> and <code>w2</code>.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Property</th><th>Gray–Scott PDE</th><th>Neural Cellular Automaton (NCA)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Local Operator</td><td>Hand-crafted 2-species Laplacian + $uv^2$</td><td>Learned $1\times 1$ MLP over Sobel + Laplacian features</td></tr>
+                        <tr><td>State Channels</td><td>2 scalars ($u, v$)</td><td>4–16 channels (visible RGB$\alpha$ + hidden morphogens)</td></tr>
+                        <tr><td>Self-Healing</td><td>Regrows generic texture only</td><td>Regenerates global asymmetric anatomy via attractor basin</td></tr>
+                        <tr><td>GPU Cost (WebGL2)</td><td>1 FBO pass</td><td>1–2 RGBA16F ping-pong passes at 60 FPS</td></tr>
+                    </tbody>
+                </table>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('nca-canvas');
+        const gl = canvas.getContext('webgl2');
+        if (!gl) return;
+        let useFloat = Boolean(gl.getExtension('EXT_color_buffer_float'));
+        const W = 256, H = 144;
+        let fireRate = 0.50;
+        let presetIdx = 0;
+
+        const vsSrc = `#version 300 es
+        layout(location = 0) in vec2 aPos; out vec2 vUv;
+        void main(){ vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+        const stepFs = `#version 300 es
+        precision highp float;
+        in vec2 vUv; out vec4 fragColor;
+        uniform sampler2D uState;
+        uniform vec2 uTexel;
+        uniform float uTime, uFireRate;
+        uniform int uPreset;
+        uniform vec3 uBrush; // xy = uv, z = radius (>0 when slicing)
+
+        float hash(vec2 p) {
+            return fract(sin(dot(p, vec2(127.1, 311.7)) + uTime * 19.19) * 43758.5453);
+        }
+
+        void main() {
+            vec4 s = texture(uState, vUv);
+            vec2 brushDelta = (vUv - uBrush.xy) * vec2(16.0 / 9.0, 1.0);
+            if (uBrush.z > 0.0 && length(brushDelta) < uBrush.z) {
+                fragColor = vec4(0.0);
+                return;
+            }
+            // 3x3 perception: identity, Sobel-X, Sobel-Y, 9-pt Laplacian
+            vec4 n  = texture(uState, vUv + vec2(0.0,  uTexel.y));
+            vec4 so = texture(uState, vUv + vec2(0.0, -uTexel.y));
+            vec4 e  = texture(uState, vUv + vec2( uTexel.x, 0.0));
+            vec4 w  = texture(uState, vUv + vec2(-uTexel.x, 0.0));
+            vec4 ne = texture(uState, vUv + uTexel);
+            vec4 nw = texture(uState, vUv + vec2(-uTexel.x, uTexel.y));
+            vec4 se = texture(uState, vUv + vec2( uTexel.x,-uTexel.y));
+            vec4 sw = texture(uState, vUv - uTexel);
+
+            vec4 lap = (n + so + e + w) * 0.2 + (ne + nw + se + sw) * 0.05 - s;
+            vec4 gx  = (ne + 2.0*e + se - nw - 2.0*w - sw) * 0.125;
+            vec4 gy  = (ne + 2.0*n + nw - se - 2.0*so - sw) * 0.125;
+
+            // Compact 4-channel learned-style 1x1 MLP residual update
+            vec4 h1, ds;
+            if (uPreset == 0) {
+                // Self-healing coral morphogenesis (branching activator-inhibitor + Sobel ridge channel)
+                float act = s.x * s.y * s.y;
+                float ridge = length(gx.xy) + length(gy.xy);
+                h1 = max(vec4(0.0), vec4(s.y - 0.12, ridge * 2.2 - 0.05, s.x - 0.2, s.z - 0.1));
+                ds = vec4(
+                    0.90 * lap.x - act + 0.0545 * (1.0 - s.x),
+                    0.45 * lap.y + act - (0.0545 + 0.062) * s.y,
+                    0.22 * lap.z + 0.25 * (h1.y - s.z),
+                    0.18 * lap.w + 0.15 * (h1.x - s.w)
+                );
+            } else if (uPreset == 1) {
+                // Morphogen mitosis
+                float act = s.x * s.y * s.y;
+                h1 = max(vec4(0.0), vec4(s.x - 0.2, s.y - 0.15, lap.x * 2.5 + 0.1, lap.y * 2.5 + 0.1));
+                ds = vec4(
+                    0.85 * lap.x - act + 0.036 * (1.0 - s.x) + 0.03 * h1.w,
+                    0.42 * lap.y + act - (0.036 + 0.062) * s.y + 0.02 * length(gx.xy),
+                    0.30 * lap.z + 0.18 * (s.y - s.z),
+                    0.20 * lap.w + 0.15 * (h1.x - s.w)
+                );
+            } else {
+                // Bioelectric excitable spiral waves (Barkley activator/inhibitor, fast-slow ratio ~45:1)
+                float gradMag = length(gx.xy) + length(gy.xy);
+                float uThr = (s.y + 0.03) / 0.82;
+                ds = vec4(
+                    0.32 * lap.x + 1.65 * s.x * (1.0 - s.x) * (s.x - uThr),
+                    0.02 * lap.y + 0.036 * (s.x - s.y),
+                    0.20 * lap.z + 0.28 * (gradMag * 2.4 - s.z),
+                    0.15 * lap.w + 0.12 * (s.y - s.w)
+                );
+            }
+
+            float mask = step(hash(vUv * vec2(256.0, 144.0)), uFireRate);
+            vec4 nextS = clamp(s + ds * mask * 0.85, 0.0, 1.0);
+            fragColor = nextS;
+        }`;
+
+        const dispFs = `#version 300 es
+        precision highp float;
+        in vec2 vUv; out vec4 fragColor;
+        uniform sampler2D uState;
+        uniform int uPreset;
+        void main() {
+            vec4 s = texture(uState, vUv);
+            vec3 col;
+            if (uPreset == 0) {
+                col = mix(vec3(0.03, 0.05, 0.09), vec3(0.10, 0.72, 0.88), smoothstep(0.06, 0.34, s.y));
+                col = mix(col, vec3(0.98, 0.44, 0.52), smoothstep(0.24, 0.52, s.y));
+                col += vec3(0.95, 0.82, 0.35) * smoothstep(0.12, 0.55, s.z) * 0.65;
+            } else if (uPreset == 1) {
+                col = mix(vec3(0.04, 0.06, 0.11), vec3(0.22, 0.83, 0.60), smoothstep(0.10, 0.48, s.y));
+                col += vec3(0.38, 0.65, 0.98) * smoothstep(0.25, 0.7, s.z) * 0.45;
+            } else {
+                col = mix(vec3(0.03, 0.04, 0.09), vec3(0.56, 0.36, 0.96), smoothstep(0.08, 0.55, s.y));
+                col = mix(col, vec3(0.22, 0.92, 0.98), smoothstep(0.18, 0.82, s.x));
+                col += vec3(1.0, 0.85, 0.4) * smoothstep(0.15, 0.65, s.z) * 0.55;
+            }
+            fragColor = vec4(col, 1.0);
+        }`;
+
+        function compile(type, src) {
+            const sh = gl.createShader(type);
+            gl.shaderSource(sh, src);
+            gl.compileShader(sh);
+            if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+                console.error('NCA shader compile error:', gl.getShaderInfoLog(sh));
+                gl.deleteShader(sh);
+                return null;
+            }
+            return sh;
+        }
+        function link(fs) {
+            const vs = compile(gl.VERTEX_SHADER, vsSrc);
+            const fsh = compile(gl.FRAGMENT_SHADER, fs);
+            if (!vs || !fsh) return null;
+            const p = gl.createProgram();
+            gl.attachShader(p, vs);
+            gl.attachShader(p, fsh);
+            gl.linkProgram(p);
+            gl.deleteShader(vs);
+            gl.deleteShader(fsh);
+            if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+                console.error('NCA program link error:', gl.getProgramInfoLog(p));
+                gl.deleteProgram(p);
+                return null;
+            }
+            return p;
+        }
+        const pStep = link(stepFs), pDisp = link(dispFs);
+        if (!pStep || !pDisp) return;
+        const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+        const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+        function allocStateTex(t) {
+            gl.bindTexture(gl.TEXTURE_2D, t);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texImage2D(gl.TEXTURE_2D, 0, useFloat ? gl.RGBA16F : gl.RGBA8, W, H, 0, gl.RGBA, useFloat ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+        }
+        const tex = [0, 1].map(() => {
+            const t = gl.createTexture();
+            allocStateTex(t);
+            return t;
+        });
+        const fbo = tex.map(t => {
+            const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+            return f;
+        });
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE && useFloat) {
+            useFloat = false;
+            tex.forEach(allocStateTex);
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        let ping = 0;
+
+        function seed() {
+            const data = new Uint8Array(W * H * 4);
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const idx = (y * W + x) * 4;
+                    const dx = (x - W * 0.5) / H, dy = (y - H * 0.5) / H;
+                    const r = Math.hypot(dx, dy);
+                    if (presetIdx === 0 || presetIdx === 1) {
+                        data[idx] = 255;
+                        const ring = presetIdx === 0 && (Math.abs(r - 0.16) < 0.04 || r < 0.08);
+                        const cross = presetIdx === 1 && (r < 0.14 || (Math.abs(dx) < 0.25 && Math.abs(dy) < 0.04));
+                        if (ring || cross) {
+                            data[idx] = 128; data[idx + 1] = 200 + (Math.random() * 55 | 0);
+                            data[idx + 2] = 90; data[idx + 3] = 255;
+                        }
+                    } else {
+                        // Broken wavefront seed -> spontaneously curls into self-sustaining spiral waves
+                        if (dx > 0 && dy > -0.06 && dy < 0.28) data[idx] = 245;
+                        if (dx > 0 && dy >= -0.28 && dy <= 0.02) data[idx + 1] = 170;
+                        if (dx < -0.15 && dy < 0.1 && dy > -0.24) data[idx] = 245;
+                        if (dx < -0.15 && dy >= 0.0 && dy < 0.30) data[idx + 1] = 170;
+                        data[idx + 3] = 255;
+                    }
+                }
+            }
+            gl.bindTexture(gl.TEXTURE_2D, tex[ping]);
+            if (useFloat) {
+                const f32 = new Float32Array(data.length);
+                for (let i = 0; i < data.length; i++) f32[i] = data[i] / 255;
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, W, H, 0, gl.RGBA, gl.FLOAT, f32);
+            } else {
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+            }
+        }
+        window.resetNca = seed;
+        window.setNcaPreset = function(p) {
+            presetIdx = p === 'coral' ? 0 : (p === 'mitosis' ? 1 : 2);
+            document.querySelectorAll('.nca-btn').forEach(b => {
+                const a = b.dataset.p === p;
+                b.style.background = a ? '#38bdf8' : '#1e293b';
+                b.style.color = a ? '#081018' : '#e2e8f0';
+            });
+            seed();
+        };
+        document.getElementById('nca-rate').addEventListener('input', e => {
+            fireRate = parseFloat(e.target.value);
+            document.getElementById('nca-rate-val').textContent = fireRate.toFixed(2);
+        });
+
+        let brush = [-1, -1, 0];
+        let down = false;
+        function setBrush(e) {
+            const r = canvas.getBoundingClientRect();
+            if (r.width <= 0 || r.height <= 0) return;
+            brush = [(e.clientX - r.left) / r.width, 1.0 - (e.clientY - r.top) / r.height, 0.12];
+        }
+        const clearBrush = () => { down = false; brush[2] = 0; };
+        canvas.addEventListener('pointerdown', e => { down = true; setBrush(e); });
+        window.addEventListener('pointerup', clearBrush);
+        window.addEventListener('pointercancel', clearBrush);
+        canvas.addEventListener('pointermove', e => { if (down) setBrush(e); });
+
+        const uStepTexel = gl.getUniformLocation(pStep, 'uTexel');
+        const uStepFireRate = gl.getUniformLocation(pStep, 'uFireRate');
+        const uStepPreset = gl.getUniformLocation(pStep, 'uPreset');
+        const uStepBrush = gl.getUniformLocation(pStep, 'uBrush');
+        const uStepState = gl.getUniformLocation(pStep, 'uState');
+        const uStepTime = gl.getUniformLocation(pStep, 'uTime');
+        const uDispState = gl.getUniformLocation(pDisp, 'uState');
+        const uDispPreset = gl.getUniformLocation(pDisp, 'uPreset');
+
+        seed();
+        let t = 0;
+        function loop() {
+            t = (t + 0.016) % 1000.0;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const cw = Math.floor(canvas.clientWidth * dpr), ch = Math.floor(canvas.clientHeight * dpr);
+            if (cw > 0 && ch > 0 && (canvas.width !== cw || canvas.height !== ch)) { canvas.width = cw; canvas.height = ch; }
+
+            gl.bindVertexArray(vao);
+            gl.useProgram(pStep);
+            gl.uniform2f(uStepTexel, 1 / W, 1 / H);
+            gl.uniform1f(uStepFireRate, fireRate);
+            gl.uniform1i(uStepPreset, presetIdx);
+            gl.uniform3f(uStepBrush, brush[0], brush[1], brush[2]);
+            for (let s = 0; s < 2; s++) {
+                const nxt = 1 - ping;
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[nxt]);
+                gl.viewport(0, 0, W, H);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, tex[ping]);
+                gl.uniform1i(uStepState, 0);
+                gl.uniform1f(uStepTime, t + s * 0.37);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                ping = nxt;
+            }
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.useProgram(pDisp);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex[ping]);
+            gl.uniform1i(uDispState, 0);
+            gl.uniform1i(uDispPreset, presetIdx);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    })();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test-Time Reinforcement Learning &amp; Self-Play Verifiers: Scaling Reasoning Without Human Labels | arman1o1 blog</title>
+    <meta name="description" content="How TTRL majority-vote RL, Absolute Zero Proposer-Solver code self-play, and Test-Time Self-Play bootstrap reasoning curricula without human-labeled ground truth." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/test-time-rl-self-play-verifiers.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Test-Time Reinforcement Learning &amp; Self-Play Verifiers: Scaling Reasoning Without Human Labels">
+    <meta property="og:description" content="How TTRL majority-vote RL, Absolute Zero Proposer-Solver code self-play, and Test-Time Self-Play bootstrap reasoning curricula without human-labeled ground truth.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/test-time-rl-self-play-verifiers.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Test-Time Reinforcement Learning & Self-Play Verifiers: Scaling Reasoning Without Human Labels", "description": "How TTRL majority-vote RL, Absolute Zero Proposer-Solver code self-play, and Test-Time Self-Play bootstrap reasoning curricula without human-labeled ground truth.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/test-time-rl-self-play-verifiers.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/test-time-rl-self-play-verifiers.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Test-Time RL</span>
+                    <span class="tag">Self-Play</span>
+                    <span class="tag">GRPO</span>
+                    <span class="tag">Reasoning</span>
+                </div>
+                <h1>Test-Time Reinforcement Learning &amp; Self-Play Verifiers: Scaling Reasoning Without Human Labels</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+
+                <p>In <a href="llm-test-time-compute-reasoning.html">Test-Time Compute &amp; Reasoning Verification</a> and <a href="dr-grpo-rpo-dpo-verifiable-clinical-rl.html">Beyond Length-Biased RL</a>, verifiable rewards depended on a human-curated dataset of ground-truth answers or unit tests. What happens when we run out of labeled reasoning problems – or face a brand-new problem distribution at deployment time? Three recent breakthroughs – <strong>Test-Time Reinforcement Learning (TTRL)</strong> (<a href="https://arxiv.org/abs/2504.16084" target="_blank" rel="noopener noreferrer">Zuo et al., NeurIPS 2025, arXiv:2504.16084</a>), <strong>Absolute Zero Reasoner (AZR)</strong> (<a href="https://arxiv.org/abs/2505.03335" target="_blank" rel="noopener noreferrer">Zhao et al., 2025, arXiv:2505.03335</a>), and <strong>Test-Time Self-Play (TTSP)</strong> (<a href="https://arxiv.org/html/2611.07367v1" target="_blank" rel="noopener noreferrer">arXiv:2611.07367</a>) – show how models can bootstrap their own rewards and curricula with <strong>zero human labels</strong>.</p>
+
+                <hr>
+
+                <h2>1. TTRL: Majority-Vote Pseudo-Labels as Online RL Rewards</h2>
+                <p>Given an unlabeled test prompt $x$, TTRL rolls out $G$ trajectories $\{y_1, \dots, y_G\} \sim \pi_\theta(\cdot \mid x)$, extracts the final answer $\hat{a}_i$ from each, and computes the majority-vote consensus $y^* = \arg\max_a \sum_{i=1}^G \mathbb{I}[\hat{a}_i = a]$. Every rollout matching $y^*$ receives reward $r_i = 1$, and $\pi_\theta$ takes an online GRPO gradient step directly on the unlabeled test batch:</p>
+
+                <div class="math-block">
+                    <div class="math-label">TTRL Self-Labeled Reward &amp; AZR Minimax Learnability Curriculum</div>
+                    $$r_i^{\text{TTRL}} = \mathbb{I}\!\left[\hat{a}_i = \mathrm{mode}(\hat{a}_{1:G})\right], \qquad r_{\text{propose}}^{\text{AZR}}(\tau) = \begin{cases} 0 & \text{if } \bar{p}(\tau) \in \{0, 1\} \\ 1 - |2\bar{p}(\tau) - 1| & \text{otherwise} \end{cases}$$
+                </div>
+
+                <h2>2. Absolute Zero: Code-Executed Proposer–Solver Self-Play</h2>
+                <p>Majority voting fails if the model is confidently wrong ($\mathrm{mode} \neq a_{\text{true}}$). <strong>Absolute Zero (AZR)</strong> replaces consensus with a deterministic <strong>Python sandbox</strong> as an incorruptible external oracle. One shared LLM plays two roles: a <em>Proposer</em> that invents new deduction/abduction/induction coding puzzles, and a <em>Solver</em> that solves them. The Proposer is rewarded most when the Solver's pass rate $\bar{p}(\tau)$ sits right at $50\%$ – automatically tracking the model's exact zone of proximal development with zero external datasets.</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 160" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="Absolute Zero Proposer-Solver Self-Play Loop">
+                        <rect x="20" y="34" width="205" height="92" rx="10" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.6"/>
+                        <text x="122" y="64" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="800">1. Proposer Policy π_θ</text>
+                        <text x="122" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="10">Synthesizes (code, input) task</text>
+                        <text x="122" y="102" text-anchor="middle" fill="#34d399" font-size="10">Reward peaks at Solver p = 0.5</text>
+
+                        <rect x="275" y="34" width="230" height="92" rx="10" fill="var(--surface-elevated)" stroke="#f59e0b" stroke-width="1.6"/>
+                        <text x="390" y="64" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="800">2. Deterministic Sandbox</text>
+                        <text x="390" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="10">Executes program → ground truth</text>
+                        <text x="390" y="102" text-anchor="middle" fill="var(--text-muted)" font-size="10">Filters invalid / non-halting tasks</text>
+
+                        <rect x="555" y="34" width="265" height="92" rx="10" fill="var(--surface-elevated)" stroke="#a78bfa" stroke-width="1.6"/>
+                        <text x="687" y="64" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="800">3. Solver Policy π_θ (TRR++)</text>
+                        <text x="687" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="10">Rolls out G solutions, verifies exact match</text>
+                        <text x="687" y="102" text-anchor="middle" fill="#fbbf24" font-size="10">Updates shared weights for both roles</text>
+                    </svg>
+                    <div class="flow-caption">In Absolute Zero, the Python interpreter acts as the sole source of truth, allowing a single policy to co-evolve both difficulty curriculum and reasoning skill.</div>
+                </div>
+
+
+                <details class="code-card">
+                    <summary><span>💻 Python: TTRL Majority-Vote Advantages &amp; AZR Proposer Learnability Reward</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-python">import torch
+from collections import Counter
+
+def ttrl_majority_vote_advantages(extracted_answers: list[str]) -&gt; torch.Tensor:
+    &quot;&quot;&quot;TTRL (Zuo et al., 2025): Majority-vote pseudo-label rewards + unbiased Dr. GRPO advantages.&quot;&quot;&quot;
+    consensus, _ = Counter(extracted_answers).most_common(1)[0]
+    rewards = torch.tensor([1.0 if a == consensus else 0.0 for a in extracted_answers], dtype=torch.float32)
+    # Subtract group mean without std division (Dr. GRPO) to avoid difficulty-bias amplification
+    return rewards - rewards.mean()
+
+def azr_proposer_learnability_reward(solver_pass_rate: float) -&gt; float:
+    &quot;&quot;&quot;Absolute Zero (Zhao et al., 2025): Peak reward when task is right at the frontier (p = 0.5).&quot;&quot;&quot;
+    if solver_pass_rate &lt;= 0.0 or solver_pass_rate &gt;= 1.0:
+        return 0.0  # trivial (p=1) or impossible (p=0) tasks yield zero curriculum signal
+    return 1.0 - abs(2.0 * solver_pass_rate - 1.0)</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Self-Play Collapse Footguns:</strong> (1) <em>Mode collapse in TTRL</em>: without a KL penalty $\beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})$ and entropy floor, majority-vote RL rapidly collapses onto a single short heuristic – even when wrong. (2) <em>Proposer reward hacking</em>: if the sandbox doesn't enforce deterministic execution and AST safety gates (no randomness, no trivial constant outputs), the Proposer will invent degenerate tasks that maximize $p = 0.5$ via coin flips.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Paradigm</th><th>Reward Signal</th><th>Needs Human Labels?</th><th>Primary Failure Mode</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Standard RLVR (GRPO)</strong></td><td>Ground-truth answer / unit tests</td><td>Yes (dataset)</td><td>Dataset saturation &amp; memorization</td></tr>
+                        <tr><td><strong>TTRL</strong></td><td>Majority-vote consensus at test time</td><td><strong>No</strong></td><td>Confident-but-wrong prior amplification</td></tr>
+                        <tr><td><strong>Absolute Zero (AZR)</strong></td><td>Sandbox execution + $p=0.5$ learnability</td><td><strong>No</strong></td><td>Proposer gaming / trivial puzzle drift</td></tr>
+                        <tr><td><strong>Test-Time Self-Play (TTSP)</strong></td><td>Asymmetric verifier-free self-play</td><td><strong>No</strong></td><td>Near-zero base-policy coverage</td></tr>
+                    </tbody>
+                </table>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+</body>
+
+</html>

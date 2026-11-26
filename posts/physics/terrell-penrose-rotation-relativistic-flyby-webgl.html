@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terrell–Penrose Rotation: What a 0.99c Flyby Actually Looks Like | arman1o1 blog</title>
+    <meta name="description" content="Solving the exact retarded light-cone equation in real time to show why a Lorentz-contracted cube flying past at 0.90c visually rotates by arcsin(beta) and exposes its back face." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/terrell-penrose-rotation-relativistic-flyby-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Terrell–Penrose Rotation: What a 0.99c Flyby Actually Looks Like">
+    <meta property="og:description" content="Solving the exact retarded light-cone equation in real time to show why a Lorentz-contracted cube flying past at 0.90c visually rotates by arcsin(beta) and exposes its back face.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/terrell-penrose-rotation-relativistic-flyby-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_wormhole.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Terrell\u2013Penrose Rotation: What a 0.99c Flyby Actually Looks Like", "description": "Solving the exact retarded light-cone equation in real time to show why a Lorentz-contracted cube flying past at 0.90c visually rotates by arcsin(beta) and exposes its back face.", "image": "https://arman1o1.github.io/images/thumb_wormhole.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/terrell-penrose-rotation-relativistic-flyby-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/terrell-penrose-rotation-relativistic-flyby-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Special Relativity</span>
+                    <span class="tag">Terrell-Penrose</span>
+                    <span class="tag">Ray Tracing</span>
+                    <span class="tag">WebGL</span>
+                </div>
+                <h1>Terrell–Penrose Rotation: What a 0.99c Flyby Actually Looks Like</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 10 min read</span>
+                </div>
+
+                <hr>
+
+
+                <!-- ===== LIVE INTERACTIVE TERRELL-PENROSE ROTATION 3D SIM ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#05070e;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="tp-canvas" style="width:100%;height:100%;display:block"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="tp-btn" data-m="terrell" onclick="window.setTpMode('terrell')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">True Terrell–Penrose (Retarded Light)</button>
+                                <button type="button" class="tp-btn" data-m="lorentz" onclick="window.setTpMode('lorentz')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Instantaneous Lorentz Only</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Speed $\beta = v/c$:</span>
+                                    <input id="tp-beta" type="range" min="0" max="0.98" step="0.01" value="0.90" style="width:82px">
+                                    <span id="tp-bval">0.90</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="tp-hud" style="position:absolute;bottom:10px;left:12px;background:rgba(12,13,18,0.82);backdrop-filter:blur(6px);padding:5px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#cbd5e1;font-family:monospace;font-size:11px">β = 0.90c · γ = 2.29 · Apparent Terrell rotation θ = arcsin(β) = 64.2° (notice the amber trailing face!)</div>
+                    </div>
+                    <figcaption style="font-size:.86rem;color:var(--text-muted);margin-top:.55rem">
+                        Interactive relativistic flyby: toggle between naive instantaneous Lorentz contraction (flat pancake) and true retarded-time photography (the cube appears rotated by $\theta = \arcsin\beta$, exposing its amber back face!).
+                    </figcaption>
+                </figure>
+
+                <p>For over fifty years after Einstein published Special Relativity, textbooks drew a cube flying past at $0.9c$ as a squashed flat pancake. Then in 1959, James Terrell and Roger Penrose independently realized that <strong>measuring</strong> a Lorentz-contracted rod is completely different from <strong>photographing</strong> it. A camera records photons that <em>arrive</em> at the lens at the same instant $t_{\text{obs}}$ – which means photons from the farther back corners had to be emitted <strong>earlier</strong>, when the cube was further back along its track!</p>
+
+                <hr>
+
+                <h2>1. Solving the Exact Retarded Light-Cone Equation</h2>
+                <p>Take a rest-frame vertex $(x_0, y_0, z_0)$ on a cube moving along $+x$ at speed $\beta c$. At observer time $t_{\text{obs}}$, Lorentz contraction places it at $x_{\text{now}} = x_0 / \gamma + \beta c\, t_{\text{obs}}$. A photon arriving at the camera at the origin at $t_{\text{obs}}$ was emitted $\tau = t_{\text{obs}} - t_{\text{emit}} \gt 0$ seconds earlier, satisfying the light-cone condition:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Retarded Light-Cone Delay &amp; Apparent Terrell Rotation Angle</div>
+                    $$c^2 \tau^2 = (x_{\text{now}} - \beta c \tau)^2 + y_0^2 + z_0^2 \implies (1 - \beta^2)(c\tau)^2 + 2\beta x_{\text{now}}(c\tau) - (x_{\text{now}}^2 + y_0^2 + z_0^2) = 0$$
+                    $$\sin\theta_{\text{Terrell}} = \beta \qquad \big(\text{at } \beta = 0.90,\;\; \theta_{\text{Terrell}} = 64.2^\circ\big)$$
+                </div>
+
+                <p>Because the back face of the cube is farther from the camera by side length $L$, its light takes $\Delta\tau = L/c$ longer to reach the lens – during which the cube moved forward by $\beta L$. That exact $\beta L$ offset matches the projected width of a cube rotated by $\theta = \arcsin\beta$, while the front face contracts by $1/\gamma = \cos\theta$. Together, the cube looks <strong>rigidly rotated</strong> so you literally see around its trailing corner!</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Exact Retarded-Time Vertex Shader</span><span class="badge-code">GLSL / Retarded-Time Vertex Shader</span></summary>
+                    <div class="code-body">
+                        <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-glsl">// Exact Retarded-Time Solver for a Vertex Moving at Velocity v = (beta, 0, 0) (units: c = 1)
+// Solve: (t_obs - t_emit) = || (x0/gamma + beta*t_emit, y0, z0) - camPos ||
+// Quadratic in tau = t_obs - t_emit &gt;= 0:
+// (1 - beta^2) * tau^2 + 2 * beta * dx_now * tau - (dx_now^2 + dy^2 + dz^2) = 0
+float a = max(1e-5, 1.0 - beta * beta);
+float b = 2.0 * beta * dx_now;
+float c = -(dx_now*dx_now + dy*dy + dz*dz);
+float tau = (-b + sqrt(max(0.0, b*b - 4.0*a*c))) / (2.0 * a);
+vec3 apparentPos = vec3(x_now - beta * tau, y0, z0); // light-travel delay rotates the cube!</code></pre>
+                    </div>
+                </details>
+
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('tp-canvas');
+        const ctx = canvas.getContext('2d');
+        const hud = document.getElementById('tp-hud');
+        let beta = 0.90, mode = 'terrell', phase = -6.0;
+
+        window.setTpMode = function(m) {
+            mode = m;
+            document.querySelectorAll('.tp-btn').forEach(b => {
+                const a = b.dataset.m === m;
+                b.style.background = a ? '#38bdf8' : '#1e293b';
+                b.style.color = a ? '#081018' : '#e2e8f0';
+            });
+        };
+        document.getElementById('tp-beta').addEventListener('input', e => {
+            beta = parseFloat(e.target.value);
+            document.getElementById('tp-bval').textContent = beta.toFixed(2);
+        });
+
+        // Subdivided cube faces (consistent u x v = -n winding for screen-space backface culling)
+        const faces = [
+            { n:[0,0,-1], u:[1,0,0], v:[0,1,0], col:'#38bdf8', name:'side' },  // facing camera (-z)
+            { n:[-1,0,0], u:[0,0,-1],v:[0,1,0], col:'#f59e0b', name:'back' },  // trailing back face (-x)
+            { n:[1,0,0],  u:[0,0,1], v:[0,1,0], col:'#f43f5e', name:'front' }, // leading front face (+x)
+            { n:[0,1,0],  u:[1,0,0], v:[0,0,1], col:'#34d399', name:'top' },
+            { n:[0,-1,0], u:[1,0,0], v:[0,0,-1],col:'#a78bfa', name:'bot' }
+        ];
+
+        function transformPt(x0, y0, z0, xCenter, camZ) {
+            const gamma = 1 / Math.sqrt(Math.max(1e-4, 1 - beta * beta));
+            const xNow = xCenter + x0 / gamma;
+            const dz = z0 - camZ;
+            if (mode === 'lorentz' || beta < 0.005) {
+                return [xNow, y0, dz];
+            }
+            const a = Math.max(1e-4, 1 - beta * beta);
+            const b = 2 * beta * xNow;
+            const c = -(xNow * xNow + y0 * y0 + dz * dz);
+            const tau = (-b + Math.sqrt(Math.max(0, b * b - 4 * a * c))) / (2 * a);
+            return [xNow - beta * tau, y0, dz];
+        }
+
+        function render() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const W = Math.floor(canvas.clientWidth * dpr), H = Math.floor(canvas.clientHeight * dpr);
+            if (!W || !H) { requestAnimationFrame(render); return; }
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            ctx.fillStyle = '#05070e';
+            ctx.fillRect(0, 0, W, H);
+
+            phase += 0.045;
+            if (phase > 6.8) phase = -6.8;
+
+            const camZ = -7.2;
+            const f = Math.min(W, H) * 0.92;
+            const cx = W * 0.5, cy = H * 0.53;
+
+            // Draw reference track grid
+            ctx.strokeStyle = 'rgba(148,163,184,0.16)';
+            ctx.lineWidth = 1;
+            for (let gx = -8; gx <= 8; gx += 1.5) {
+                const p1 = [gx, -1.6, -2.5 - camZ], p2 = [gx, -1.6, 2.5 - camZ];
+                ctx.beginPath();
+                ctx.moveTo(cx + (p1[0] / p1[2]) * f, cy - (p1[1] / p1[2]) * f);
+                ctx.lineTo(cx + (p2[0] / p2[2]) * f, cy - (p2[1] / p2[2]) * f);
+                ctx.stroke();
+            }
+
+            // Build & depth-sort subdivided quads for 3 cubes in a convoy
+            const quads = [];
+            const offsets = [-3.6, 0.0, 3.6];
+            for (const off of offsets) {
+                const xc = phase + off;
+                for (const fc of faces) {
+                    const S = 4;
+                    for (let i = 0; i < S; i++) {
+                        for (let j = 0; j < S; j++) {
+                            const u0 = -1 + 2 * i / S, u1 = -1 + 2 * (i + 1) / S;
+                            const v0 = -1 + 2 * j / S, v1 = -1 + 2 * (j + 1) / S;
+                            const pts = [[u0,v0],[u1,v0],[u1,v1],[u0,v1]].map(([uu,vv]) => {
+                                const rx = fc.n[0] + fc.u[0]*uu + fc.v[0]*vv;
+                                const ry = fc.n[1] + fc.u[1]*uu + fc.v[1]*vv;
+                                const rz = fc.n[2] + fc.u[2]*uu + fc.v[2]*vv;
+                                return transformPt(rx * 0.85, ry * 0.85, rz * 0.85, xc, camZ);
+                            });
+                            if (pts.some(p => p[2] <= 0.4)) continue;
+                            const scr = pts.map(p => [cx + (p[0]/p[2])*f, cy - (p[1]/p[2])*f]);
+                            // Backface cull in screen space
+                            const area = (scr[1][0]-scr[0][0])*(scr[2][1]-scr[0][1]) - (scr[2][0]-scr[0][0])*(scr[1][1]-scr[0][1]);
+                            if (area > 0) continue;
+                            const avgZ = (pts[0][2]+pts[1][2]+pts[2][2]+pts[3][2]) * 0.25;
+                            const checker = (i + j) % 2 === 0;
+                            quads.push({ scr, avgZ, col: fc.col, checker });
+                        }
+                    }
+                }
+            }
+            quads.sort((a, b) => b.avgZ - a.avgZ);
+            for (const q of quads) {
+                ctx.fillStyle = q.col;
+                ctx.globalAlpha = q.checker ? 0.92 : 0.52;
+                ctx.beginPath();
+                ctx.moveTo(q.scr[0][0], q.scr[0][1]);
+                ctx.lineTo(q.scr[1][0], q.scr[1][1]);
+                ctx.lineTo(q.scr[2][0], q.scr[2][1]);
+                ctx.lineTo(q.scr[3][0], q.scr[3][1]);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(5,7,14,0.45)';
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+
+            const gamma = 1 / Math.sqrt(Math.max(1e-4, 1 - beta * beta));
+            const deg = (Math.asin(beta) * 180 / Math.PI).toFixed(1);
+            hud.textContent = `β = ${beta.toFixed(2)}c · γ = ${gamma.toFixed(2)} · Terrell Rotation θ = arcsin(β) = ${deg}° · ${mode === 'terrell' ? 'Amber trailing face visible!' : 'Naive instantaneous contraction'}`;
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    })();
+    </script>
+
+</body>
+
+</html>

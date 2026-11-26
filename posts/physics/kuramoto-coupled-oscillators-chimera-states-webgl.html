@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kuramoto Coupled Oscillators &amp; Chimera States on the GPU | arman1o1 blog</title>
+    <meta name="description" content="Simulating 2D non-local Kuramoto-Sakaguchi oscillators in WebGL2: how identical phase-lagged oscillators spontaneously split into coherent spiral waves and boiling incoherent chimera cores." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/kuramoto-coupled-oscillators-chimera-states-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Kuramoto Coupled Oscillators &amp; Chimera States on the GPU">
+    <meta property="og:description" content="Simulating 2D non-local Kuramoto-Sakaguchi oscillators in WebGL2: how identical phase-lagged oscillators spontaneously split into coherent spiral waves and boiling incoherent chimera cores.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/kuramoto-coupled-oscillators-chimera-states-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_reaction_diffusion.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Kuramoto Coupled Oscillators & Chimera States on the GPU", "description": "Simulating 2D non-local Kuramoto-Sakaguchi oscillators in WebGL2: how identical phase-lagged oscillators spontaneously split into coherent spiral waves and boiling incoherent chimera cores.", "image": "https://arman1o1.github.io/images/thumb_reaction_diffusion.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/kuramoto-coupled-oscillators-chimera-states-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/kuramoto-coupled-oscillators-chimera-states-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Nonlinear Dynamics</span>
+                    <span class="tag">Kuramoto</span>
+                    <span class="tag">Chimera States</span>
+                    <span class="tag">WebGL2</span>
+                </div>
+                <h1>Kuramoto Coupled Oscillators &amp; Chimera States on the GPU</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 10 min read</span>
+                </div>
+
+                <hr>
+
+
+                <!-- ===== LIVE INTERACTIVE 2D KURAMOTO CHIMERA STATES WEBGL2 ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#05070e;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="kur-canvas" style="width:100%;height:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="kur-btn" data-p="chimera" onclick="window.setKurPreset('chimera')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Spiral-Wave Chimera (α = 1.42)</button>
+                                <button type="button" class="kur-btn" data-p="sync" onclick="window.setKurPreset('sync')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Global Sync (α = 0.0)</button>
+                                <button type="button" class="kur-btn" data-p="turbulent" onclick="window.setKurPreset('turbulent')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Phase Turbulence (α = 1.56)</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Phase Lag $\alpha$:</span>
+                                    <input id="kur-alpha" type="range" min="0.0" max="1.57" step="0.01" value="1.42" style="width:76px">
+                                    <span id="kur-aval">1.42</span>
+                                </label>
+                                <button type="button" onclick="window.resetKur()" style="background:#f59e0b;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Reseed Spirals</button>
+                            </div>
+                        </div>
+                        <div style="position:absolute;bottom:10px;left:12px;background:rgba(12,13,18,0.82);backdrop-filter:blur(6px);padding:5px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#cbd5e1;font-family:monospace;font-size:11px">WebGL2 Non-Local Kuramoto FBO · Click anywhere to inject an incoherent phase-defect core</div>
+                    </div>
+                    <figcaption style="font-size:.86rem;color:var(--text-muted);margin-top:.55rem">
+                        Live 60 FPS GPU simulation of 2D non-locally coupled identical oscillators: tune phase lag $\alpha \approx 1.42$ to watch coherent rotating spiral arms coexist stably around a boiling incoherent chimera core.
+                    </figcaption>
+                </figure>
+
+                <p>In <a href="xy-model-bkt-vortex-monte-carlo-webgl.html">The 2D XY Model &amp; BKT Vortex Unbinding</a>, equilibrium spins aligned smoothly everywhere except at point-like topological vortices. Replace thermal noise with <strong>non-local phase-lagged coupling</strong> among <em>identical</em> oscillators (Kuramoto &amp; Battogtokh, 2002), and symmetry shatters spontaneously into a <strong>Chimera State</strong>: an impossible-looking hybrid where perfectly phase-locked spiral waves surround a macroscopic, boiling core of completely desynchronized oscillators – even though every single oscillator obeys the exact same equation!</p>
+
+                <hr>
+
+                <h2>1. The 2D Non-Local Kuramoto–Sakaguchi Equation</h2>
+                <p>Each pixel $\mathbf{r}$ carries a phase $\theta(\mathbf{r}, t) \in [0, 2\pi)$ coupled to all neighbors within a disk of radius $R$ with phase frustration parameter $\alpha \in [0, \pi/2)$:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Non-Local Kuramoto–Sakaguchi Phase Evolution &amp; Local Order Parameter</div>
+                    $$\frac{\partial \theta(\mathbf{r}, t)}{\partial t} = \omega + \frac{K}{|B_R|} \iint_{|\mathbf{r}' - \mathbf{r}| \le R} \sin\!\big(\theta(\mathbf{r}', t) - \theta(\mathbf{r}, t) - \alpha\big)\, d^2\mathbf{r}'$$
+                    $$Z(\mathbf{r}, t) = R_{\text{loc}}(\mathbf{r}, t)\, e^{i\Phi(\mathbf{r}, t)} = \frac{1}{|B_R|} \iint_{|\mathbf{r}' - \mathbf{r}| \le R} e^{i\theta(\mathbf{r}', t)}\, d^2\mathbf{r}'$$
+                </div>
+
+                <p>When $\alpha = 0$, the system minimizes the XY energy and locks into global synchronization ($R_{\text{loc}} \to 1$). As $\alpha \to \pi/2 \approx 1.57$, the coupling becomes nearly conservative/repulsive near spiral cores: oscillators inside the core experience a vanished mean field $R_{\text{loc}} \approx 0$ and drift chaotically while oscillators outside the core remain phase-locked in rotating spiral arms.</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: 2D Non-Local Kuramoto–Sakaguchi Phase Evolution Kernel</span><span class="badge-code">GLSL (WebGL2)</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-glsl">// 2D Non-Local Kuramoto-Sakaguchi Phase Field in WebGL2
+// d(theta)/dt = omega + (K / N) * sum_{r&#x27; in disk(R)} sin(theta(r&#x27;) - theta(r) - alpha)
+float sumSin = 0.0;
+float count = 0.0;
+for (int dy = -5; dy &lt;= 5; dy++) {
+    for (int dx = -5; dx &lt;= 5; dx++) {
+        if (dx*dx + dy*dy &gt; 25) continue;
+        float thN = texture(uPhase, vUv + vec2(dx, dy) * uTexel).r;
+        sumSin += sin(thN - th - uAlpha);
+        count += 1.0;
+    }
+}
+float nextTh = mod(th + dt * (uOmega + uK * (sumSin / max(1.0, count))), 6.2831853);</code></pre>
+                    </div>
+                </details>
+
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('kur-canvas');
+        const gl = canvas.getContext('webgl2');
+        if (!gl) return;
+        const ext = gl.getExtension('EXT_color_buffer_float');
+        const W = 256, H = 144;
+        let alpha = 1.42;
+
+        const vsSrc = `#version 300 es
+        in vec2 aPos; out vec2 vUv;
+        void main(){ vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+        const stepFs = `#version 300 es
+        precision highp float;
+        in vec2 vUv; out vec4 fragColor;
+        uniform sampler2D uPhase;
+        uniform vec2 uTexel;
+        uniform float uAlpha, uTime;
+        uniform vec3 uBrush;
+
+        const float TWO_PI = 6.28318530718;
+        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7)) + uTime) * 43758.5453); }
+
+        void main() {
+            // Phase is stored normalized in [0, 1) so both RGBA16F and RGBA8 fallback work identically
+            float th = texture(uPhase, vUv).r * TWO_PI;
+            vec2 dBrush = vec2((vUv.x - uBrush.x) * (16.0 / 9.0), vUv.y - uBrush.y);
+            if (uBrush.z > 0.0 && length(dBrush) < uBrush.z) {
+                fragColor = vec4(hash(vUv * 512.0), 0.0, 0.0, 1.0);
+                return;
+            }
+            float sumSin = 0.0, sumC = 0.0, sumS = 0.0, cnt = 0.0;
+            for (int dy = -4; dy <= 4; dy++) {
+                for (int dx = -4; dx <= 4; dx++) {
+                    if (dx*dx + dy*dy > 18) continue;
+                    float thN = texture(uPhase, vUv + vec2(float(dx), float(dy)) * uTexel).r * TWO_PI;
+                    sumSin += sin(thN - th - uAlpha);
+                    sumC += cos(thN); sumS += sin(thN);
+                    cnt += 1.0;
+                }
+            }
+            float invCnt = 1.0 / max(1.0, cnt);
+            float nextTh = fract((th + 0.16 * (0.25 + 1.8 * (sumSin * invCnt))) / TWO_PI);
+            float rLoc = clamp(length(vec2(sumC, sumS)) * invCnt, 0.0, 1.0);
+            fragColor = vec4(nextTh, rLoc, 0.0, 1.0);
+        }`;
+
+        const dispFs = `#version 300 es
+        precision highp float;
+        in vec2 vUv; out vec4 fragColor;
+        uniform sampler2D uPhase;
+        vec3 hsv2rgb(vec3 c) {
+            vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
+            return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+        }
+        void main() {
+            vec2 st = texture(uPhase, vUv).rg;
+            float hue = st.x;
+            float rLoc = st.y;
+            vec3 col = hsv2rgb(vec3(hue, 0.82, 0.35 + 0.62 * rLoc));
+            fragColor = vec4(col, 1.0);
+        }`;
+
+        function compile(type, src) {
+            const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh);
+            if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+                console.error('Shader compile error:', gl.getShaderInfoLog(sh));
+                return null;
+            }
+            return sh;
+        }
+        function link(fs) {
+            const vs = compile(gl.VERTEX_SHADER, vsSrc);
+            const fsh = compile(gl.FRAGMENT_SHADER, fs);
+            if (!vs || !fsh) return null;
+            const p = gl.createProgram();
+            gl.attachShader(p, vs);
+            gl.attachShader(p, fsh);
+            gl.linkProgram(p);
+            if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+                console.error('Program link error:', gl.getProgramInfoLog(p));
+                return null;
+            }
+            return p;
+        }
+        const pStep = link(stepFs), pDisp = link(dispFs);
+        if (!pStep || !pDisp) return;
+        const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+        const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+        const tex = [0, 1].map(() => {
+            const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texImage2D(gl.TEXTURE_2D, 0, ext ? gl.RGBA16F : gl.RGBA8, W, H, 0, gl.RGBA, ext ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+            return t;
+        });
+        const fbo = tex.map(t => {
+            const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+            return f;
+        });
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) return;
+        let ping = 0;
+
+        function seed() {
+            const data = new Float32Array(W * H * 4);
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const dx1 = (x - W * 0.35) / H, dy1 = (y - H * 0.5) / H;
+                    const dx2 = (x - W * 0.65) / H, dy2 = (y - H * 0.5) / H;
+                    // Opposite-chirality spiral seeds + slight noise -> immediate chimera cores!
+                    let th = Math.atan2(dy1, dx1) - Math.atan2(dy2, dx2) + (Math.random() - 0.5) * 0.6;
+                    th = ((th % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    data[i] = th / (Math.PI * 2); data[i + 1] = 0.8; data[i + 3] = 1.0;
+                }
+            }
+            gl.bindTexture(gl.TEXTURE_2D, tex[ping]);
+            if (ext) {
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, W, H, 0, gl.RGBA, gl.FLOAT, data);
+            } else {
+                const u8 = new Uint8Array(W * H * 4);
+                for (let i = 0; i < data.length; i += 4) { u8[i] = Math.min(255, (data[i] * 255) | 0); u8[i+1] = 204; u8[i+3] = 255; }
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, u8);
+            }
+        }
+        window.resetKur = seed;
+        window.setKurPreset = function(p) {
+            alpha = (p === 'chimera') ? 1.42 : (p === 'sync' ? 0.0 : 1.56);
+            document.getElementById('kur-alpha').value = alpha.toFixed(2);
+            document.getElementById('kur-aval').textContent = alpha.toFixed(2);
+            document.querySelectorAll('.kur-btn').forEach(b => {
+                const a = b.dataset.p === p;
+                b.style.background = a ? '#38bdf8' : '#1e293b';
+                b.style.color = a ? '#081018' : '#e2e8f0';
+            });
+            seed();
+        };
+        document.getElementById('kur-alpha').addEventListener('input', e => {
+            alpha = parseFloat(e.target.value);
+            document.getElementById('kur-aval').textContent = alpha.toFixed(2);
+        });
+
+        let brush = [-1, -1, 0], down = false;
+        function setB(e) {
+            const r = canvas.getBoundingClientRect();
+            brush = [(e.clientX - r.left) / r.width, 1.0 - (e.clientY - r.top) / r.height, 0.07];
+        }
+        canvas.addEventListener('pointerdown', e => { down = true; setB(e); });
+        window.addEventListener('pointerup', () => { down = false; brush[2] = 0; });
+        canvas.addEventListener('pointermove', e => { if (down) setB(e); });
+
+        seed();
+        let t = 0;
+        function loop() {
+            t += 0.016;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const cw = Math.floor(canvas.clientWidth * dpr), ch = Math.floor(canvas.clientHeight * dpr);
+            if (cw <= 0 || ch <= 0) { requestAnimationFrame(loop); return; }
+            if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+            gl.bindVertexArray(vao);
+            gl.useProgram(pStep);
+            gl.uniform2f(gl.getUniformLocation(pStep, 'uTexel'), 1 / W, 1 / H);
+            gl.uniform1f(gl.getUniformLocation(pStep, 'uAlpha'), alpha);
+            gl.uniform1f(gl.getUniformLocation(pStep, 'uTime'), t);
+            gl.uniform3f(gl.getUniformLocation(pStep, 'uBrush'), brush[0], brush[1], brush[2]);
+            const nxt = 1 - ping;
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[nxt]);
+            gl.viewport(0, 0, W, H);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex[ping]);
+            gl.uniform1i(gl.getUniformLocation(pStep, 'uPhase'), 0);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            ping = nxt;
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.useProgram(pDisp);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex[ping]);
+            gl.uniform1i(gl.getUniformLocation(pDisp, 'uPhase'), 0);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    })();
+    </script>
+
+</body>
+
+</html>

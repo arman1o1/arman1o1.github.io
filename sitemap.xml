@@ -8,11 +8,39 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/archives.html</loc>
-    <lastmod>2026-11-19</lastmod>
+    <lastmod>2026-11-26</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/</loc>
-    <lastmod>2026-11-19</lastmod>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/neural-cellular-automata-morphogenesis-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/zero-bubble-pipeline-parallelism-dualpipe.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/world-models-video-dit-3d-causal-vae.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/transcoders-crosscoders-attribution-graphs-circuits.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/test-time-rl-self-play-verifiers.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/native-sparse-attention-kv-cache-eviction.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/ai-ml/3d-gaussian-splatting-differentiable-rasterization.html</loc>
+    <lastmod>2026-11-26</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/ai-ml/ttt-fast-weight-rnns-test-time-training.html</loc>
@@ -92,7 +120,35 @@
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/</loc>
-    <lastmod>2026-11-19</lastmod>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/project-hail-mary-spin-gravity-relativistic-aberration-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/topological-edge-states-aharonov-bohm-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/terrell-penrose-rotation-relativistic-flyby-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/ray-tracing-camera-lenses-swirly-bokeh-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/mls-mpm-snow-jelly-fracture-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/mhd-magnetic-reconnection-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
+  </url>
+  <url>
+    <loc>https://arman1o1.github.io/posts/physics/kuramoto-coupled-oscillators-chimera-states-webgl.html</loc>
+    <lastmod>2026-11-26</lastmod>
   </url>
   <url>
     <loc>https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html</loc>

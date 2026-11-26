@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>From Features to Circuits: Transcoders, Crosscoders &amp; Attribution Graphs | arman1o1 blog</title>
+    <meta name="description" content="The mechanistic interpretability sequel to Sparse Autoencoders: replacing dense MLPs with JumpReLU Transcoders, exact input-invariant circuit weights, and Crosscoder model diffing in PyTorch." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/ai-ml/transcoders-crosscoders-attribution-graphs-circuits.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="From Features to Circuits: Transcoders, Crosscoders &amp; Attribution Graphs">
+    <meta property="og:description" content="The mechanistic interpretability sequel to Sparse Autoencoders: replacing dense MLPs with JumpReLU Transcoders, exact input-invariant circuit weights, and Crosscoder model diffing in PyTorch.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/ai-ml/transcoders-crosscoders-attribution-graphs-circuits.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_ai_ml.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "From Features to Circuits: Transcoders, Crosscoders & Attribution Graphs", "description": "The mechanistic interpretability sequel to Sparse Autoencoders: replacing dense MLPs with JumpReLU Transcoders, exact input-invariant circuit weights, and Crosscoder model diffing in PyTorch.", "image": "https://arman1o1.github.io/images/thumb_ai_ml.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/ai-ml/transcoders-crosscoders-attribution-graphs-circuits.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/ai-ml/transcoders-crosscoders-attribution-graphs-circuits.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="index.html" class="nav-link active">AI/ML</a>
+                <a href="../physics/index.html" class="nav-link">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container container-wide">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">AI/ML</span>
+                    <span class="tag">Mechanistic Interpretability</span>
+                    <span class="tag">Transcoders</span>
+                    <span class="tag">Circuits</span>
+                    <span class="tag">PyTorch</span>
+                </div>
+                <h1>From Features to Circuits: Transcoders, Crosscoders &amp; Attribution Graphs</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 12 min read</span>
+                </div>
+
+                <hr>
+
+
+                <p>In <a href="topk-jumprelu-sparse-autoencoders-superposition.html">Disentangling Polysemantic Superposition</a>, we used TopK and JumpReLU Sparse Autoencoders (SAEs) to decompose a single residual-stream vector into monosemantic features. That answers <em>what</em> concepts exist at layer $\ell$ – but not <em>how</em> layer $\ell$ computes layer $\ell+1$. Because standard SAEs reconstruct a layer's activations from themselves, the nonlinear MLP sits <strong>outside</strong> the sparse basis, forcing circuit analysts to differentiate through dense opaque neurons. <strong>Transcoders</strong> (<a href="https://arxiv.org/abs/2406.11944" target="_blank" rel="noopener noreferrer">Dunefsky, Chlenski &amp; Nanda, NeurIPS 2024, arXiv:2406.11944</a>) and <strong>Crosscoders</strong> solve this by placing the sparse bottleneck <em>across</em> the MLP or across multiple layers simultaneously.</p>
+
+                <hr>
+
+                <h2>1. Why Transcoders Unlock Input-Invariant Feature Circuits</h2>
+                <p>Instead of minimizing $\|\mathbf{x} - \mathrm{SAE}(\mathbf{x})\|_2^2$, a Transcoder takes the pre-MLP residual stream $\mathbf{x}_{\text{in}}^{(\ell)}$ and predicts the post-MLP output $\mathbf{y}_{\text{out}}^{(\ell)} = \mathrm{MLP}^{(\ell)}(\mathbf{x}_{\text{in}}^{(\ell)})$ through a wide sparse latent layer $\mathbf{f}^{(\ell)} \in \mathbb{R}^{M}_{\ge 0}$ ($M \gg d$):</p>
+
+                <div class="math-block">
+                    <div class="math-label">Transcoder Objective &amp; Exact Input-Invariant Edge Attribution (<a href="https://arxiv.org/abs/2406.11944" target="_blank" rel="noopener noreferrer">Dunefsky et al., 2024</a>)</div>
+                    $$\mathbf{f}^{(\ell)} = \mathrm{JumpReLU}_{\boldsymbol{\theta}}\!\left(W_{\text{enc}}^{(\ell)}\mathbf{x}_{\text{in}}^{(\ell)} + \mathbf{b}_{\text{enc}}^{(\ell)}\right), \qquad \hat{\mathbf{y}}_{\text{out}}^{(\ell)} = W_{\text{dec}}^{(\ell)}\mathbf{f}^{(\ell)} + \mathbf{b}_{\text{dec}}^{(\ell)}$$
+                    $$\mathcal{A}_{i \to j}^{(\ell \to \ell+1)}(\mathbf{x}) = \underbrace{f_i^{(\ell)}(\mathbf{x})}_{\text{input-dependent}} \cdot \underbrace{\left(\mathbf{w}_{\text{dec}, i}^{(\ell)} \cdot \mathbf{w}_{\text{enc}, j}^{(\ell+1)}\right)}_{\text{input-invariant circuit weight}}$$
+                </div>
+
+                <p>Look at that factorization: once the MLP is replaced by a Transcoder, the direct contribution from feature $i$ in layer $\ell$ to feature $j$ in layer $\ell+1$ splits cleanly into a scalar activation $f_i^{(\ell)}(\mathbf{x})$ times a <strong>static, prompt-independent inner product</strong> $\mathbf{w}_{\text{dec}, i}^{(\ell)} \cdot \mathbf{w}_{\text{enc}, j}^{(\ell+1)}$. For attention-mediated paths, freezing the attention pattern $A^{(h)}$ yields a linear OV-circuit matrix $W_{OV}^{(h)}$ so the exact attribution weight is $\mathbf{w}_{\text{dec}, i}^{(\ell)} W_{OV}^{(h)} \mathbf{w}_{\text{enc}, j}^{(\ell')}$.</p>
+
+                <div class="flow">
+                    <svg viewBox="0 0 840 165" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', system-ui, sans-serif" role="img" aria-label="SAE vs Transcoder vs Crosscoder circuit architecture">
+                        <rect x="16" y="24" width="248" height="118" rx="10" fill="var(--surface-elevated)" stroke="#94a3b8" stroke-width="1.5"/>
+                        <text x="140" y="50" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="800">Standard SAE</text>
+                        <text x="140" y="74" text-anchor="middle" fill="var(--text-muted)" font-size="10">x_out → sparse f → x̂_out</text>
+                        <text x="140" y="96" text-anchor="middle" fill="#f43f5e" font-size="10">MLP stays dense &amp; opaque</text>
+                        <text x="140" y="118" text-anchor="middle" fill="var(--text-muted)" font-size="10">Best for single-layer probes</text>
+
+                        <rect x="296" y="24" width="248" height="118" rx="10" fill="var(--surface-elevated)" stroke="#38bdf8" stroke-width="1.8"/>
+                        <text x="420" y="50" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="800">MLP Transcoder</text>
+                        <text x="420" y="74" text-anchor="middle" fill="var(--text-muted)" font-size="10">x_in → sparse f → ŷ_MLP</text>
+                        <text x="420" y="96" text-anchor="middle" fill="#34d399" font-size="10">Linear pull-back: W_dec · W_enc</text>
+                        <text x="420" y="118" text-anchor="middle" fill="var(--text-muted)" font-size="10">Builds exact Attribution Graphs</text>
+
+                        <rect x="576" y="24" width="248" height="118" rx="10" fill="var(--surface-elevated)" stroke="#a78bfa" stroke-width="1.8"/>
+                        <text x="700" y="50" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="800">Multi-Layer Crosscoder</text>
+                        <text x="700" y="74" text-anchor="middle" fill="var(--text-muted)" font-size="10">Σ_ℓ W_enc^(ℓ) x^(ℓ) → shared f</text>
+                        <text x="700" y="96" text-anchor="middle" fill="#fbbf24" font-size="10">Tracks cross-layer &amp; base-vs-chat</text>
+                        <text x="700" y="118" text-anchor="middle" fill="var(--text-muted)" font-size="10">Eliminates duplicate features</text>
+                    </svg>
+                    <div class="flow-caption">Transcoders linearize MLP computation for circuit tracing; Crosscoders share a single sparse dictionary across layers or across two fine-tuned checkpoints.</div>
+                </div>
+
+                <h2>2. Crosscoders &amp; Model Diffing (Base vs. RL-Tuned Checkpoints)</h2>
+                <p>A <strong>Crosscoder</strong> generalizes the sparse encoder to read from a set of activation streams $\{\mathbf{x}^{(k)}\}_{k=1}^K$ – either layers $1\dots L$ of one model, or the same layer in a <em>base</em> model and an <em>RL-aligned</em> model – and decode back into all $K$ streams with separate decoders $W_{\text{dec}}^{(k)}$. By inspecting the decoder norm ratio $\|\mathbf{w}_{\text{dec}, i}^{(\text{chat})}\| / (\|\mathbf{w}_{\text{dec}, i}^{(\text{base})}\| + \|\mathbf{w}_{\text{dec}, i}^{(\text{chat})}\|)$, you immediately isolate <strong>chat-exclusive features</strong> (refusal triggers, sycophancy detectors, chain-of-thought verification tokens) that were created during post-training.</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 Python: JumpReLU Transcoder &amp; Input-Invariant Circuit Pull-Back Weight</span><span class="badge-code">PyTorch</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-python">import math
+import torch
+import torch.nn as nn
+
+class JumpReLUTranscoder(nn.Module):
+    &quot;&quot;&quot;Sparse MLP replacement: maps MLP input x_in -&gt; sparse features -&gt; MLP output y_out.&quot;&quot;&quot;
+    def __init__(self, d_model: int, d_features: int, init_threshold: float = 0.1):
+        super().__init__()
+        self.W_enc = nn.Parameter(torch.randn(d_model, d_features) * (d_model ** -0.5))
+        self.b_enc = nn.Parameter(torch.zeros(d_features))
+        self.W_dec = nn.Parameter(torch.randn(d_features, d_model) * (d_features ** -0.5))
+        self.b_dec = nn.Parameter(torch.zeros(d_model))
+        self.log_theta = nn.Parameter(torch.full((d_features,), math.log(init_threshold)))
+
+    def encode(self, x_in: torch.Tensor) -&gt; torch.Tensor:
+        pre = x_in @ self.W_enc + self.b_enc
+        theta = self.log_theta.exp()
+        # Inference forward; training uses a bandwidth STE kernel for log_theta gradients
+        return pre * (pre &gt; theta).to(pre.dtype)
+
+    def forward(self, x_in: torch.Tensor):
+        f = self.encode(x_in)
+        y_hat = f @ self.W_dec + self.b_dec
+        return y_hat, f
+
+@torch.no_grad()
+def input_invariant_circuit_weight(tc_src: JumpReLUTranscoder, tc_dst: JumpReLUTranscoder,
+                                   i_src: int, j_dst: int) -&gt; float:
+    &quot;&quot;&quot;Direct residual-stream pull-back weight between transcoder feature i (layer L) and j (layer L+1).&quot;&quot;&quot;
+    return float(torch.dot(tc_src.W_dec[i_src], tc_dst.W_enc[:, j_dst]))</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Attribution Graph Pitfalls:</strong> (1) <em>Error-node leakage</em>: if your Transcoder explains only $85\%$ of MLP variance, the residual error node $\mathbf{e}^{(\ell)} = \mathbf{y}_{\text{out}}^{(\ell)} - \hat{\mathbf{y}}_{\text{out}}^{(\ell)}$ can silently carry the real circuit! Always measure <strong>replacement-model faithfulness</strong> (KL divergence between the original logits and the model with all MLPs swapped for Transcoders). (2) <em>LayerNorm linearization</em>: treat RMSNorm scale factors as frozen constants during backward attribution so edge scores sum cleanly to the target logit.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Tool</th><th>Input → Output</th><th>Solves Superposition?</th><th>Enables Direct Circuit Graph?</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>TopK / JumpReLU SAE</strong></td><td>$\mathbf{x}^{(\ell)} \to \hat{\mathbf{x}}^{(\ell)}$</td><td>Yes</td><td>No (MLP nonlinearity blocks weight pull-back)</td></tr>
+                        <tr><td><strong>Transcoder</strong></td><td>$\mathbf{x}_{\text{in}}^{(\ell)} \to \hat{\mathbf{y}}_{\text{MLP}}^{(\ell)}$</td><td>Yes</td><td><strong>Yes</strong> (exact $W_{\text{dec}}^{(\ell)} \cdot W_{\text{enc}}^{(\ell+1)}$ edges)</td></tr>
+                        <tr><td><strong>Crosscoder</strong></td><td>$\{\mathbf{x}^{(k)}\} \to \{\hat{\mathbf{x}}^{(k)}\}$</td><td>Yes (cross-layer/model)</td><td>Tracks feature birth, persistence &amp; model diffs</td></tr>
+                    </tbody>
+                </table>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2D Magnetohydrodynamics (MHD) &amp; Magnetic Reconnection at 60 FPS | arman1o1 blog</title>
+    <meta name="description" content="Real-time browser resistive MHD simulation of Harris current sheets, Sweet-Parker reconnection, plasmoid magnetic islands, and exact divergence-free flux contours." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/mhd-magnetic-reconnection-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="2D Magnetohydrodynamics (MHD) &amp; Magnetic Reconnection at 60 FPS">
+    <meta property="og:description" content="Real-time browser resistive MHD simulation of Harris current sheets, Sweet-Parker reconnection, plasmoid magnetic islands, and exact divergence-free flux contours.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/mhd-magnetic-reconnection-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_navier_stokes.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "2D Magnetohydrodynamics (MHD) & Magnetic Reconnection at 60 FPS", "description": "Real-time browser resistive MHD simulation of Harris current sheets, Sweet-Parker reconnection, plasmoid magnetic islands, and exact divergence-free flux contours.", "image": "https://arman1o1.github.io/images/thumb_navier_stokes.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/mhd-magnetic-reconnection-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/mhd-magnetic-reconnection-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Plasma Physics</span>
+                    <span class="tag">MHD</span>
+                    <span class="tag">Magnetic Reconnection</span>
+                    <span class="tag">WebGL</span>
+                </div>
+                <h1>2D Magnetohydrodynamics (MHD) &amp; Magnetic Reconnection at 60 FPS</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+
+                <!-- ===== LIVE INTERACTIVE 2D MHD MAGNETIC RECONNECTION SIM ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#05070f;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="mhd-canvas" style="width:100%;height:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="mhd-btn" data-p="harris" onclick="window.setMhdPreset('harris')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Harris Current Sheet</button>
+                                <button type="button" class="mhd-btn" data-p="plasmoid" onclick="window.setMhdPreset('plasmoid')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Plasmoid Instability</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Resistivity $\eta$:</span>
+                                    <input id="mhd-eta" type="range" min="0.002" max="0.03" step="0.002" value="0.008" style="width:76px">
+                                    <span id="mhd-eval">0.008</span>
+                                </label>
+                                <button type="button" onclick="window.resetMhd()" style="background:#f59e0b;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Reset Sheet</button>
+                            </div>
+                        </div>
+                        <div style="position:absolute;bottom:10px;left:12px;background:rgba(12,13,18,0.82);backdrop-filter:blur(6px);padding:5px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#cbd5e1;font-family:monospace;font-size:11px">Color = Out-of-plane current J_z = -∇²A_z · White contours = magnetic field lines · Click to pinch the sheet</div>
+                    </div>
+                    <figcaption style="font-size:.86rem;color:var(--text-muted);margin-top:.55rem">
+                        Real-time 2D resistive MHD reconnection: opposite-polarity magnetic fields pinch across the Harris current sheet, snap at X-points, and sling plasma jets into glowing magnetic islands (plasmoids).
+                    </figcaption>
+                </figure>
+
+                <p>If you fuse our <a href="real-time-navier-stokes-webgl.html">Navier–Stokes fluid solver</a> with <a href="maxwell-fdtd-metamaterial-superlens-talkbox-webgl.html">Maxwell's equations</a>, you get <strong>Magnetohydrodynamics (MHD)</strong> – the physics of electrically conducting plasma that powers solar flares, tokamak disruptions, and relativistic accretion disks. In ideal MHD ($\eta = 0$), Alfvén's theorem freezes magnetic field lines permanently into the fluid. Add even a tiny electrical resistivity $\eta \gt 0$ inside a thin current sheet, and field lines can <strong>break and reconnect</strong> – violently converting stored magnetic tension $B^2/(2\mu_0)$ into kinetic Alfvén jets.</p>
+
+                <hr>
+
+                <h2>1. Exact $\nabla\cdot\mathbf{B} = 0$ via the Magnetic Flux Function $A_z$</h2>
+                <p>The biggest numerical headache in 3D MHD is preserving the solenoidal constraint $\nabla\cdot\mathbf{B} = 0$ (no magnetic monopoles). In 2D incompressible MHD, introducing the scalar out-of-plane vector potential $A_z(x,y,t)$ satisfies $\nabla\cdot\mathbf{B} = 0$ <em>identically to machine precision</em>:</p>
+
+                <div class="math-block">
+                    <div class="math-label">2D Incompressible Resistive MHD &amp; Sweet–Parker Reconnection Rate</div>
+                    $$\mathbf{B} = \nabla \times (A_z \hat{\mathbf{z}}) = \left(\frac{\partial A_z}{\partial y},\, -\frac{\partial A_z}{\partial x}\right), \qquad J_z = -\nabla^2 A_z$$
+                    $$\frac{\partial A_z}{\partial t} + \mathbf{u}\cdot\nabla A_z = \eta \nabla^2 A_z, \qquad \frac{\partial \omega}{\partial t} + \mathbf{u}\cdot\nabla\omega = \mathbf{B}\cdot\nabla J_z + \nu\nabla^2\omega$$
+                    $$\frac{v_{\text{in}}}{v_A} \sim S^{-1/2}, \qquad S = \frac{L v_A}{\eta} \;\;(\text{Lundquist number})$$
+                </div>
+
+                <p>At high Lundquist numbers ($S \gt 10^4$), the elongated Sweet–Parker current sheet itself becomes tearing-unstable and shatters into a chain of self-similar magnetic islands (<strong>plasmoids</strong>), driving fast reconnection independent of $\eta$.</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: 2D Resistive MHD Streamfunction–Vorticity &amp; Magnetic Flux Update</span><span class="badge-code">GLSL / MHD Kernel</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-glsl">// 2D Resistive MHD in Streamfunction-Vorticity (psi, omega) &amp; Magnetic Flux (A_z) form
+// B = (dA/dy, -dA/dx),  u = (dpsi/dy, -dpsi/dx),  J_z = -laplacian(A_z)
+// Induction equation:  dA/dt + u · grad(A) = eta * laplacian(A)
+// Vorticity equation:  domega/dt + u · grad(omega) = B · grad(J_z) + nu * laplacian(omega)
+float lorentzTorque = (Bx * dJz_dx + By * dJz_dy);
+omegaNext = omega - dt * (ux * dOm_dx + uy * dOm_dy) + dt * lorentzTorque + dt * nu * lapOmega;
+AzNext    = Az    - dt * (ux * dAz_dx + uy * dAz_dy) + dt * eta * lapAz;</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Why Field-Line Contours Are Free:</strong> Because $\mathbf{B}\cdot\nabla A_z = (\partial_y A_z)(\partial_x A_z) - (\partial_x A_z)(\partial_y A_z) \equiv 0$, every level set $A_z(x,y) = \text{const}$ is an <em>exact</em> magnetic field line! Plotting isolines of $A_z$ over the current density heatmap $J_z = -\nabla^2 A_z$ immediately exposes every X-point (reconnection site) and O-point (magnetic island).
+                </div>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('mhd-canvas');
+        const ctx = canvas.getContext('2d');
+        const NX = 96, NY = 54;
+        let Az = new Float32Array(NX * NY), Az2 = new Float32Array(NX * NY);
+        let om = new Float32Array(NX * NY), om2 = new Float32Array(NX * NY);
+        let psi = new Float32Array(NX * NY), Jz = new Float32Array(NX * NY);
+        let eta = 0.008, preset = 'harris';
+
+        // Offscreen pixel buffer for fast, seam-free rendering
+        const off = document.createElement('canvas');
+        off.width = NX; off.height = NY;
+        const octx = off.getContext('2d');
+        const img = octx.createImageData(NX, NY);
+
+        function idx(x, y) { return ((y + NY) % NY) * NX + ((x + NX) % NX); }
+        function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+        function init() {
+            psi.fill(0); om.fill(0); om2.fill(0); Jz.fill(0);
+            const kModes = (preset === 'plasmoid') ? 3 : 1;
+            for (let y = 0; y < NY; y++) {
+                const yn = (y - NY / 2) / (NY * 0.14);
+                for (let x = 0; x < NX; x++) {
+                    const xn = (x / NX) * Math.PI * 2;
+                    // Harris current sheet: B_x = tanh(yn) => A_z = log(cosh(yn)) + tearing perturbation
+                    const pert = 0.16 * Math.cos(kModes * xn) * Math.exp(-yn * yn * 0.6);
+                    Az[y * NX + x] = Math.log(Math.cosh(yn)) + pert;
+                }
+            }
+            Az2.set(Az);
+        }
+        window.resetMhd = init;
+        window.setMhdPreset = function(p) {
+            preset = p;
+            document.querySelectorAll('.mhd-btn').forEach(b => {
+                const a = b.dataset.p === p;
+                b.style.background = a ? '#38bdf8' : '#1e293b';
+                b.style.color = a ? '#081018' : '#e2e8f0';
+            });
+            init();
+        };
+        document.getElementById('mhd-eta').addEventListener('input', e => {
+            eta = parseFloat(e.target.value);
+            document.getElementById('mhd-eval').textContent = eta.toFixed(3);
+        });
+
+        function step(dt) {
+            // 1. Solve Poisson -lap(psi) = om via 10 Gauss-Seidel iterations
+            for (let it = 0; it < 10; it++) {
+                for (let y = 1; y < NY - 1; y++) {
+                    for (let x = 0; x < NX; x++) {
+                        const i = y * NX + x;
+                        psi[i] = 0.25 * (psi[idx(x+1,y)] + psi[idx(x-1,y)] + psi[idx(x,y+1)] + psi[idx(x,y-1)] + om[i]);
+                    }
+                }
+            }
+            // 2. Compute J_z = -lap(Az) and advance om, Az with CFL guards
+            Jz.fill(0);
+            for (let y = 1; y < NY - 1; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    Jz[i] = -(Az[idx(x+1,y)] + Az[idx(x-1,y)] + Az[idx(x,y+1)] + Az[idx(x,y-1)] - 4 * Az[i]);
+                }
+            }
+            const nu = 0.015;
+            for (let y = 1; y < NY - 1; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const ux = clamp(0.5 * (psi[idx(x,y+1)] - psi[idx(x,y-1)]), -3.0, 3.0);
+                    const uy = clamp(-0.5 * (psi[idx(x+1,y)] - psi[idx(x-1,y)]), -3.0, 3.0);
+                    const Bx = 0.5 * (Az[idx(x,y+1)] - Az[idx(x,y-1)]);
+                    const By = -0.5 * (Az[idx(x+1,y)] - Az[idx(x-1,y)]);
+                    // First-order upwind advection for nonlinear stability
+                    const dAzX = ux > 0 ? (Az[i] - Az[idx(x-1,y)]) : (Az[idx(x+1,y)] - Az[i]);
+                    const dAzY = uy > 0 ? (Az[i] - Az[idx(x,y-1)]) : (Az[idx(x,y+1)] - Az[i]);
+                    const dOmX = ux > 0 ? (om[i] - om[idx(x-1,y)]) : (om[idx(x+1,y)] - om[i]);
+                    const dOmY = uy > 0 ? (om[i] - om[idx(x,y-1)]) : (om[idx(x,y+1)] - om[i]);
+                    const dJX  = 0.5 * (Jz[idx(x+1,y)] - Jz[idx(x-1,y)]);
+                    const dJY  = 0.5 * (Jz[idx(x,y+1)] - Jz[idx(x,y-1)]);
+                    const lapOm = om[idx(x+1,y)] + om[idx(x-1,y)] + om[idx(x,y+1)] + om[idx(x,y-1)] - 4 * om[i];
+                    const nextAz = Az[i] + dt * (-(ux * dAzX + uy * dAzY) - eta * Jz[i]);
+                    const nextOm = om[i] + dt * (-(ux * dOmX + uy * dOmY) + (Bx * dJX + By * dJY) * 1.8 + nu * lapOm);
+                    Az2[i] = Number.isFinite(nextAz) ? clamp(nextAz, -12, 12) : Az[i];
+                    om2[i] = Number.isFinite(nextOm) ? clamp(nextOm, -12, 12) : 0;
+                }
+            }
+            // Copy conducting-wall edges
+            for (let x = 0; x < NX; x++) {
+                Az2[x] = Az[x]; Az2[(NY-1)*NX + x] = Az[(NY-1)*NX + x];
+                om2[x] = 0; om2[(NY-1)*NX + x] = 0;
+            }
+            [Az, Az2] = [Az2, Az]; [om, om2] = [om2, om];
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            const r = canvas.getBoundingClientRect();
+            if (!r.width || !r.height) return;
+            const gx = Math.floor(((e.clientX - r.left) / r.width) * NX);
+            const gy = Math.floor(((e.clientY - r.top) / r.height) * NY);
+            for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+                const x = (gx + dx + NX) % NX, y = Math.max(2, Math.min(NY - 3, gy + dy));
+                Az[y * NX + x] -= 0.18 * Math.exp(-(dx*dx + dy*dy) / 8);
+            }
+        });
+
+        init();
+        function render() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const W = Math.floor(canvas.clientWidth * dpr), H = Math.floor(canvas.clientHeight * dpr);
+            if (W <= 0 || H <= 0) { requestAnimationFrame(render); return; }
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            for (let s = 0; s < 6; s++) step(0.09);
+
+            const data = img.data;
+            for (let y = 0; y < NY; y++) {
+                const ym = Math.max(0, y - 1), yp = Math.min(NY - 1, y + 1);
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    const j = (y === 0 || y === NY - 1) ? 0
+                        : -(Az[idx(x+1,y)] + Az[idx(x-1,y)] + Az[yp * NX + x] + Az[ym * NX + x] - 4 * Az[i]);
+                    const v = Math.max(-1, Math.min(1, j * 9.5));
+                    let r = 8, g = 14, b = 30;
+                    if (v > 0) {
+                        const t = Math.pow(v, 0.72);
+                        r = 16 + t * 239; g = 24 + t * 140; b = 46 + t * 34;
+                    } else {
+                        const a = Math.pow(-v, 0.72);
+                        r = 10 + a * 36; g = 28 + a * 180; b = 58 + a * 197;
+                    }
+                    const p4 = i * 4;
+                    data[p4] = r | 0; data[p4 + 1] = g | 0; data[p4 + 2] = b | 0; data[p4 + 3] = 255;
+                }
+            }
+            octx.putImageData(img, 0, 0);
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(off, 0, 0, W, H);
+
+            // Smooth marching-squares magnetic field-line contours (Az isolines)
+            const sx = W / (NX - 1), sy = H / (NY - 1);
+            ctx.strokeStyle = 'rgba(226, 232, 240, 0.58)';
+            ctx.lineWidth = Math.max(1.0, dpr * 1.15);
+            ctx.beginPath();
+            const stepIso = 0.24;
+            for (let level = -0.2; level <= 2.8; level += stepIso) {
+                for (let y = 0; y < NY - 1; y++) {
+                    const row0 = y * NX, row1 = (y + 1) * NX;
+                    for (let x = 0; x < NX - 1; x++) {
+                        const v00 = Az[row0 + x] - level;
+                        const v10 = Az[row0 + x + 1] - level;
+                        const v11 = Az[row1 + x + 1] - level;
+                        const v01 = Az[row1 + x] - level;
+                        const mask = (v00 > 0 ? 1 : 0) | (v10 > 0 ? 2 : 0) | (v11 > 0 ? 4 : 0) | (v01 > 0 ? 8 : 0);
+                        if (mask === 0 || mask === 15) continue;
+                        const pts = [];
+                        if ((v00 > 0) !== (v10 > 0)) pts.push((x + v00 / (v00 - v10)) * sx, y * sy);
+                        if ((v10 > 0) !== (v11 > 0)) pts.push((x + 1) * sx, (y + v10 / (v10 - v11)) * sy);
+                        if ((v01 > 0) !== (v11 > 0)) pts.push((x + v01 / (v01 - v11)) * sx, (y + 1) * sy);
+                        if ((v00 > 0) !== (v01 > 0)) pts.push(x * sx, (y + v00 / (v00 - v01)) * sy);
+                        if (pts.length >= 4) {
+                            ctx.moveTo(pts[0], pts[1]);
+                            ctx.lineTo(pts[2], pts[3]);
+                            if (pts.length === 8) {
+                                ctx.moveTo(pts[4], pts[5]);
+                                ctx.lineTo(pts[6], pts[7]);
+                            }
+                        }
+                    }
+                }
+            }
+            ctx.stroke();
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    })();
+    </script>
+
+</body>
+
+</html>

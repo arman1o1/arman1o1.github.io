@@ -4,8 +4,106 @@
   <link href="https://arman1o1.github.io/"/>
   <link href="https://arman1o1.github.io/feed.xml" rel="self"/>
   <id>https://arman1o1.github.io/</id>
-  <updated>2026-11-19T00:00:00Z</updated>
+  <updated>2026-11-26T00:00:00Z</updated>
   <author><name>arman1o1</name></author>
+  <entry>
+    <title>Simulating the Hail Mary: Centrifugal Gravity &amp; Relativistic Aberration at 0.92c</title>
+    <link href="https://arman1o1.github.io/posts/physics/project-hail-mary-spin-gravity-relativistic-aberration-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/project-hail-mary-spin-gravity-relativistic-aberration-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Interactive browser physics lab for Project Hail Mary: relativistic starfield aberration and blackbody Doppler blueshift at 0.92c alongside tethered spin-gravity Coriolis trajectories.</summary>
+  </entry>
+  <entry>
+    <title>Neural Cellular Automata (NCA) in WebGL2: Self-Healing Morphogenesis on the GPU</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/neural-cellular-automata-morphogenesis-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/neural-cellular-automata-morphogenesis-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Bridging Gray-Scott reaction-diffusion with deep learning: Sobel perception stencils, asynchronous stochastic updates, pool-based BPTT in PyTorch, and a live 60 FPS WebGL2 ping-pong FBO simulator.</summary>
+  </entry>
+  <entry>
+    <title>Topological Edge States &amp; the Aharonov–Bohm Effect in WebGL2</title>
+    <link href="https://arman1o1.github.io/posts/physics/topological-edge-states-aharonov-bohm-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/topological-edge-states-aharonov-bohm-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Simulating a 2D Harper-Hofstadter Chern insulator at 60 FPS: Peierls magnetic flux phases, TKNN Chern numbers, and defect-immune chiral edge wavepackets.</summary>
+  </entry>
+  <entry>
+    <title>Zero-Bubble Pipeline Parallelism &amp; DualPipe: Overlapping All-to-All with Compute at 671B Scale</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/zero-bubble-pipeline-parallelism-dualpipe.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/zero-bubble-pipeline-parallelism-dualpipe.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>How Zero-Bubble B/W backward splitting and DeepSeek-V3&#x27;s bidirectional DualPipe hide cross-node MoE All-to-All communication and crush pipeline bubbles.</summary>
+  </entry>
+  <entry>
+    <title>Terrell–Penrose Rotation: What a 0.99c Flyby Actually Looks Like</title>
+    <link href="https://arman1o1.github.io/posts/physics/terrell-penrose-rotation-relativistic-flyby-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/terrell-penrose-rotation-relativistic-flyby-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Solving the exact retarded light-cone equation in real time to show why a Lorentz-contracted cube flying past at 0.90c visually rotates by arcsin(beta) and exposes its back face.</summary>
+  </entry>
+  <entry>
+    <title>World Models &amp; Video DiTs: 3D Causal VAEs, Spatiotemporal RoPE &amp; Action-Conditioned Rollouts</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/world-models-video-dit-3d-causal-vae.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/world-models-video-dit-3d-causal-vae.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>From 2D Flow Matching to interactive World Models: 3D Causal VAE temporal padding, factorized 3D RoPE, Diffusion Forcing per-frame noise schedules, and fighting autoregressive drift.</summary>
+  </entry>
+  <entry>
+    <title>The Physics of Glass: Ray-Tracing Real Camera Lenses &amp; Swirly Bokeh in GLSL</title>
+    <link href="https://arman1o1.github.io/posts/physics/ray-tracing-camera-lenses-swirly-bokeh-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/ray-tracing-camera-lenses-swirly-bokeh-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Connecting photography optics with ray-tracing: vector Snell&#x27;s law, Cauchy chromatic dispersion, mechanical cat&#x27;s-eye vignetting, and why vintage Petzval lenses swirl.</summary>
+  </entry>
+  <entry>
+    <title>From Features to Circuits: Transcoders, Crosscoders &amp; Attribution Graphs</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/transcoders-crosscoders-attribution-graphs-circuits.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/transcoders-crosscoders-attribution-graphs-circuits.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>The mechanistic interpretability sequel to Sparse Autoencoders: replacing dense MLPs with JumpReLU Transcoders, exact input-invariant circuit weights, and Crosscoder model diffing in PyTorch.</summary>
+  </entry>
+  <entry>
+    <title>MLS-MPM (Material Point Method) in WebGL2: Snow, Jelly &amp; Elastic-Plastic Fracture</title>
+    <link href="https://arman1o1.github.io/posts/physics/mls-mpm-snow-jelly-fracture-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/mls-mpm-snow-jelly-fracture-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Stepping beyond Eulerian fluid grids into hybrid continuum mechanics: quadratic B-spline P2G/G2P transfers, APIC affine velocity, and SVD snow plasticity at 60 FPS.</summary>
+  </entry>
+  <entry>
+    <title>Test-Time Reinforcement Learning &amp; Self-Play Verifiers: Scaling Reasoning Without Human Labels</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/test-time-rl-self-play-verifiers.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/test-time-rl-self-play-verifiers.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>How TTRL majority-vote RL, Absolute Zero Proposer-Solver code self-play, and Test-Time Self-Play bootstrap reasoning curricula without human-labeled ground truth.</summary>
+  </entry>
+  <entry>
+    <title>2D Magnetohydrodynamics (MHD) &amp; Magnetic Reconnection at 60 FPS</title>
+    <link href="https://arman1o1.github.io/posts/physics/mhd-magnetic-reconnection-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/mhd-magnetic-reconnection-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Real-time browser resistive MHD simulation of Harris current sheets, Sweet-Parker reconnection, plasmoid magnetic islands, and exact divergence-free flux contours.</summary>
+  </entry>
+  <entry>
+    <title>Native Sparse Attention (NSA) &amp; KV-Cache Eviction at 1M+ Context</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/native-sparse-attention-kv-cache-eviction.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/native-sparse-attention-kv-cache-eviction.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Hardware-aligned, natively trainable sparse attention: 3-branch gated decomposition (compressed, selected, sliding window), GQA group-shared block loading, and attention-sink eviction mechanics.</summary>
+  </entry>
+  <entry>
+    <title>Kuramoto Coupled Oscillators &amp; Chimera States on the GPU</title>
+    <link href="https://arman1o1.github.io/posts/physics/kuramoto-coupled-oscillators-chimera-states-webgl.html"/>
+    <id>https://arman1o1.github.io/posts/physics/kuramoto-coupled-oscillators-chimera-states-webgl.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Simulating 2D non-local Kuramoto-Sakaguchi oscillators in WebGL2: how identical phase-lagged oscillators spontaneously split into coherent spiral waves and boiling incoherent chimera cores.</summary>
+  </entry>
+  <entry>
+    <title>3D Gaussian Splatting from First Principles: EWA Projection, Differentiable Rasterization &amp; Tile Sorting</title>
+    <link href="https://arman1o1.github.io/posts/ai-ml/3d-gaussian-splatting-differentiable-rasterization.html"/>
+    <id>https://arman1o1.github.io/posts/ai-ml/3d-gaussian-splatting-differentiable-rasterization.html</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>A practitioner&#x27;s first-principles guide to 3D Gaussian Splatting: quaternion-scale covariance factorization, EWA Jacobian projection, 16x16 GPU tile radix sorting, and exact reverse-order backward gradients.</summary>
+  </entry>
   <entry>
     <title>Topological Phase Transitions in Your Browser: The 2D XY Model &amp; BKT Vortex Unbinding via Checkerboard Monte Carlo</title>
     <link href="https://arman1o1.github.io/posts/physics/xy-model-bkt-vortex-monte-carlo-webgl.html"/>

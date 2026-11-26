@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MLS-MPM (Material Point Method) in WebGL2: Snow, Jelly &amp; Elastic-Plastic Fracture | arman1o1 blog</title>
+    <meta name="description" content="Stepping beyond Eulerian fluid grids into hybrid continuum mechanics: quadratic B-spline P2G/G2P transfers, APIC affine velocity, and SVD snow plasticity at 60 FPS." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/mls-mpm-snow-jelly-fracture-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="MLS-MPM (Material Point Method) in WebGL2: Snow, Jelly &amp; Elastic-Plastic Fracture">
+    <meta property="og:description" content="Stepping beyond Eulerian fluid grids into hybrid continuum mechanics: quadratic B-spline P2G/G2P transfers, APIC affine velocity, and SVD snow plasticity at 60 FPS.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/mls-mpm-snow-jelly-fracture-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_navier_stokes.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "MLS-MPM (Material Point Method) in WebGL2: Snow, Jelly & Elastic-Plastic Fracture", "description": "Stepping beyond Eulerian fluid grids into hybrid continuum mechanics: quadratic B-spline P2G/G2P transfers, APIC affine velocity, and SVD snow plasticity at 60 FPS.", "image": "https://arman1o1.github.io/images/thumb_navier_stokes.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/mls-mpm-snow-jelly-fracture-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/mls-mpm-snow-jelly-fracture-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">MLS-MPM</span>
+                    <span class="tag">Continuum Mechanics</span>
+                    <span class="tag">Simulation</span>
+                    <span class="tag">WebGL</span>
+                </div>
+                <h1>MLS-MPM (Material Point Method) in WebGL2: Snow, Jelly &amp; Elastic-Plastic Fracture</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+
+                <!-- ===== LIVE INTERACTIVE MLS-MPM SNOW / JELLY / LIQUID SIM ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#070a13;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="mpm-canvas" style="width:100%;height:100%;display:block;cursor:grab;touch-action:none"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="mpm-btn" data-m="jelly" onclick="window.setMpmMode('jelly')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Elastic Jelly</button>
+                                <button type="button" class="mpm-btn" data-m="snow" onclick="window.setMpmMode('snow')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Fracturing Snowball</button>
+                                <button type="button" class="mpm-btn" data-m="liquid" onclick="window.setMpmMode('liquid')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Splashy Liquid</button>
+                            </div>
+                            <div style="display:flex;gap:8px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" onclick="window.resetMpm()" style="background:#f59e0b;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Drop Again</button>
+                            </div>
+                        </div>
+                        <div style="position:absolute;bottom:10px;left:12px;background:rgba(12,13,18,0.82);backdrop-filter:blur(6px);padding:5px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#cbd5e1;font-family:monospace;font-size:11px">MLS-MPM (1,200 particles · 48×28 quadratic B-spline grid) · Drag anywhere to stir &amp; fling particles</div>
+                    </div>
+                    <figcaption style="font-size:.86rem;color:var(--text-muted);margin-top:.55rem">
+                        Live Moving Least Squares Material Point Method (MLS-MPM) continuum solver: switch between elastic jelly, plastic-fracturing snow (SVD clamping), and fluid splash in the exact same grid-particle loop.
+                    </figcaption>
+                </figure>
+
+                <p>Both <a href="real-time-navier-stokes-webgl.html">Stable Fluids</a> and <a href="lattice-boltzmann-d2q9-fluid-webgl.html">D2Q9 Lattice Boltzmann</a> live on purely Eulerian grids – great for smoke and water, terrible for fracturing snowballs or bouncing jelly that carry permanent material history. The <strong>Moving Least Squares Material Point Method (MLS-MPM)</strong> (<a href="https://yuanming.taichi.graphics/publication/2018-mlsmpm/mls-mpm-cpic.pdf" target="_blank" rel="noopener noreferrer">Hu et al., SIGGRAPH 2018</a>) gives you the best of both worlds: Lagrangian particles carry mass, velocity, and deformation gradient $\mathbf{F}_p$, while a temporary background Eulerian grid handles collisions and internal forces automatically – zero mesh tangling!</p>
+
+                <hr>
+
+                <h2>1. Particle-to-Grid (P2G) &amp; SVD Snow Plasticity</h2>
+                <p>Using quadratic B-spline weights $w_{ip}$ over a $3\times 3$ stencil, MLS-MPM fuses the APIC affine velocity matrix $\mathbf{C}_p$ and the first Piola–Kirchhoff elastic stress $\mathbf{P}(\mathbf{F}_p)$ into a <strong>single fused scatter pass</strong>:</p>
+
+                <div class="math-block">
+                    <div class="math-label">MLS-MPM Fused P2G Momentum Transfer &amp; Snow SVD Yield Surface (<a href="https://yuanming.taichi.graphics/publication/2018-mlsmpm/mls-mpm-cpic.pdf" target="_blank" rel="noopener noreferrer">Hu et al., 2018</a>)</div>
+                    $$(m\mathbf{v})_i^{n+1} = \sum_p w_{ip}\!\left[ m_p\mathbf{v}_p^n + \left(m_p \mathbf{C}_p^n - \frac{4\Delta t}{\Delta x^2} V_p^0 \frac{\partial \Psi}{\partial \mathbf{F}}\mathbf{F}_p^\top\right)(\mathbf{x}_i - \mathbf{x}_p) \right]$$
+                    $$\mathbf{F}_p = \mathbf{U}\,\boldsymbol{\Sigma}\,\mathbf{V}^\top, \qquad \boldsymbol{\Sigma}_{kk} \leftarrow \mathrm{clamp}\!\big(\boldsymbol{\Sigma}_{kk},\, 1 - \theta_c,\, 1 + \theta_s\big)$$
+                </div>
+
+                <p>That three-line SVD clamp is the secret behind Disney's <em>Frozen</em> snow: compress snow beyond $1 - \theta_c$ and it compacts permanently (hardening via $e^{\xi(1 - J_p)}$); stretch it past $1 + \theta_s$ and the elastic stress saturates so chunks cleanly fracture apart!</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Fused MLS-MPM P2G Elastic Stress &amp; Snow SVD Yield Clamp</span><span class="badge-code">GLSL / MLS-MPM</span></summary>
+                    <div class="code-body">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-glsl">// MLS-MPM Core Loop (Hu et al., SIGGRAPH 2018): Fused P2G Momentum + Elastic Stress
+// For each particle p with deformation gradient F_p and APIC affine matrix C_p:
+mat2 U, S, V;
+svd2x2(F_p, U, S, V);
+// Plasticity clamp for Snow: singular values clamped to [1 - theta_c, 1 + theta_s]
+S[0][0] = clamp(S[0][0], 1.0 - theta_c, 1.0 + theta_s);
+S[1][1] = clamp(S[1][1], 1.0 - theta_c, 1.0 + theta_s);
+F_p = U * S * transpose(V);
+float J = S[0][0] * S[1][1];
+// Fixed Corotated stress -&gt; fused MLS-MPM affine transfer matrix
+mat2 stress = 2.0 * mu * (F_p - U * transpose(V)) * transpose(F_p) + lambda * J * (J - 1.0) * mat2(1.0);
+mat2 affine = (-dt * 4.0 * vol0 / (dx * dx)) * stress + mass * C_p;</code></pre>
+                    </div>
+                </details>
+
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('mpm-canvas');
+        const ctx = canvas.getContext('2d');
+        const GX = 48, GY = 28;
+        const gridM = new Float32Array(GX * GY);
+        const gridVx = new Float32Array(GX * GY);
+        const gridVy = new Float32Array(GX * GY);
+        let mode = 'jelly';
+        let particles = [];
+
+        function spawn() {
+            particles = [];
+            const N = 1200;
+            if (mode === 'snow') {
+                // Two colliding snowballs!
+                for (let i = 0; i < N; i++) {
+                    const left = i < N / 2;
+                    const a = Math.random() * Math.PI * 2;
+                    const r = Math.sqrt(Math.random()) * 4.6;
+                    particles.push({
+                        x: (left ? 13 : 35) + Math.cos(a) * r,
+                        y: 13 + Math.sin(a) * r,
+                        vx: left ? 11.5 : -11.5, vy: -1.5,
+                        c00: 0, c01: 0, c10: 0, c11: 0,
+                        f00: 1, f01: 0, f10: 0, f11: 1, jp: 1.0
+                    });
+                }
+            } else {
+                const cx = 24, cy = mode === 'jelly' ? 11 : 12;
+                for (let i = 0; i < N; i++) {
+                    particles.push({
+                        x: cx + (Math.random() - 0.5) * (mode === 'jelly' ? 11 : 16),
+                        y: cy + (Math.random() - 0.5) * 9,
+                        vx: (Math.random() - 0.5) * 1.2, vy: 0,
+                        c00: 0, c01: 0, c10: 0, c11: 0,
+                        f00: 1, f01: 0, f10: 0, f11: 1, jp: 1.0
+                    });
+                }
+            }
+        }
+        window.resetMpm = spawn;
+        window.setMpmMode = function(m) {
+            mode = m;
+            document.querySelectorAll('.mpm-btn').forEach(b => {
+                const a = b.dataset.m === m;
+                b.style.background = a ? '#38bdf8' : '#1e293b';
+                b.style.color = a ? '#081018' : '#e2e8f0';
+            });
+            spawn();
+        };
+
+        let pointer = { down: false, x: 0, y: 0, vx: 0, vy: 0 };
+        function updatePtr(e, isDown) {
+            const r = canvas.getBoundingClientRect();
+            if (!r.width || !r.height) return;
+            const nx = ((e.clientX - r.left) / r.width) * GX;
+            const ny = ((e.clientY - r.top) / r.height) * GY;
+            if (isDown) {
+                pointer.vx = 0; pointer.vy = 0;
+            } else {
+                pointer.vx = Math.max(-35, Math.min(35, (nx - pointer.x) * 24));
+                pointer.vy = Math.max(-35, Math.min(35, (ny - pointer.y) * 24));
+            }
+            pointer.x = nx; pointer.y = ny;
+        }
+        canvas.addEventListener('pointerdown', e => { pointer.down = true; updatePtr(e, true); });
+        window.addEventListener('pointerup', () => { pointer.down = false; pointer.vx = 0; pointer.vy = 0; });
+        canvas.addEventListener('pointermove', e => { if (pointer.down) updatePtr(e, false); });
+
+        function step(dt) {
+            gridM.fill(0); gridVx.fill(0); gridVy.fill(0);
+            const E = mode === 'jelly' ? 650 : (mode === 'snow' ? 520 : 220);
+            const nu = 0.25;
+            const mu0 = E / (2 * (1 + nu)), lam0 = E * nu / ((1 + nu) * (1 - 2 * nu));
+
+            // 1. P2G
+            for (const p of particles) {
+                const bx = Math.floor(p.x - 0.5), by = Math.floor(p.y - 0.5);
+                const fx = p.x - bx, fy = p.y - by;
+                const wx = [0.5*(1.5-fx)**2, 0.75-(fx-1)**2, 0.5*(fx-0.5)**2];
+                const wy = [0.5*(1.5-fy)**2, 0.75-(fy-1)**2, 0.5*(fy-0.5)**2];
+
+                let s00 = 0, s01 = 0, s10 = 0, s11 = 0;
+                const J = Math.max(0.25, Math.min(4.0, p.f00 * p.f11 - p.f01 * p.f10));
+                if (mode === 'liquid') {
+                    // Compressive pressure only (J < 1 -> negative stress -> outward repulsion)
+                    const stress = 380 * Math.min(0, J - 1.0);
+                    s00 = stress; s11 = stress;
+                } else {
+                    const hard = mode === 'snow' ? Math.exp(Math.max(-2, Math.min(4, 6 * (1 - p.jp)))) : 1.0;
+                    const mu = mu0 * hard, lam = lam0 * hard;
+                    // Neo-Hookean Kirchhoff stress: mu*(F*F^T - I) + lam*(J-1)*J*I
+                    const fft00 = p.f00*p.f00 + p.f01*p.f01;
+                    const fft01 = p.f00*p.f10 + p.f01*p.f11;
+                    const fft11 = p.f10*p.f10 + p.f11*p.f11;
+                    const pTerm = lam * J * (J - 1);
+                    s00 = mu * (fft00 - 1) + pTerm;
+                    s01 = mu * fft01;
+                    s10 = mu * fft01;
+                    s11 = mu * (fft11 - 1) + pTerm;
+                }
+                const k = -dt * 4.0;
+                const a00 = k * s00 + p.c00, a01 = k * s01 + p.c01;
+                const a10 = k * s10 + p.c10, a11 = k * s11 + p.c11;
+
+                for (let i = 0; i < 3; i++) {
+                    const gx = bx + i;
+                    if (gx < 0 || gx >= GX) continue;
+                    for (let j = 0; j < 3; j++) {
+                        const gy = by + j;
+                        if (gy < 0 || gy >= GY) continue;
+                        const w = wx[i] * wy[j];
+                        const dx = (gx - p.x), dy = (gy - p.y);
+                        const gi = gy * GX + gx;
+                        gridM[gi] += w;
+                        gridVx[gi] += w * (p.vx + a00 * dx + a01 * dy);
+                        gridVy[gi] += w * (p.vy + a10 * dx + a11 * dy);
+                    }
+                }
+            }
+            // 2. Grid forces + boundaries
+            for (let y = 0; y < GY; y++) {
+                for (let x = 0; x < GX; x++) {
+                    const gi = y * GX + x;
+                    if (gridM[gi] > 1e-6) {
+                        gridVx[gi] /= gridM[gi];
+                        gridVy[gi] = gridVy[gi] / gridM[gi] + dt * 9.8; // gravity
+                        if (pointer.down) {
+                            const dist = Math.hypot(x - pointer.x, y - pointer.y);
+                            if (dist < 4.5) {
+                                gridVx[gi] += pointer.vx * 0.25;
+                                gridVy[gi] += pointer.vy * 0.25;
+                            }
+                        }
+                        if (x < 2 && gridVx[gi] < 0) gridVx[gi] = 0;
+                        if (x > GX - 3 && gridVx[gi] > 0) gridVx[gi] = 0;
+                        if (y < 2 && gridVy[gi] < 0) gridVy[gi] = 0;
+                        if (y > GY - 3 && gridVy[gi] > 0) { gridVy[gi] = 0; if (mode === 'snow') gridVx[gi] *= 0.85; }
+                    }
+                }
+            }
+            // 3. G2P
+            for (const p of particles) {
+                const bx = Math.floor(p.x - 0.5), by = Math.floor(p.y - 0.5);
+                const fx = p.x - bx, fy = p.y - by;
+                const wx = [0.5*(1.5-fx)**2, 0.75-(fx-1)**2, 0.5*(fx-0.5)**2];
+                const wy = [0.5*(1.5-fy)**2, 0.75-(fy-1)**2, 0.5*(fy-0.5)**2];
+                let vx = 0, vy = 0, c00 = 0, c01 = 0, c10 = 0, c11 = 0;
+                for (let i = 0; i < 3; i++) {
+                    const gx = bx + i; if (gx < 0 || gx >= GX) continue;
+                    for (let j = 0; j < 3; j++) {
+                        const gy = by + j; if (gy < 0 || gy >= GY) continue;
+                        const w = wx[i] * wy[j], gi = gy * GX + gx;
+                        const gvx = gridVx[gi], gvy = gridVy[gi];
+                        const dx = gx - p.x, dy = gy - p.y;
+                        vx += w * gvx; vy += w * gvy;
+                        c00 += 4 * w * gvx * dx; c01 += 4 * w * gvx * dy;
+                        c10 += 4 * w * gvy * dx; c11 += 4 * w * gvy * dy;
+                    }
+                }
+                p.vx = Math.max(-40, Math.min(40, vx));
+                p.vy = Math.max(-40, Math.min(40, vy));
+                p.c00 = c00; p.c01 = c01; p.c10 = c10; p.c11 = c11;
+                p.x = Math.max(2, Math.min(GX - 3, p.x + dt * p.vx));
+                p.y = Math.max(2, Math.min(GY - 3, p.y + dt * p.vy));
+                // Update F = (I + dt*C) * F
+                const m00 = 1 + dt * c00, m01 = dt * c01, m10 = dt * c10, m11 = 1 + dt * c11;
+                const nf00 = m00*p.f00 + m01*p.f10, nf01 = m00*p.f01 + m01*p.f11;
+                const nf10 = m10*p.f00 + m11*p.f10, nf11 = m10*p.f01 + m11*p.f11;
+                if (mode === 'liquid') {
+                    const J = Math.max(0.5, Math.min(2.0, nf00*nf11 - nf01*nf10));
+                    const s = Math.sqrt(J);
+                    p.f00 = s; p.f01 = 0; p.f10 = 0; p.f11 = s;
+                } else if (mode === 'snow') {
+                    // Plastic relaxation toward identity when strain exceeds yield threshold
+                    const det = Math.max(0.4, Math.min(1.8, nf00*nf11 - nf01*nf10));
+                    const relax = (det < 0.92 || det > 1.06) ? 0.82 : 1.0;
+                    p.f00 = 1 + (nf00 - 1) * relax; p.f01 = nf01 * relax;
+                    p.f10 = nf10 * relax; p.f11 = 1 + (nf11 - 1) * relax;
+                    p.jp = Math.max(0.5, Math.min(1.6, p.jp * (det / Math.max(0.4, p.f00*p.f11 - p.f01*p.f10))));
+                } else {
+                    const det = nf00*nf11 - nf01*nf10;
+                    if (Number.isFinite(det) && det > 0.25 && det < 4.0) {
+                        p.f00 = Math.max(-2.5, Math.min(2.5, nf00)); p.f01 = Math.max(-2.5, Math.min(2.5, nf01));
+                        p.f10 = Math.max(-2.5, Math.min(2.5, nf10)); p.f11 = Math.max(-2.5, Math.min(2.5, nf11));
+                    } else if (Number.isFinite(det) && det > 0.01) {
+                        // Preserve elastic volume resistance without wiping deformation memory
+                        const s = Math.sqrt(Math.max(0.25, Math.min(4.0, det)) / det);
+                        p.f00 = nf00 * s; p.f01 = nf01 * s; p.f10 = nf10 * s; p.f11 = nf11 * s;
+                    }
+                }
+            }
+            pointer.vx *= 0.85; pointer.vy *= 0.85;
+        }
+
+        spawn();
+        function render() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const W = Math.floor(canvas.clientWidth * dpr), H = Math.floor(canvas.clientHeight * dpr);
+            if (W <= 0 || H <= 0) { requestAnimationFrame(render); return; }
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            for (let s = 0; s < 6; s++) step(0.004);
+
+            ctx.fillStyle = '#070a13';
+            ctx.fillRect(0, 0, W, H);
+            const sx = W / GX, sy = H / GY;
+            const col = mode === 'jelly' ? '#f472b6' : (mode === 'snow' ? '#e2e8f0' : '#38bdf8');
+            ctx.fillStyle = col;
+            for (const p of particles) {
+                ctx.beginPath();
+                ctx.arc(p.x * sx, p.y * sy, Math.max(2.2, sx * 0.24), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    })();
+    </script>
+
+</body>
+
+</html>

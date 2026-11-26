@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Topological Edge States &amp; the Aharonov–Bohm Effect in WebGL2 | arman1o1 blog</title>
+    <meta name="description" content="Simulating a 2D Harper-Hofstadter Chern insulator at 60 FPS: Peierls magnetic flux phases, TKNN Chern numbers, and defect-immune chiral edge wavepackets." />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="canonical" href="https://arman1o1.github.io/posts/physics/topological-edge-states-aharonov-bohm-webgl.html">
+    <meta name="theme-color" content="#0c0d12">
+    <link rel="alternate" type="application/atom+xml" title="arman1o1 blog" href="https://arman1o1.github.io/feed.xml">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="arman1o1 blog">
+    <meta property="og:title" content="Topological Edge States &amp; the Aharonov–Bohm Effect in WebGL2">
+    <meta property="og:description" content="Simulating a 2D Harper-Hofstadter Chern insulator at 60 FPS: Peierls magnetic flux phases, TKNN Chern numbers, and defect-immune chiral edge wavepackets.">
+    <meta property="og:url" content="https://arman1o1.github.io/posts/physics/topological-edge-states-aharonov-bohm-webgl.html">
+    <meta property="og:image" content="https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-11-26">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "Topological Edge States & the Aharonov\u2013Bohm Effect in WebGL2", "description": "Simulating a 2D Harper-Hofstadter Chern insulator at 60 FPS: Peierls magnetic flux phases, TKNN Chern numbers, and defect-immune chiral edge wavepackets.", "image": "https://arman1o1.github.io/images/thumb_quantum_schrodinger.webp", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "author": {"@type": "Person", "name": "arman1o1", "url": "https://github.com/arman1o1"}, "url": "https://arman1o1.github.io/posts/physics/topological-edge-states-aharonov-bohm-webgl.html", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://arman1o1.github.io/posts/physics/topological-edge-states-aharonov-bohm-webgl.html"}}</script>
+
+    <link rel="preload" href="../../assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="../../assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../../assets/styles.css">
+    <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.classList.add('js')})()</script>
+    <script src="../../assets/theme.js" defer></script>
+
+    <!-- Syntax Highlighting (Prism) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+
+    <!-- KaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+      function initMath() {
+        if (window.renderMathInElement && document.body) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } else {
+          setTimeout(initMath, 50);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", initMath);
+      window.addEventListener("load", initMath);
+    </script>
+</head>
+
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../../index.html" class="brand">arman1o1 blog</a>
+
+            <nav class="nav-links">
+                <a href="../../index.html" class="nav-link">Home</a>
+                <a href="../ai-ml/index.html" class="nav-link">AI/ML</a>
+                <a href="index.html" class="nav-link active">Physics</a>
+                <a href="../movies/index.html" class="nav-link">Movies</a>
+                <a href="../photography/index.html" class="nav-link">Photography</a>
+                <a href="../life/index.html" class="nav-link">Life</a>
+                <a href="../../about/index.html" class="nav-link">About</a>
+            </nav>
+
+            <div class="header-toggle">
+                <label class="switch" for="theme-toggle-checkbox" title="Toggle dark mode">
+                    <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle dark mode" checked>
+                    <span class="slider" aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <article class="post animate-in">
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Topological Insulators</span>
+                    <span class="tag">Quantum Mechanics</span>
+                    <span class="tag">Aharonov-Bohm</span>
+                    <span class="tag">WebGL</span>
+                </div>
+                <h1>Topological Edge States &amp; the Aharonov–Bohm Effect in WebGL2</h1>
+                <div class="post-meta">
+                    <span class="post-date"><time datetime="2026-11-26">November 26, 2026</time></span>
+                    <span>•</span>
+                    <span class="read-time">☕ 11 min read</span>
+                </div>
+
+                <hr>
+
+
+                <!-- ===== LIVE INTERACTIVE TOPOLOGICAL CHERN EDGE STATE SIM ===== -->
+                <figure style="margin:0 0 .8rem 0">
+                    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#050811;border:1px solid rgba(148,163,184,0.22);box-shadow:0 12px 40px rgba(0,0,0,.45)">
+                        <canvas id="topo-canvas" style="width:100%;height:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+                        <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;font-family:'Inter',system-ui,sans-serif;font-size:12px">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2)">
+                                <button type="button" class="topo-btn" data-m="chern" onclick="window.setTopoMode('chern')" style="background:#38bdf8;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Chern Insulator (C = +1)</button>
+                                <button type="button" class="topo-btn" data-m="trivial" onclick="window.setTopoMode('trivial')" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:5px;padding:4px 9px;font-weight:600;cursor:pointer;font-size:11px">Trivial Insulator (C = 0)</button>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:auto;background:rgba(12,13,18,0.84);backdrop-filter:blur(8px);padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.2);color:#e2e8f0">
+                                <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+                                    <span>Flux $\Phi/\Phi_0$:</span>
+                                    <input id="topo-flux" type="range" min="0" max="0.33" step="0.01" value="0.25" style="width:76px">
+                                    <span id="topo-fval">0.25</span>
+                                </label>
+                                <button type="button" onclick="window.resetTopo()" style="background:#f59e0b;color:#081018;border:0;border-radius:5px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:11px">Relaunch Pulse</button>
+                            </div>
+                        </div>
+                        <div id="topo-hud" style="position:absolute;bottom:10px;left:12px;background:rgba(12,13,18,0.82);backdrop-filter:blur(6px);padding:5px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#cbd5e1;font-family:monospace;font-size:11px">Chern C = +1 · Click on the top edge to carve a defect – the chiral edge mode routes cleanly around it</div>
+                    </div>
+                    <figcaption style="font-size:.86rem;color:var(--text-muted);margin-top:.55rem">
+                        Real-time tight-binding wavepacket simulator on a $64 \times 36$ Harper–Hofstadter lattice with a pre-carved boundary notch: in the $C = +1$ phase, the edge pulse wraps around defects with zero backscattering.
+                    </figcaption>
+                </figure>
+
+                <p>In <a href="dirac-graphene-klein-tunneling-webgl.html">Klein Tunneling &amp; Zitterbewegung in Graphene</a>, massless 2D Dirac fermions pierced electrostatic barriers head-on. Add a perpendicular magnetic flux $\Phi$ per lattice plaquette (or break time-reversal symmetry in a Chern insulator), and something even stranger happens: the <strong>interior bulk becomes an insulator</strong>, while the boundary hosts a <strong>one-way chiral superhighway</strong> protected by an integer topological invariant – the <strong>Chern number $C \in \mathbb{Z}$</strong>.</p>
+
+                <hr>
+
+                <h2>1. Peierls Substitution &amp; the Aharonov–Bohm Plaquette Phase</h2>
+                <p>Even if a magnetic field is confined strictly inside a solenoid where the electron never enters, the vector potential $\mathbf{A}$ imprints a measurable quantum phase $\Delta\phi = \frac{e}{\hbar}\oint \mathbf{A}\cdot d\mathbf{l} = 2\pi \Phi/\Phi_0$ around closed loops (the <strong>Aharonov–Bohm effect</strong>). On a discrete 2D square lattice in the Landau gauge $\mathbf{A} = (0, B x, 0)$, hopping along $y$ acquires a site-dependent Peierls phase:</p>
+
+                <div class="math-block">
+                    <div class="math-label">Harper–Hofstadter Tight-Binding Hamiltonian &amp; TKNN Chern Number</div>
+                    $$H = -t \sum_{x,y} \Big( c^\dagger_{x+1,y} c_{x,y} + e^{i 2\pi \alpha x}\, c^\dagger_{x,y+1} c_{x,y} + \text{h.c.} \Big), \qquad \alpha = \frac{\Phi}{\Phi_0}$$
+                    $$C_n = \frac{1}{2\pi} \iint_{\text{BZ}} \Omega_n(\mathbf{k})\, d^2 k \in \mathbb{Z}, \qquad \Omega_n(\mathbf{k}) = i\big(\langle \partial_{k_x} u_n | \partial_{k_y} u_n \rangle - \text{c.c.}\big)$$
+                </div>
+
+                <p>By the <strong>bulk-boundary correspondence</strong>, an interface between a $C = +1$ bulk and the $C = 0$ vacuum must host exactly $|C| = 1$ gapless chiral edge mode. Because there is literally <em>no backward-propagating state</em> at that energy on the same edge, an incoming wavepacket hitting a carved defect cannot reflect – it simply hugs the new boundary contour and continues unimpeded!</p>
+
+
+                <details class="code-card">
+                    <summary><span>💻 GLSL: Peierls-Substituted Tight-Binding Hamiltonian Step</span><span class="badge-code">GLSL (Tight-Binding)</span></summary>
+                    <div class="code-body">
+                        <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code class="language-glsl">// Peierls-substituted tight-binding Hamiltonian step (Harper-Hofstadter lattice)
+// Hopping along y picks up the Aharonov-Bohm phase exp(i * 2*pi * phi * x)
+vec2 cMul(vec2 a, vec2 b) { return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
+
+vec2 hPsi(ivec2 ij, float phi, float mass) {
+    float phase = 6.2831853 * phi * float(ij.x);
+    vec2 peierlsPlus  = vec2(cos(phase),  sin(phase));
+    vec2 peierlsMinus = vec2(cos(phase), -sin(phase));
+    vec2 pxP = texelFetch(uPsi, ij + ivec2( 1, 0), 0).rg;
+    vec2 pxM = texelFetch(uPsi, ij + ivec2(-1, 0), 0).rg;
+    vec2 pyP = cMul(peierlsPlus,  texelFetch(uPsi, ij + ivec2(0,  1), 0).rg);
+    vec2 pyM = cMul(peierlsMinus, texelFetch(uPsi, ij + ivec2(0, -1), 0).rg);
+    return -(pxP + pxM + pyP + pyM) + mass * texelFetch(uPsi, ij, 0).rg;
+}</code></pre>
+                    </div>
+                </details>
+
+
+                <div class="callout callout-warn">
+                    <strong>Unitary Time-Stepping on the Lattice:</strong> Just like our <a href="quantum-wavepacket-tunneling-schrodinger-webgl.html">2D Schrödinger Visscher leapfrog</a>, explicit forward Euler $\psi^{n+1} = (1 - i\Delta t H)\psi^n$ has eigenvalues $|1 - i\Delta t E| \gt 1$ and explodes exponentially. Staggering $\operatorname{Re}(\psi)$ and $\operatorname{Im}(\psi)$ by $\Delta t / 2$ preserves the discrete norm $\sum_{x,y}|\psi_{x,y}|^2$ to machine precision for $\Delta t \lt 1 / \|H\|$ (and for complex Peierls phases, 4th-order Runge-Kutta preserves norm to $\mathcal{O}(\Delta t^6)$).
+                </div>
+
+
+            </article>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="social-icons">
+            <a href="https://github.com/arman1o1" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <a href="mailto:armancodes101@gmail.com" aria-label="Email">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+
+    <script>
+    (function() {
+        const cb = document.getElementById('theme-toggle-checkbox');
+        if (cb) {
+            cb.checked = document.documentElement.classList.contains('dark');
+            cb.addEventListener('change', () => {
+                document.documentElement.classList.toggle('dark', cb.checked);
+                try { localStorage.setItem('theme', cb.checked ? 'dark' : 'light'); } catch(e) {}
+            });
+        }
+    })();
+    function copyCode(btn) {
+        const pre = btn.closest('.code-card').querySelector('pre');
+        const text = pre.innerText;
+        const onCopied = () => {
+            btn.innerText = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerText = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+        } else { fallbackCopy(text, onCopied); }
+    }
+    function fallbackCopy(text, callback) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); callback(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    </script>
+
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('topo-canvas');
+        const ctx = canvas.getContext('2d');
+        const hud = document.getElementById('topo-hud');
+        const NX = 64, NY = 36;
+        let psiR = new Float32Array(NX * NY);
+        let psiI = new Float32Array(NX * NY);
+        let mask = new Uint8Array(NX * NY);
+        let flux = 0.25, mode = 'chern', simTime = 0;
+
+        function initLattice() {
+            psiR.fill(0); psiI.fill(0); mask.fill(1); simTime = 0;
+            // Carve a default notch in the top edge to showcase defect immunity
+            for (let y = 0; y < 8; y++) for (let x = 28; x < 36; x++) mask[y * NX + x] = 0;
+            // Pre-warm the harmonic edge drive briefly so frame 1 already shows the chiral beam
+            for (let s = 0; s < 140; s++) step(0.085);
+        }
+        window.resetTopo = initLattice;
+        window.setTopoMode = function(m) {
+            mode = m;
+            flux = (m === 'chern') ? 0.25 : 0.0;
+            document.getElementById('topo-flux').value = flux.toFixed(2);
+            document.getElementById('topo-fval').textContent = flux.toFixed(2);
+            document.querySelectorAll('.topo-btn').forEach(b => {
+                const a = b.dataset.m === m;
+                b.style.background = a ? '#38bdf8' : '#1e293b';
+                b.style.color = a ? '#081018' : '#e2e8f0';
+            });
+            hud.textContent = (m === 'chern')
+                ? 'Chern C = +1 · Click on the top edge to carve a defect – the chiral edge mode routes cleanly around it'
+                : 'Trivial C = 0 (Φ = 0) · Without magnetic flux, the wavepacket diffracts into the bulk & scatters off defects';
+            initLattice();
+        };
+        document.getElementById('topo-flux').addEventListener('input', e => {
+            flux = parseFloat(e.target.value);
+            document.getElementById('topo-fval').textContent = flux.toFixed(2);
+        });
+
+        const N = NX * NY;
+        const k1R = new Float32Array(N), k1I = new Float32Array(N);
+        const k2R = new Float32Array(N), k2I = new Float32Array(N);
+        const k3R = new Float32Array(N), k3I = new Float32Array(N);
+        const k4R = new Float32Array(N), k4I = new Float32Array(N);
+        const tmpR = new Float32Array(N), tmpI = new Float32Array(N);
+
+        // Compute d(psi)/dt = -i * H * psi  =>  dR/dt = Im(H*psi), dI/dt = -Re(H*psi)
+        function rhs(inR, inI, outR, outI) {
+            const twoPiPhi = 2 * Math.PI * flux;
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    if (!mask[i]) { outR[i] = 0; outI[i] = 0; continue; }
+                    let hr = 0, hi = 0;
+                    if (x + 1 < NX && mask[i + 1]) { hr -= inR[i + 1]; hi -= inI[i + 1]; }
+                    if (x - 1 >= 0 && mask[i - 1]) { hr -= inR[i - 1]; hi -= inI[i - 1]; }
+                    const c = Math.cos(twoPiPhi * x), s = Math.sin(twoPiPhi * x);
+                    if (y + 1 < NY && mask[i + NX]) {
+                        const nr = inR[i + NX], ni = inI[i + NX];
+                        hr -= (c * nr - s * ni); hi -= (s * nr + c * ni);
+                    }
+                    if (y - 1 >= 0 && mask[i - NX]) {
+                        const nr = inR[i - NX], ni = inI[i - NX];
+                        hr -= (c * nr + s * ni); hi -= (-s * nr + c * ni);
+                    }
+                    outR[i] = hi;
+                    outI[i] = -hr;
+                }
+            }
+        }
+
+        // 4th-order Runge-Kutta step for complex Hermitian Harper-Hofstadter Hamiltonian
+        // with gap-frequency harmonic edge source (E_gap = 1.65 in the Phi = 1/4 Chern gap)
+        function step(dt) {
+            const h2 = 0.5 * dt, h6 = dt / 6;
+            rhs(psiR, psiI, k1R, k1I);
+            for (let i = 0; i < N; i++) { tmpR[i] = psiR[i] + h2 * k1R[i]; tmpI[i] = psiI[i] + h2 * k1I[i]; }
+            rhs(tmpR, tmpI, k2R, k2I);
+            for (let i = 0; i < N; i++) { tmpR[i] = psiR[i] + h2 * k2R[i]; tmpI[i] = psiI[i] + h2 * k2I[i]; }
+            rhs(tmpR, tmpI, k3R, k3I);
+            for (let i = 0; i < N; i++) { tmpR[i] = psiR[i] + dt * k3R[i]; tmpI[i] = psiI[i] + dt * k3I[i]; }
+            rhs(tmpR, tmpI, k4R, k4I);
+            simTime += dt;
+            const omega = 1.65; // Inside the Phi = 1/4 bulk bandgap (1.08 < |E| < 2.0)
+            const driveAmp = 0.22 * dt;
+            const dR = driveAmp * Math.cos(-omega * simTime);
+            const dI = driveAmp * Math.sin(-omega * simTime);
+            for (let y = 0; y < NY; y++) {
+                // Gentle absorbing sponge along bottom and far-left edges so wave doesn't wrap into clutter
+                const dampY = (y > NY - 6) ? (1 - 0.04 * (y - (NY - 6)) / 5) : 1.0;
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    if (!mask[i]) { psiR[i] = 0; psiI[i] = 0; continue; }
+                    const dampX = (x < 4) ? (1 - 0.04 * (4 - x) / 4) : 1.0;
+                    const damp = dampX * dampY;
+                    psiR[i] = (psiR[i] + h6 * (k1R[i] + 2 * (k2R[i] + k3R[i]) + k4R[i])) * damp;
+                    psiI[i] = (psiI[i] + h6 * (k1I[i] + 2 * (k2I[i] + k3I[i]) + k4I[i])) * damp;
+                }
+            }
+            // Inject harmonic source on the top-left boundary (x = 8, y = 0..1)
+            const srcA = 8, srcB = NX + 8;
+            if (mask[srcA]) { psiR[srcA] += dR; psiI[srcA] += dI; }
+            if (mask[srcB]) { psiR[srcB] += 0.5 * dR; psiI[srcB] += 0.5 * dI; }
+        }
+
+        let carving = false;
+        function carve(e) {
+            const r = canvas.getBoundingClientRect();
+            if (!r.width || !r.height) return;
+            const gx = Math.floor(((e.clientX - r.left) / r.width) * NX);
+            const gy = Math.floor(((e.clientY - r.top) / r.height) * NY);
+            for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+                const x = gx + dx, y = gy + dy;
+                if (x >= 0 && x < NX && y >= 0 && y < NY && dx*dx + dy*dy <= 5) {
+                    mask[y * NX + x] = 0; psiR[y * NX + x] = 0; psiI[y * NX + x] = 0;
+                }
+            }
+        }
+        canvas.addEventListener('pointerdown', e => { carving = true; carve(e); });
+        window.addEventListener('pointerup', () => { carving = false; });
+        canvas.addEventListener('pointermove', e => { if (carving) carve(e); });
+
+        initLattice();
+        function render() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const W = Math.floor(canvas.clientWidth * dpr), H = Math.floor(canvas.clientHeight * dpr);
+            if (!W || !H) { requestAnimationFrame(render); return; }
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            for (let s = 0; s < 5; s++) step(0.085);
+
+            ctx.fillStyle = '#050811';
+            ctx.fillRect(0, 0, W, H);
+            const cw = W / NX, ch = H / NY;
+            for (let y = 0; y < NY; y++) {
+                for (let x = 0; x < NX; x++) {
+                    const i = y * NX + x;
+                    if (!mask[i]) {
+                        ctx.fillStyle = '#1e293b';
+                        ctx.fillRect(x * cw, y * ch, cw + 0.5, ch + 0.5);
+                        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+                        ctx.lineWidth = 0.75;
+                        ctx.strokeRect(x * cw + 0.5, y * ch + 0.5, cw - 1, ch - 1);
+                        continue;
+                    }
+                    const prob = psiR[i]*psiR[i] + psiI[i]*psiI[i];
+                    if (prob > 0.001) {
+                        const phase = Math.atan2(psiI[i], psiR[i]);
+                        const hue = ((phase / Math.PI) * 180 + 360) % 360;
+                        const lum = Math.min(76, 12 + Math.sqrt(prob) * 95);
+                        ctx.fillStyle = `hsl(${hue|0}, 92%, ${lum|0}%)`;
+                        ctx.fillRect(x * cw, y * ch, cw + 0.6, ch + 0.6);
+                    }
+                }
+            }
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    })();
+    </script>
+
+</body>
+
+</html>
